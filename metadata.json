@@ -1,0 +1,5 @@
+{
+  "name": "Coding Showdown Arena",
+  "description": "A real-time, multi-view game show platform for coding classes. Features synchronized state across tabs for Teacher, Student, and Spectator views. Includes 3 distinct rounds: Reflex Quiz, Debugging Challenge, and Tactical Finish Line.",
+  "requestFramePermissions": []
+}
