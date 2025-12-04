@@ -2,9 +2,9 @@
 import React, { useState, useEffect } from 'react';
 import { GoogleGenAI } from "@google/genai";
 import { GameState, GameRound, Question, Player, Difficulty, PackStatus, QuestionCategory } from '../types';
-import { ROUND_1_QUESTIONS, ROUND_2_QUESTIONS } from '../data/questions';
+import { ROUND_1_QUESTIONS, ROUND_2_QUESTIONS, ROUND_3_QUESTIONS } from '../data/questions';
 import { SOUND_EFFECTS } from '../config/assets';
-import { Play, Check, X, Sparkles, RefreshCw, PlusCircle, MinusCircle, Code, Eye, Timer, User, Zap, Users, Monitor, Trophy, LogOut, Filter, CheckCircle, Pointer, Shuffle, ListOrdered } from 'lucide-react';
+import { Play, Check, X, Sparkles, RefreshCw, PlusCircle, MinusCircle, Code, Eye, Timer, User, Zap, Users, Monitor, Trophy, LogOut, Filter, CheckCircle, Pointer, Shuffle, ListOrdered, ChevronDown, ChevronUp, Database } from 'lucide-react';
 
 interface Props {
   gameState: GameState;
@@ -16,6 +16,7 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
   const [customPrompt, setCustomPrompt] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
   const [viewingPlayerCode, setViewingPlayerCode] = useState<Player | null>(null);
+  const [showR3Bank, setShowR3Bank] = useState(false);
   
   // Round 2 Category Filter State
   const [r2Category, setR2Category] = useState<QuestionCategory>('LOGIC');
@@ -329,30 +330,83 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
               <div className="flex justify-between items-center">
                   <h2 className="text-xl font-bold flex items-center gap-2"><Sparkles className="text-cyber-secondary"/> Round 3: Tactical Finish</h2>
                   
-                  {/* QUESTION MODE TOGGLE */}
-                  <div className="flex bg-gray-800 p-1 rounded-lg border border-gray-700">
+                  <div className="flex gap-4 items-center">
+                      {/* QUESTION BANK TOGGLE */}
                       <button 
-                          onClick={() => actions.setRound3SelectionMode('RANDOM')}
-                          className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-bold transition-all ${
-                              gameState.round3SelectionMode === 'RANDOM' 
-                              ? 'bg-cyber-secondary text-white shadow-sm' 
-                              : 'text-gray-400 hover:text-white'
+                          onClick={() => setShowR3Bank(!showR3Bank)}
+                          className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-bold transition-all border border-gray-600 ${
+                              showR3Bank ? 'bg-gray-700 text-white' : 'bg-transparent text-gray-400 hover:text-white'
                           }`}
                       >
-                          <Shuffle size={14} /> Random
+                          <Database size={16} /> {showR3Bank ? 'Hide Question Bank' : 'View Question Bank'}
                       </button>
-                      <button 
-                          onClick={() => actions.setRound3SelectionMode('SEQUENTIAL')}
-                          className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-bold transition-all ${
-                              gameState.round3SelectionMode === 'SEQUENTIAL' 
-                              ? 'bg-cyber-secondary text-white shadow-sm' 
-                              : 'text-gray-400 hover:text-white'
-                          }`}
-                      >
-                          <ListOrdered size={14} /> Sequential
-                      </button>
+
+                      {/* QUESTION MODE TOGGLE */}
+                      <div className="flex bg-gray-800 p-1 rounded-lg border border-gray-700">
+                          <button 
+                              onClick={() => actions.setRound3SelectionMode('RANDOM')}
+                              className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-bold transition-all ${
+                                  gameState.round3SelectionMode === 'RANDOM' 
+                                  ? 'bg-cyber-secondary text-white shadow-sm' 
+                                  : 'text-gray-400 hover:text-white'
+                              }`}
+                          >
+                              <Shuffle size={14} /> Random
+                          </button>
+                          <button 
+                              onClick={() => actions.setRound3SelectionMode('SEQUENTIAL')}
+                              className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-bold transition-all ${
+                                  gameState.round3SelectionMode === 'SEQUENTIAL' 
+                                  ? 'bg-cyber-secondary text-white shadow-sm' 
+                                  : 'text-gray-400 hover:text-white'
+                              }`}
+                          >
+                              <ListOrdered size={14} /> Sequential
+                          </button>
+                      </div>
                   </div>
               </div>
+
+              {/* QUESTION BANK PREVIEW (COLLAPSIBLE) */}
+              {showR3Bank && (
+                  <div className="bg-slate-900 border border-gray-700 rounded-lg p-4 animate-[slideDown_0.3s]">
+                      <h3 className="text-gray-400 font-bold mb-4 flex items-center gap-2">
+                          <Database size={16} /> Question Bank Preview
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-80 overflow-y-auto pr-2 custom-scrollbar">
+                          {(['EASY', 'MEDIUM', 'HARD'] as Difficulty[]).map(diff => (
+                              <div key={diff} className="space-y-2">
+                                  <h4 className={`text-sm font-bold border-b pb-2 mb-2 sticky top-0 bg-slate-900 z-10 ${
+                                      diff === 'EASY' ? 'text-green-400 border-green-800' :
+                                      diff === 'MEDIUM' ? 'text-yellow-400 border-yellow-800' :
+                                      'text-red-400 border-red-800'
+                                  }`}>
+                                      {diff} QUESTIONS
+                                  </h4>
+                                  {ROUND_3_QUESTIONS.filter(q => q.difficulty === diff).map(q => {
+                                      const isUsed = gameState.usedQuestionIds.includes(q.id);
+                                      const isActive = gameState.activeQuestion?.id === q.id;
+                                      return (
+                                          <div 
+                                              key={q.id} 
+                                              className={`p-3 rounded text-sm border transition-all cursor-pointer group relative ${
+                                                  isActive ? 'bg-blue-900/40 border-blue-500' :
+                                                  isUsed ? 'bg-gray-800/50 border-transparent opacity-50' : 
+                                                  'bg-gray-800 border-gray-700 hover:border-gray-500'
+                                              }`}
+                                              onClick={() => actions.setQuestion(q)}
+                                          >
+                                              <div className="font-bold mb-1 group-hover:text-cyber-primary transition-colors">{q.content}</div>
+                                              <div className="text-xs text-gray-500 font-mono">{q.answer}</div>
+                                              {isActive && <div className="absolute top-2 right-2 text-blue-400"><Eye size={14}/></div>}
+                                          </div>
+                                      );
+                                  })}
+                              </div>
+                          ))}
+                      </div>
+                  </div>
+              )}
 
               {/* Host Monitor */}
               <div className="bg-slate-900 border border-cyber-primary rounded-lg p-4 relative">
