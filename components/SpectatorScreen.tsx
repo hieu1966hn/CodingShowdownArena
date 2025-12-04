@@ -1,7 +1,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { GameState, GameRound, Player } from '../types';
-import { Trophy, Timer, Code2, AlertCircle, Zap, User, Star, LogOut, Play } from 'lucide-react';
+import { Trophy, Timer, Code2, AlertCircle, Zap, User, Star, LogOut, Play, Download } from 'lucide-react';
 
 interface Props {
   gameState: GameState;
@@ -129,6 +129,29 @@ const SpectatorScreen: React.FC<Props> = ({ gameState, onLeave }) => {
     const activePlayerId = isRound3 ? gameState.round3TurnPlayerId : (isRound1 ? gameState.round1TurnPlayerId : null);
     const activePlayerName = activePlayerId ? gameState.players.find(p => p.id === activePlayerId)?.name : null;
 
+    const handleDownloadCSV = () => {
+        const headers = ["Rank", "Name", "Total Score", "Round 2 Time (s)", "Round 3 Correct"];
+        const rows = sortedPlayers.map((p, i) => {
+            const r3Correct = p.round3Pack.filter(item => item.status === 'CORRECT').length;
+            return [
+                i + 1,
+                `"${p.name}"`, // Quote name to handle commas
+                p.score,
+                p.submittedRound2 && p.round2Time ? p.round2Time.toFixed(2) : "N/A",
+                `${r3Correct}/3`
+            ].join(",");
+        });
+
+        const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows].join("\n");
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `CodingShowdown_Results_${gameState.roomId || 'Session'}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
     return (
         <div className="min-h-screen bg-cyber-dark text-white p-6 flex flex-col relative overflow-hidden">
             {/* Header */}
@@ -199,9 +222,18 @@ const SpectatorScreen: React.FC<Props> = ({ gameState, onLeave }) => {
                                 <Trophy size={100} className="text-yellow-400 relative z-10 drop-shadow-[0_0_15px_rgba(250,204,21,0.8)]" />
                             </div>
 
-                            <h2 className="text-7xl md:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-b from-yellow-200 to-yellow-600 mb-16 drop-shadow-2xl tracking-tight">
+                            <h2 className="text-7xl md:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-b from-yellow-200 to-yellow-600 mb-6 drop-shadow-2xl tracking-tight">
                                 WINNERS PODIUM
                             </h2>
+
+                            {/* Export Button */}
+                            <button 
+                                onClick={handleDownloadCSV}
+                                className="mb-12 flex items-center gap-2 px-6 py-3 bg-gray-800 hover:bg-gray-700 rounded-full border border-gray-600 transition-all hover:scale-105 group"
+                            >
+                                <Download size={20} className="text-cyan-400 group-hover:text-white" />
+                                <span className="text-gray-300 group-hover:text-white font-bold">Download Results (CSV)</span>
+                            </button>
                             
                             <div className="flex justify-center items-end gap-8 h-96">
                                 {/* 2nd Place */}
@@ -221,7 +253,6 @@ const SpectatorScreen: React.FC<Props> = ({ gameState, onLeave }) => {
                                 {/* 1st Place */}
                                 {sortedPlayers[0] && (
                                     <div className="flex flex-col items-center w-80 z-20 animate-[slideUp_1s_ease-out]">
-                                        <Trophy size={64} className="text-yellow-400 mb-4 animate-bounce" />
                                         <div className="mb-4 text-center">
                                             <div className="text-5xl font-bold text-yellow-300">{sortedPlayers[0].name}</div>
                                             <div className="text-2xl text-yellow-500 font-bold">{sortedPlayers[0].score} pts</div>

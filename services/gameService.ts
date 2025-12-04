@@ -70,10 +70,20 @@ export const useGameSync = () => {
       if (!classCode) return false;
       const code = classCode.trim().toUpperCase();
       try {
-          // Overwrite if exists, or create new. Teachers own the room.
-          const newState = { ...INITIAL_STATE, roomId: code };
-          await setDoc(doc(db, "rooms", code), newState);
-          setRoomId(code);
+          // Check if room exists first to avoid accidental wipes
+          const ref = doc(db, "rooms", code);
+          const snap = await getDoc(ref);
+          
+          if (snap.exists()) {
+              // Resume existing room
+              console.log("Room exists, resuming...");
+              setRoomId(code);
+          } else {
+              // Create new room
+              const newState = { ...INITIAL_STATE, roomId: code };
+              await setDoc(ref, newState);
+              setRoomId(code);
+          }
           return true;
       } catch (e) {
           console.error("Create Room Error", e);
@@ -157,8 +167,8 @@ export const useGameSync = () => {
         const updatedPlayers = isRound2 ? prev.players.map(p => ({
             ...p,
             submittedRound2: false,
-            round2Code: null, // Fixed: use null instead of undefined
-            round2Time: null  // Fixed: use null instead of undefined
+            round2Code: null, 
+            round2Time: null
         })) : prev.players;
 
         return { 
@@ -219,7 +229,7 @@ export const useGameSync = () => {
   const clearBuzzers = () => {
     updateState((prev) => ({
       buzzerLocked: false,
-      players: prev.players.map(p => ({ ...p, buzzedAt: null })) // Fixed: use null instead of undefined
+      players: prev.players.map(p => ({ ...p, buzzedAt: null })) 
     }));
   };
 
@@ -309,14 +319,31 @@ export const useGameSync = () => {
       }));
   };
 
-  const endGame = () => {
-    updateState({
+  const endGame = async () => {
+    // 1. Update Game State to Over
+    await updateState({
         round: GameRound.GAME_OVER,
         message: "CONGRATULATIONS!",
         activeQuestion: null,
         timerEndTime: null,
         buzzerLocked: true
     });
+
+    // 2. Archive to History
+    if (roomId) {
+        const archiveId = `${roomId}_${new Date().toISOString().replace(/[:.]/g, '-')}`;
+        try {
+            // Save a snapshot of the current state to the 'history' collection
+            await setDoc(doc(db, "history", archiveId), {
+                ...gameState,
+                archivedAt: new Date(),
+                roomId: roomId
+            });
+            console.log("Game archived successfully:", archiveId);
+        } catch (e) {
+            console.error("Failed to archive game:", e);
+        }
+    }
   };
 
   const resetGame = () => {
@@ -333,7 +360,7 @@ export const useGameSync = () => {
     authLoading,
     login,
     logout,
-    loginError, // Exported for App.tsx
+    loginError, 
     
     roomId,
     roomError,
@@ -361,7 +388,7 @@ export const useGameSync = () => {
     setRound3Turn,
     revealRound3Question,
     startRound3Timer,
-    joinGame, // Now async
+    joinGame, 
     forceSync
   };
 };
