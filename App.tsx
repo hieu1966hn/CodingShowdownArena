@@ -33,12 +33,19 @@ const App: React.FC = () => {
       if (hostname && hostname !== 'about:blank' && hostname !== '') {
           setCurrentDomain(hostname);
       } else {
-          setCurrentDomain("Click 'Open in New Tab' to see domain");
+          // Fallback detection
+          try {
+             const url = new URL(window.location.href);
+             if (url.hostname) setCurrentDomain(url.hostname);
+             else setCurrentDomain("Unable to detect. Open in New Tab.");
+          } catch(e) {
+             setCurrentDomain("Click 'Open in New Tab' to see domain");
+          }
       }
   }, []);
 
   const handleCopyDomain = () => {
-      if (currentDomain && !currentDomain.includes("Open in New Tab")) {
+      if (currentDomain && !currentDomain.includes("Open")) {
           navigator.clipboard.writeText(currentDomain);
           setCopied(true);
           setTimeout(() => setCopied(false), 2000);
@@ -66,64 +73,70 @@ const App: React.FC = () => {
                 <h1 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500 mb-6">
                     CODING SHOWDOWN
                 </h1>
-                <p className="text-gray-400 mb-8">Please sign in to access the arena.</p>
                 
                 {inIframe && (
-                    <div className="bg-yellow-900/50 border border-yellow-500 text-yellow-200 p-4 rounded-lg mb-6 text-sm text-left flex flex-col gap-2">
+                    <div className="bg-blue-900/40 border border-blue-500 text-blue-200 p-4 rounded-lg mb-6 text-sm text-left flex flex-col gap-2">
                          <div className="flex items-center gap-2 font-bold">
-                             <AlertTriangle size={18} /> Preview Mode Detected
+                             <Maximize size={18} /> Recommended
                          </div>
-                         <p>Google Login may be blocked inside this preview window.</p>
+                         <p>For the best experience (and to fix login issues), open this app in a new tab.</p>
                          <button 
                             onClick={openNewTab}
-                            className="bg-yellow-600 hover:bg-yellow-500 text-black font-bold py-2 px-4 rounded flex items-center justify-center gap-2 mt-2 transition-transform hover:scale-105"
+                            className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded flex items-center justify-center gap-2 mt-2 transition-transform hover:scale-105"
                          >
-                             <Maximize size={18} /> Open in New Tab
+                             Open in New Tab
                          </button>
                     </div>
                 )}
                 
                 {loginError && (
-                    <div className="bg-red-900/50 border border-red-500 text-red-200 p-4 rounded-lg mb-6 text-sm text-left flex gap-3 animate-pulse">
-                        <AlertTriangle className="flex-shrink-0 text-red-400" />
-                        <div className="break-all">
-                            <strong>Login Failed:</strong> {loginError}
+                    <div className="bg-red-900/80 border-2 border-red-500 text-white p-4 rounded-lg mb-6 text-sm text-left animate-pulse">
+                        <div className="flex gap-2 items-start mb-2">
+                            <AlertTriangle className="flex-shrink-0 text-red-400" size={20} />
+                            <strong className="text-lg">Login Failed</strong>
                         </div>
+                        <div className="break-words mb-2 opacity-90 text-xs font-mono bg-black/30 p-2 rounded">
+                            {loginError}
+                        </div>
+                        {loginError.includes("unauthorized-domain") && (
+                            <div className="mt-2 text-yellow-300 font-bold">
+                                Action Required: Add "{currentDomain}" to Firebase Authorized Domains.
+                            </div>
+                        )}
                     </div>
                 )}
 
+                <p className="text-gray-400 mb-6">Please sign in to access the arena.</p>
+
                 <button 
                     onClick={gameService.login}
-                    className="w-full py-4 bg-white hover:bg-gray-200 text-black font-bold rounded-lg flex items-center justify-center gap-3 transition-transform hover:scale-105"
+                    className="w-full py-4 bg-white hover:bg-gray-200 text-black font-bold rounded-lg flex items-center justify-center gap-3 transition-transform hover:scale-105 mb-8"
                 >
                     <LogIn /> Sign in with Google
                 </button>
 
                 {/* DOMAIN HELPER */}
-                <div className="mt-8 pt-6 border-t border-gray-700 text-left">
-                    <p className="text-xs text-gray-500 uppercase font-bold mb-2">Authorize this domain:</p>
-                    <p className="text-xs text-gray-400 mb-2">
-                        1. Go to <a href="https://console.firebase.google.com/" target="_blank" className="text-cyan-400 underline">Firebase Console</a> &gt; Auth &gt; Settings &gt; Authorized Domains.<br/>
-                        2. Click "Add Domain" and paste the link below:
-                    </p>
-                    <div className="bg-black p-3 rounded border border-gray-600 font-mono text-xs text-green-400 break-all flex justify-between items-center group relative min-h-[48px]">
-                        <span className={currentDomain.includes("Open") ? "text-yellow-500" : ""}>
+                <div className="pt-6 border-t border-gray-700 text-left">
+                    <div className="flex items-center gap-2 mb-2">
+                        <Key size={16} className="text-gray-500"/>
+                        <p className="text-xs text-gray-500 uppercase font-bold">Domain Authorization Required</p>
+                    </div>
+                    <div className="bg-black p-3 rounded border border-gray-600 font-mono text-sm text-green-400 break-all flex justify-between items-center group relative min-h-[48px]">
+                        <span className={currentDomain.includes("Open") ? "text-yellow-500 italic" : ""}>
                             {currentDomain || "Detecting..."}
                         </span>
                         <button 
                             onClick={handleCopyDomain}
-                            className="ml-2 p-2 bg-gray-800 hover:bg-gray-700 rounded text-white transition-colors border border-gray-700"
-                            title="Copy to clipboard"
-                            disabled={currentDomain.includes("Open")}
+                            className="ml-2 p-2 bg-gray-800 hover:bg-gray-700 rounded text-white transition-colors border border-gray-700 flex-shrink-0"
+                            title="Copy Domain"
+                            disabled={!currentDomain || currentDomain.includes("Open")}
                         >
-                            {copied ? <Check size={14} className="text-green-500"/> : <Copy size={14}/>}
+                            {copied ? <Check size={16} className="text-green-500"/> : <Copy size={16}/>}
                         </button>
                     </div>
-                    {!inIframe && loginError && loginError.includes("unauthorized-domain") && (
-                        <p className="text-xs text-yellow-500 mt-2">
-                            * Copy the domain above exactly and add it to Firebase.
-                        </p>
-                    )}
+                    <p className="text-[10px] text-gray-500 mt-2">
+                        Go to <a href="https://console.firebase.google.com/" target="_blank" className="text-cyan-400 underline hover:text-cyan-300">Firebase Console</a> &gt; Authentication &gt; Settings &gt; Authorized Domains and add the domain above.
+                    </p>
                 </div>
             </div>
         </div>
