@@ -18,7 +18,8 @@ const App: React.FC = () => {
   
   // UX State
   const [isTeacherMode, setIsTeacherMode] = useState(false);
-  const [forceStudentMode, setForceStudentMode] = useState(false);
+  // Default: Teacher options are HIDDEN. Only shown if ?mode=Teacher
+  const [allowTeacherAccess, setAllowTeacherAccess] = useState(false);
 
   // Detect iframe and URL params on mount
   useEffect(() => {
@@ -29,10 +30,11 @@ const App: React.FC = () => {
           setInIframe(true);
       }
 
-      // Check URL for mode=student
+      // Check URL for mode=Teacher (Case insensitive)
       const params = new URLSearchParams(window.location.search);
-      if (params.get('mode') === 'student') {
-          setForceStudentMode(true);
+      const mode = params.get('mode');
+      if (mode && mode.toLowerCase() === 'teacher') {
+          setAllowTeacherAccess(true);
       }
   }, []);
 
@@ -171,7 +173,8 @@ const App: React.FC = () => {
                             </button>
                         )}
                         
-                        {!forceStudentMode && (
+                        {/* ONLY SHOW THIS TOGGLE IF URL HAS ?mode=Teacher */}
+                        {allowTeacherAccess && (
                             <button 
                                 onClick={() => setIsTeacherMode(!isTeacherMode)}
                                 className="text-xs text-gray-500 hover:text-white underline text-center mt-2"
