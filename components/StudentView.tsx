@@ -1,6 +1,8 @@
+
 import React, { useState } from 'react';
-import { GameState, GameRound, Player } from '../types';
-import { Code, Send, Bell, Mic, LogOut } from 'lucide-react';
+import { GameState, GameRound, Player, Difficulty } from '../types';
+import { Code, Send, Bell, Mic, LogOut, CheckCircle } from 'lucide-react';
+import { SOUND_EFFECTS } from '../constants';
 
 interface Props {
   gameState: GameState;
@@ -8,16 +10,61 @@ interface Props {
   onBuzz: () => void;
   onSubmitRound2: (code: string) => void;
   onLeave: () => void;
+  // New action for R3 pack selection (would be passed from app/service)
 }
 
-const StudentView: React.FC<Props> = ({ gameState, playerId, onBuzz, onSubmitRound2, onLeave }) => {
+// We need to extend props to include the service directly or pass the function
+// For simplicity in this edit, I'll assume we pass a generic action or modify App.tsx
+// But since I can't edit App.tsx to pass new props easily without updating it too,
+// I will simulate the service call logic if possible, or expect `onSubmitPack`
+// Let's assume `gameService` is available or passed via props.
+// I will update App.tsx to pass `onSetPack`.
+
+// Actually, I can't change App.tsx signature in this file block.
+// I will rely on `window.dispatchEvent` or localStorage hack? No, cleaner to update App.tsx.
+// I will add `onSetRound3Pack` to Props.
+
+interface Props {
+  gameState: GameState;
+  playerId: string;
+  onBuzz: () => void;
+  onSubmitRound2: (code: string) => void;
+  onSetRound3Pack?: (pack: any[]) => void; // Optional to avoid breaking if parent not updated yet
+  onLeave: () => void;
+}
+
+const StudentView: React.FC<Props> = ({ gameState, playerId, onBuzz, onSubmitRound2, onSetRound3Pack, onLeave }) => {
   const me = gameState.players.find(p => p.id === playerId);
   const [codeAnswer, setCodeAnswer] = useState('');
+  
+  // Round 3 Selection State
+  const [packSelection, setPackSelection] = useState<Difficulty[]>(['EASY', 'MEDIUM', 'HARD']);
+
+  // Helper for Sound Effects
+  const playSound = (type: keyof typeof SOUND_EFFECTS) => {
+    const audio = new Audio(SOUND_EFFECTS[type]);
+    audio.volume = 0.5;
+    audio.play().catch(e => console.error("Audio playback failed:", e));
+  };
 
   if (!me) return <div className="text-white p-10">Error: Player not found. Please refresh.</div>;
 
   const isRound2 = gameState.round === GameRound.ROUND_2;
   const isRound3 = gameState.round === GameRound.ROUND_3;
+
+  const handlePackChange = (index: number, value: Difficulty) => {
+      const newPack = [...packSelection];
+      newPack[index] = value;
+      setPackSelection(newPack);
+  };
+
+  const submitPack = () => {
+      if (onSetRound3Pack) {
+          const packItems = packSelection.map(diff => ({ difficulty: diff, status: 'PENDING' }));
+          onSetRound3Pack(packItems);
+          playSound('SCORE_UP');
+      }
+  };
 
   return (
     <div className="min-h-screen bg-cyber-dark text-white p-4 flex flex-col">
@@ -70,6 +117,7 @@ const StudentView: React.FC<Props> = ({ gameState, playerId, onBuzz, onSubmitRou
                     onClick={() => {
                         onSubmitRound2(codeAnswer);
                         setCodeAnswer('');
+                        playSound('CORRECT'); // Play sound on submit
                     }}
                     className="w-full bg-cyber-primary hover:bg-cyan-600 text-black font-bold py-4 rounded-lg flex items-center justify-center gap-2 transition-colors"
                 >
@@ -89,53 +137,99 @@ const StudentView: React.FC<Props> = ({ gameState, playerId, onBuzz, onSubmitRou
         {/* ROUND 3: TACTICAL FINISH */}
         {isRound3 && (
             <div className="w-full max-w-md">
-                 {/* Logic for Round 3 */}
-                 {gameState.round3TurnPlayerId === me.id ? (
-                     // IT IS MY TURN
-                     <div className="text-center">
-                         <div className="bg-blue-900/50 p-6 rounded-full inline-block mb-4 animate-pulse">
-                            <Mic size={64} className="text-blue-300" />
+                 
+                 {/* PACK SELECTION PHASE */}
+                 {!me.round3PackLocked ? (
+                     <div className="bg-slate-800 p-6 rounded-xl border border-cyber-primary">
+                         <h2 className="text-2xl font-bold mb-4 text-center">Choose Your Challenge</h2>
+                         <p className="text-gray-400 text-center mb-6 text-sm">Select 3 difficulty levels for your turn.</p>
+                         
+                         <div className="space-y-4 mb-8">
+                             {[0, 1, 2].map((idx) => (
+                                 <div key={idx} className="flex items-center gap-4">
+                                     <span className="font-bold text-gray-500">Q{idx+1}</span>
+                                     <select 
+                                        value={packSelection[idx]}
+                                        onChange={(e) => handlePackChange(idx, e.target.value as Difficulty)}
+                                        className="flex-grow bg-black border border-gray-600 rounded p-3 text-white focus:border-cyber-primary focus:outline-none"
+                                     >
+                                         <option value="EASY">EASY (20pts)</option>
+                                         <option value="MEDIUM">MEDIUM (30pts)</option>
+                                         <option value="HARD">HARD (40pts)</option>
+                                     </select>
+                                 </div>
+                             ))}
                          </div>
-                         <h2 className="text-3xl font-bold text-blue-400 mb-2">YOUR TURN!</h2>
-                         <p className="text-xl">Answer the question verbally.</p>
-                         {gameState.round3Phase === 'MAIN_ANSWER' && (
-                             <div className="mt-4 text-yellow-400 font-mono text-2xl">Time is ticking...</div>
-                         )}
+
+                         <button 
+                            onClick={submitPack}
+                            className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-bold py-4 rounded-lg shadow-lg transform transition-all active:scale-95"
+                         >
+                             LOCK IN SELECTION
+                         </button>
                      </div>
                  ) : (
-                     // NOT MY TURN
+                     // GAMEPLAY PHASE
                      <>
-                        {gameState.round3Phase === 'STEAL_WINDOW' ? (
-                             // STEAL PHASE - SHOW BUZZER
-                             <button 
-                                disabled={gameState.buzzerLocked || !!me.buzzedAt}
-                                onMouseDown={onBuzz}
-                                onTouchStart={onBuzz} 
-                                className={`w-full aspect-square rounded-full flex flex-col items-center justify-center border-8 shadow-[0_0_50px_rgba(0,0,0,0.5)] transition-all transform active:scale-95
-                                    ${me.buzzedAt ? 'bg-yellow-500 border-yellow-700' : 
-                                      gameState.buzzerLocked ? 'bg-gray-700 border-gray-800 cursor-not-allowed grayscale' : 
-                                      'bg-red-600 border-red-800 hover:bg-red-500 hover:shadow-[0_0_30px_rgba(244,63,94,0.6)] cursor-pointer'}
-                                `}
-                            >
-                                <Bell size={64} className="text-white mb-2" />
-                                <span className="text-3xl font-black text-white uppercase tracking-widest">
-                                    {me.buzzedAt ? 'BUZZED!' : 'STEAL!'}
-                                </span>
-                            </button>
-                        ) : (
-                            // LISTENING PHASE
-                            <div className="text-center text-gray-500">
-                                {gameState.round3TurnPlayerId ? (
-                                    <div className="flex flex-col items-center">
-                                        <div className="text-2xl text-white mb-2">
-                                            {gameState.players.find(p => p.id === gameState.round3TurnPlayerId)?.name} is answering...
-                                        </div>
-                                        <div className="text-sm">Get ready to steal if they fail!</div>
-                                    </div>
-                                ) : (
-                                    "Waiting for turn selection..."
+                        {gameState.round3TurnPlayerId === me.id ? (
+                            // IT IS MY TURN
+                            <div className="text-center">
+                                <div className="bg-blue-900/50 p-6 rounded-full inline-block mb-4 animate-pulse">
+                                    <Mic size={64} className="text-blue-300" />
+                                </div>
+                                <h2 className="text-3xl font-bold text-blue-400 mb-2">YOUR TURN!</h2>
+                                <p className="text-xl">Answer the question verbally.</p>
+                                
+                                <div className="mt-6 flex justify-center gap-2">
+                                    {me.round3Pack.map((item, idx) => (
+                                        <div key={idx} className={`w-3 h-3 rounded-full ${item.status === 'PENDING' ? 'bg-gray-600' : item.status === 'CORRECT' ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                                    ))}
+                                </div>
+
+                                {gameState.round3Phase === 'MAIN_ANSWER' && (
+                                    <div className="mt-4 text-yellow-400 font-mono text-2xl">Time is ticking...</div>
                                 )}
                             </div>
+                        ) : (
+                            // NOT MY TURN
+                            <>
+                                {gameState.round3Phase === 'STEAL_WINDOW' ? (
+                                    // STEAL PHASE - SHOW BUZZER
+                                    <button 
+                                        disabled={gameState.buzzerLocked || !!me.buzzedAt}
+                                        onMouseDown={onBuzz}
+                                        onTouchStart={onBuzz} 
+                                        className={`w-full aspect-square rounded-full flex flex-col items-center justify-center border-8 shadow-[0_0_50px_rgba(0,0,0,0.5)] transition-all transform active:scale-95
+                                            ${me.buzzedAt ? 'bg-yellow-500 border-yellow-700' : 
+                                            gameState.buzzerLocked ? 'bg-gray-700 border-gray-800 cursor-not-allowed grayscale' : 
+                                            'bg-red-600 border-red-800 hover:bg-red-500 hover:shadow-[0_0_30px_rgba(244,63,94,0.6)] cursor-pointer'}
+                                        `}
+                                    >
+                                        <Bell size={64} className="text-white mb-2" />
+                                        <span className="text-3xl font-black text-white uppercase tracking-widest">
+                                            {me.buzzedAt ? 'BUZZED!' : 'STEAL!'}
+                                        </span>
+                                    </button>
+                                ) : (
+                                    // LISTENING PHASE
+                                    <div className="text-center text-gray-500">
+                                        {gameState.round3TurnPlayerId ? (
+                                            <div className="flex flex-col items-center">
+                                                <div className="text-2xl text-white mb-2">
+                                                    {gameState.players.find(p => p.id === gameState.round3TurnPlayerId)?.name} is answering...
+                                                </div>
+                                                <div className="text-sm">Get ready to steal if they fail!</div>
+                                            </div>
+                                        ) : (
+                                            <div className="flex flex-col items-center gap-4">
+                                                <CheckCircle size={48} className="text-green-500"/>
+                                                <div className="text-xl text-white">Selection Locked!</div>
+                                                <p>Waiting for teacher to start turns...</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </>
                         )}
                      </>
                  )}

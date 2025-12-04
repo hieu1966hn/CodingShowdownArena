@@ -1,8 +1,9 @@
+
 import React, { useState, useEffect } from 'react';
 import { GoogleGenAI } from "@google/genai";
-import { GameState, GameRound, Question, Player, Difficulty, PackStatus } from '../types';
-import { ROUND_1_QUESTIONS, ROUND_2_CHALLENGE, SOUND_EFFECTS } from '../constants';
-import { Play, Check, X, Sparkles, RefreshCw, PlusCircle, MinusCircle, Code, Eye, Timer, User, Zap, Users, Monitor, Trophy, LogOut } from 'lucide-react';
+import { GameState, GameRound, Question, Player, Difficulty, PackStatus, QuestionCategory } from '../types';
+import { ROUND_1_QUESTIONS, ROUND_2_QUESTIONS, SOUND_EFFECTS } from '../constants';
+import { Play, Check, X, Sparkles, RefreshCw, PlusCircle, MinusCircle, Code, Eye, Timer, User, Zap, Users, Monitor, Trophy, LogOut, Filter, CheckCircle, Pointer } from 'lucide-react';
 
 interface Props {
   gameState: GameState;
@@ -14,6 +15,9 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
   const [customPrompt, setCustomPrompt] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
   const [viewingPlayerCode, setViewingPlayerCode] = useState<Player | null>(null);
+  
+  // Round 2 Category Filter State
+  const [r2Category, setR2Category] = useState<QuestionCategory>('LOGIC');
 
   // Helper for Sound Effects
   const playSound = (type: keyof typeof SOUND_EFFECTS) => {
@@ -77,16 +81,26 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                 <div key={p.id} className={`p-2 rounded border flex justify-between items-center transition-colors ${p.buzzedAt ? 'bg-yellow-900/50 border-yellow-500 animate-pulse' : 'border-gray-600 bg-gray-700/50'}`}>
                     <span className="truncate w-20 font-bold">{p.name}</span>
                     <div className="flex items-center gap-1">
-                        <button onMouseEnter={() => playSound('SCORE_DOWN')} onClick={() => { actions.updateScore(p.id, -10); }} className="text-red-400 hover:text-white hover:bg-red-600 p-1 rounded transition-colors"><MinusCircle size={16}/></button>
+                        <button 
+                            onClick={() => { actions.updateScore(p.id, -10); playSound('SCORE_DOWN'); }} 
+                            className="text-red-400 hover:text-white hover:bg-red-600 p-1 rounded transition-colors"
+                        >
+                            <MinusCircle size={16}/>
+                        </button>
                         <span className="w-8 text-center font-mono font-bold">{p.score}</span>
-                        <button onMouseEnter={() => playSound('SCORE_UP')} onClick={() => { actions.updateScore(p.id, 10); }} className="text-green-400 hover:text-white hover:bg-green-600 p-1 rounded transition-colors"><PlusCircle size={16}/></button>
+                        <button 
+                            onClick={() => { actions.updateScore(p.id, 10); playSound('SCORE_UP'); }} 
+                            className="text-green-400 hover:text-white hover:bg-green-600 p-1 rounded transition-colors"
+                        >
+                            <PlusCircle size={16}/>
+                        </button>
                     </div>
                 </div>
             ))}
         </div>
         <div className="flex gap-2 mt-4">
-             <button onMouseEnter={() => playSound('SCORE_DOWN')} onClick={actions.clearBuzzers} className="px-3 py-1 bg-gray-600 hover:bg-gray-500 rounded text-sm">Reset Buzzers</button>
-             <button onMouseEnter={() => playSound('SCORE_DOWN')} onClick={actions.stopTimer} className="px-3 py-1 bg-red-900 hover:bg-red-700 text-red-100 rounded text-sm">Stop Timer</button>
+             <button onClick={() => { actions.clearBuzzers(); playSound('SCORE_DOWN'); }} className="px-3 py-1 bg-gray-600 hover:bg-gray-500 rounded text-sm">Reset Buzzers</button>
+             <button onClick={() => { actions.stopTimer(); playSound('SCORE_DOWN'); }} className="px-3 py-1 bg-red-900 hover:bg-red-700 text-red-100 rounded text-sm">Stop Timer</button>
         </div>
     </div>
   );
@@ -150,9 +164,43 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
       {/* ROUND 1 VIEW */}
       {gameState.round === GameRound.ROUND_1 && (
           <div className="space-y-4">
-               <h2 className="text-xl font-bold flex items-center gap-2"><Sparkles className="text-yellow-400"/> Round 1: Reflex Quiz</h2>
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                   {ROUND_1_QUESTIONS.map(q => (
+               <div className="flex justify-between items-center">
+                   <h2 className="text-xl font-bold flex items-center gap-2"><Sparkles className="text-yellow-400"/> Round 1: Reflex Quiz</h2>
+                   <div className="text-gray-400 text-sm italic">
+                       Used: {gameState.usedQuestionIds.filter(id => ROUND_1_QUESTIONS.some(q => q.id === id)).length} / {ROUND_1_QUESTIONS.length}
+                   </div>
+               </div>
+
+               {/* STUDENT SELECTION BAR */}
+               <div className="bg-gray-800 p-4 rounded-lg border border-gray-700">
+                    <h3 className="text-gray-300 font-bold mb-3 flex items-center gap-2">
+                        <Pointer size={16} /> Select Student to Answer:
+                    </h3>
+                    <div className="flex flex-wrap gap-2">
+                        {gameState.players.map(p => (
+                            <button
+                                key={p.id}
+                                onClick={() => actions.setRound1Turn(gameState.round1TurnPlayerId === p.id ? null : p.id)}
+                                className={`px-4 py-2 rounded-full font-bold border-2 transition-all ${
+                                    gameState.round1TurnPlayerId === p.id 
+                                    ? 'bg-cyber-primary text-black border-cyber-primary shadow-[0_0_10px_#06b6d4]' 
+                                    : 'bg-transparent border-gray-600 hover:border-gray-400 text-gray-300'
+                                }`}
+                            >
+                                {p.name} {gameState.round1TurnPlayerId === p.id && "(Active)"}
+                            </button>
+                        ))}
+                        <button 
+                            onClick={() => actions.setRound1Turn(null)}
+                            className="px-4 py-2 rounded-full font-bold border-2 border-transparent hover:bg-gray-700 text-gray-400 text-sm"
+                        >
+                            Clear Selection
+                        </button>
+                    </div>
+               </div>
+               
+               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 h-[500px] overflow-y-auto pr-2">
+                   {ROUND_1_QUESTIONS.filter(q => !gameState.usedQuestionIds.includes(q.id)).map(q => (
                        <button 
                           key={q.id}
                           onClick={() => actions.setQuestion(q)}
@@ -162,9 +210,14 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                            <div className="text-sm text-gray-400">Ans: <span className="text-green-400">{q.answer}</span></div>
                        </button>
                    ))}
+                   {ROUND_1_QUESTIONS.every(q => gameState.usedQuestionIds.includes(q.id)) && (
+                       <div className="col-span-full text-center p-8 text-gray-500">
+                           All questions in this round have been used!
+                       </div>
+                   )}
                </div>
                {gameState.activeQuestion && (
-                   <div className="fixed bottom-0 left-0 w-full bg-gray-900 p-4 border-t border-gray-700 flex justify-center gap-4">
+                   <div className="fixed bottom-0 left-0 w-full bg-gray-900 p-4 border-t border-gray-700 flex justify-center gap-4 z-10">
                        <button onClick={() => actions.startTimer(5)} className="px-6 py-3 bg-blue-600 rounded font-bold hover:bg-blue-500 flex items-center gap-2">
                            <Timer size={20}/> Start 5s Timer
                        </button>
@@ -181,28 +234,72 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
           <div className="space-y-6">
               <h2 className="text-xl font-bold flex items-center gap-2"><Code className="text-green-400"/> Round 2: Obstacle Run</h2>
               
-              <div className="bg-slate-800 p-6 rounded-xl border border-gray-700">
-                  <h3 className="text-lg font-bold mb-4">Debugging Challenge</h3>
-                  <pre className="bg-black p-4 rounded text-sm font-mono text-gray-300 mb-4 overflow-x-auto">
-                      {ROUND_2_CHALLENGE.codeSnippet}
-                  </pre>
-                  <div className="mb-4">
-                      <strong>Correct Answer:</strong>
-                      <pre className="bg-black p-4 rounded text-sm font-mono text-green-400 mt-2">
-                          {ROUND_2_CHALLENGE.answer}
-                      </pre>
-                  </div>
-                  <button 
-                      onClick={() => {
-                          actions.setQuestion(ROUND_2_CHALLENGE);
-                          actions.updateState({ round2StartedAt: Date.now() });
-                      }}
-                      className="w-full py-4 bg-purple-600 hover:bg-purple-500 rounded font-bold text-lg"
-                  >
-                      LAUNCH CHALLENGE (Start Timer)
-                  </button>
+              {/* Category Tabs */}
+              <div className="flex gap-2 overflow-x-auto pb-2">
+                  {(['LOGIC', 'SYNTAX', 'ALGO', 'OUTPUT'] as QuestionCategory[]).map(cat => (
+                      <button
+                        key={cat}
+                        onClick={() => setR2Category(cat)}
+                        className={`px-4 py-2 rounded-full font-bold text-sm whitespace-nowrap transition-colors ${r2Category === cat ? 'bg-cyber-primary text-black' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}
+                      >
+                          {cat === 'LOGIC' ? 'Tư duy Logic' : cat === 'SYNTAX' ? 'Lỗi Cú pháp' : cat === 'ALGO' ? 'Sắp xếp Thuật toán' : 'Dự đoán Output'}
+                      </button>
+                  ))}
               </div>
 
+              {/* Question Selection Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 max-h-[300px] overflow-y-auto">
+                   {ROUND_2_QUESTIONS
+                        .filter(q => q.category === r2Category && !gameState.usedQuestionIds.includes(q.id))
+                        .map((q) => (
+                       <button 
+                           key={q.id}
+                           onClick={() => actions.setQuestion(q)}
+                           className={`p-4 border rounded text-left hover:bg-slate-700 transition-colors ${gameState.activeQuestion?.id === q.id ? 'bg-slate-800 border-cyber-primary ring-1 ring-cyber-primary' : 'bg-gray-800 border-gray-600'}`}
+                       >
+                           <h4 className="font-bold text-cyber-primary mb-1">{q.content}</h4>
+                           <p className="text-xs text-gray-400 truncate font-mono">{q.answer}</p>
+                       </button>
+                   ))}
+                   {ROUND_2_QUESTIONS.filter(q => q.category === r2Category && !gameState.usedQuestionIds.includes(q.id)).length === 0 && (
+                       <div className="col-span-full text-center text-gray-500 py-4">No more questions in this category.</div>
+                   )}
+              </div>
+
+              {/* Active Challenge Display */}
+              {gameState.activeQuestion && (
+                  <div className="bg-slate-800 p-6 rounded-xl border border-gray-700 animate-[fadeIn_0.5s]">
+                      <div className="flex justify-between items-start mb-4">
+                          <h3 className="text-lg font-bold">Current Challenge: {gameState.activeQuestion.content}</h3>
+                          <button 
+                            onClick={() => actions.startRound2Timer()} // UPDATED: Calls the 25s specific timer logic
+                            className="px-6 py-2 bg-purple-600 hover:bg-purple-500 rounded font-bold flex items-center gap-2"
+                          >
+                              <Play size={18}/> START 25s TIMER
+                          </button>
+                      </div>
+                      
+                      <div className="grid md:grid-cols-2 gap-6">
+                          <div>
+                                <div className="text-gray-400 text-sm mb-1">Problem:</div>
+                                <pre className="bg-black p-4 rounded text-sm font-mono text-gray-300 overflow-x-auto h-40 border border-gray-600">
+                                    {gameState.activeQuestion.codeSnippet}
+                                </pre>
+                          </div>
+                          <div>
+                                <div className="text-gray-400 text-sm mb-1">Answer Key:</div>
+                                <pre className="bg-black p-4 rounded text-sm font-mono text-green-400 overflow-x-auto h-40 border border-green-900">
+                                    {gameState.activeQuestion.answer}
+                                </pre>
+                          </div>
+                      </div>
+                      <div className="mt-4 flex justify-end">
+                           <button onClick={actions.clearQuestion} className="text-red-400 text-sm hover:underline">Close/Clear Question</button>
+                      </div>
+                  </div>
+              )}
+
+              {/* Student Status Grid */}
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   {gameState.players.map(p => (
                       <div key={p.id} className={`p-4 rounded border ${p.submittedRound2 ? 'border-green-500 bg-green-900/20' : 'border-gray-700 bg-gray-800'}`}>
@@ -210,13 +307,13 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                               <span className="font-bold text-lg">{p.name}</span>
                               {p.submittedRound2 && <span className="text-green-400 font-mono text-sm">{p.round2Time?.toFixed(2)}s</span>}
                           </div>
-                          <div className="text-sm text-gray-400 mb-3">{p.submittedRound2 ? "Submitted!" : "Coding..."}</div>
+                          <div className="text-sm text-gray-400 mb-3">{p.submittedRound2 ? "Submitted!" : "Solving..."}</div>
                           {p.submittedRound2 && (
                               <button 
                                 onClick={() => setViewingPlayerCode(p)}
                                 className="w-full py-2 bg-gray-700 hover:bg-gray-600 rounded text-sm flex items-center justify-center gap-2"
                               >
-                                  <Code size={14}/> View Code
+                                  <Code size={14}/> View Answer
                               </button>
                           )}
                       </div>
@@ -240,8 +337,7 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                           <div className="text-white text-lg font-bold mb-2">{gameState.activeQuestion.content}</div>
                           <div className="text-green-400 font-mono text-sm">Answer: {gameState.activeQuestion.answer}</div>
                           <button 
-                             onClick={actions.clearQuestion}
-                             onMouseEnter={() => playSound('SCORE_DOWN')}
+                             onClick={() => { actions.clearQuestion(); playSound('SCORE_DOWN'); }}
                              className="absolute top-4 right-4 p-2 bg-gray-800 hover:bg-red-900 rounded text-gray-400 hover:text-red-400 transition-colors"
                              title="Clear Question"
                           >
@@ -282,12 +378,25 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                                <h3 className="text-xl font-bold flex items-center gap-2">
                                    <User size={20}/> {p.name}
                                </h3>
+                               
+                               {/* R3 Lock Status Indicator */}
+                               {!p.round3PackLocked ? (
+                                   <span className="text-yellow-500 text-sm italic flex items-center gap-1">
+                                       <RefreshCw size={14} className="animate-spin" /> Selecting Pack...
+                                   </span>
+                               ) : (
+                                   <span className="text-green-500 text-sm flex items-center gap-1">
+                                       <CheckCircle size={14}/> Pack Locked
+                                   </span>
+                               )}
+
                                {gameState.round3TurnPlayerId === p.id ? (
                                    <div className="text-cyber-primary font-bold animate-pulse">CURRENT TURN</div>
                                ) : (
                                    <button 
                                       onClick={() => actions.setRound3Turn(p.id)}
-                                      className="px-4 py-1 bg-gray-700 hover:bg-gray-600 rounded text-sm font-bold uppercase"
+                                      className="px-4 py-1 bg-gray-700 hover:bg-gray-600 rounded text-sm font-bold uppercase disabled:opacity-50"
+                                      disabled={!p.round3PackLocked}
                                    >
                                       Start Turn
                                    </button>
@@ -314,7 +423,6 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                                        {item.status === 'PENDING' ? (
                                            <div className="flex gap-1 mt-1">
                                                 <button 
-                                                    onMouseEnter={() => playSound('CORRECT')}
                                                     onClick={() => {
                                                         actions.updatePlayerPack(p.id, idx, { status: 'CORRECT' });
                                                         actions.updateScore(p.id, item.difficulty === 'EASY' ? 20 : item.difficulty === 'MEDIUM' ? 30 : 40);
@@ -325,7 +433,6 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                                                     CORRECT
                                                 </button>
                                                 <button 
-                                                    onMouseEnter={() => playSound('WRONG')}
                                                     onClick={() => {
                                                         actions.updatePlayerPack(p.id, idx, { status: 'WRONG' });
                                                         actions.updateScore(p.id, item.difficulty === 'EASY' ? -10 : item.difficulty === 'MEDIUM' ? -15 : -20);
@@ -369,7 +476,6 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
               {/* End Game Button */}
               <div className="pt-12 pb-12 text-center border-t border-gray-700">
                   <button 
-                    onMouseEnter={() => playSound('VICTORY')}
                     onClick={() => {
                         actions.endGame();
                         playSound('VICTORY');
@@ -389,7 +495,7 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
             <div className="bg-slate-800 w-full max-w-4xl rounded-xl shadow-2xl border border-gray-600 flex flex-col max-h-[90vh]">
                 <div className="p-4 border-b border-gray-700 flex justify-between items-center bg-slate-900 rounded-t-xl">
                     <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                        <Code className="text-cyber-primary"/> Code by {viewingPlayerCode.name}
+                        <Code className="text-cyber-primary"/> Answer by {viewingPlayerCode.name}
                     </h3>
                     <button onClick={() => setViewingPlayerCode(null)} className="text-gray-400 hover:text-white"><X size={24}/></button>
                 </div>
@@ -400,7 +506,6 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                 </div>
                 <div className="p-4 border-t border-gray-700 bg-slate-900 rounded-b-xl flex justify-end gap-4">
                      <button 
-                         onMouseEnter={() => playSound('SCORE_UP')}
                          onClick={() => {
                              actions.updateScore(viewingPlayerCode.id, 50);
                              setViewingPlayerCode(null);
@@ -411,7 +516,6 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                          <Check size={18}/> Mark Correct (+50)
                      </button>
                      <button 
-                         onMouseEnter={() => playSound('SCORE_DOWN')}
                          onClick={() => {
                              // Optional: Deduct points or just close
                              setViewingPlayerCode(null);

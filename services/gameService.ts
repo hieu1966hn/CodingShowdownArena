@@ -1,134 +1,210 @@
 import { useEffect, useState } from "react";
-import { STORAGE_KEY, ROUND_3_QUESTIONS } from "../constants";
-import { GameState, INITIAL_STATE, GameRound, Player, Question, Difficulty, PackStatus, Round3Phase } from "../types";
+import { doc, onSnapshot, setDoc, updateDoc, getDoc, arrayUnion } from "firebase/firestore";
+import { signInWithPopup, signOut, onAuthStateChanged, User } from "firebase/auth";
+import { db, auth, googleProvider } from "../firebase";
+import { GameState, INITIAL_STATE, GameRound, Player, Question, Difficulty, PackStatus, Round3Item } from "../types";
+import { ROUND_3_QUESTIONS } from "../constants";
 
-// This hook allows different tabs to sync state without a backend server
 export const useGameSync = () => {
-  const [gameState, setGameState] = useState<GameState>(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    return stored ? JSON.parse(stored) : INITIAL_STATE;
-  });
+  const [user, setUser] = useState<User | null>(null);
+  const [roomId, setRoomId] = useState<string | null>(null);
+  const [gameState, setGameState] = useState<GameState>(INITIAL_STATE);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [roomError, setRoomError] = useState<string | null>(null);
+  const [loginError, setLoginError] = useState<string | null>(null);
 
-  // Polling mechanism to ensure state is synced if event is missed
+  // --- Auth Listener ---
   useEffect(() => {
-    const interval = setInterval(() => {
-        const stored = localStorage.getItem(STORAGE_KEY);
-        if (stored) {
-            const parsed = JSON.parse(stored);
-            // Only update if there is a difference to avoid unnecessary re-renders
-            setGameState(prev => {
-                if (JSON.stringify(prev) !== stored) {
-                    return parsed;
-                }
-                return prev;
-            });
-        }
-    }, 1000); // Check every second
-
-    return () => clearInterval(interval);
-  }, []);
-
-  useEffect(() => {
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === STORAGE_KEY && e.newValue) {
-        setGameState(JSON.parse(e.newValue));
-      }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
-
-  // Force manual sync on focus/visibility change
-  useEffect(() => {
-    const handleFocus = () => {
-       const stored = localStorage.getItem(STORAGE_KEY);
-       if (stored) setGameState(JSON.parse(stored));
-    };
-    window.addEventListener('focus', handleFocus);
-    document.addEventListener('visibilitychange', handleFocus);
-    return () => {
-        window.removeEventListener('focus', handleFocus);
-        document.removeEventListener('visibilitychange', handleFocus);
-    };
-  }, []);
-
-  // Helper to update state and broadcast to other tabs
-  const updateState = (newState: Partial<GameState> | ((prev: GameState) => Partial<GameState>)) => {
-    setGameState((prev) => {
-      const updated = typeof newState === 'function' ? { ...prev, ...newState(prev) } : { ...prev, ...newState };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-      return updated;
+    const unsub = onAuthStateChanged(auth, (u) => {
+        setUser(u);
+        setAuthLoading(false);
     });
+    return () => unsub();
+  }, []);
+
+  // --- Firestore Room Listener ---
+  useEffect(() => {
+    if (!roomId) return;
+
+    const unsub = onSnapshot(doc(db, "rooms", roomId), (docSnap) => {
+        if (docSnap.exists()) {
+            setGameState(docSnap.data() as GameState);
+            setRoomError(null);
+        } else {
+            setRoomError("Room not found!");
+        }
+    }, (err) => {
+        console.error("Firestore Error:", err);
+        setRoomError("Error connecting to room.");
+    });
+
+    return () => unsub();
+  }, [roomId]);
+
+  // --- Auth Actions ---
+  const login = async () => {
+      setLoginError(null);
+      try {
+          await signInWithPopup(auth, googleProvider);
+      } catch (e: any) {
+          console.error("Login failed", e);
+          if (e.code === 'auth/unauthorized-domain') {
+              setLoginError(`Domain Unauthorized. Please add "${window.location.hostname}" to Firebase Console -> Authentication -> Settings -> Authorized Domains.`);
+          } else if (e.code === 'auth/popup-closed-by-user') {
+              setLoginError("Sign-in popup was closed.");
+          } else {
+              setLoginError(e.message || "Login failed.");
+          }
+      }
+  };
+  
+  const logout = async () => {
+      await signOut(auth);
+      setRoomId(null);
+      setGameState(INITIAL_STATE);
   };
 
-  // Force manual sync
-  const forceSync = () => {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-          setGameState(JSON.parse(stored));
+  // --- Room Actions ---
+  const createRoom = async (classCode: string) => {
+      if (!classCode) return false;
+      const code = classCode.trim().toUpperCase();
+      try {
+          // Overwrite if exists, or create new. Teachers own the room.
+          const newState = { ...INITIAL_STATE, roomId: code };
+          await setDoc(doc(db, "rooms", code), newState);
+          setRoomId(code);
+          return true;
+      } catch (e) {
+          console.error("Create Room Error", e);
+          return false;
       }
   };
 
-  // --- ACTIONS ---
+  const joinRoom = async (classCode: string) => {
+      if (!classCode) return false;
+      const code = classCode.trim().toUpperCase();
+      const ref = doc(db, "rooms", code);
+      const snap = await getDoc(ref);
+      if (snap.exists()) {
+          setRoomId(code);
+          return true;
+      } else {
+          setRoomError("Class Code not found.");
+          return false;
+      }
+  };
 
-  const joinGame = (name: string) => {
+  // --- State Helper ---
+  // Calculates new state based on current local state and pushes to Firestore
+  const updateState = async (updater: Partial<GameState> | ((prev: GameState) => Partial<GameState>)) => {
+      if (!roomId) return;
+      
+      const changes = typeof updater === 'function' ? updater(gameState) : updater;
+      try {
+          await updateDoc(doc(db, "rooms", roomId), changes);
+      } catch (e) {
+          console.error("Update State Error", e);
+      }
+  };
+
+  // --- GAME ACTIONS (Mapped from original service) ---
+
+  const joinGame = async (name: string) => {
+    if (!roomId || !user) return null;
+    
+    // Check if player already exists with this auth ID to reconnect
+    const existingPlayer = gameState.players.find(p => p.id === user.uid);
+    if (existingPlayer) {
+        return user.uid; // Already joined
+    }
+
     const newPlayer: Player = {
-      id: Math.random().toString(36).substr(2, 9),
-      name,
+      id: user.uid,
+      name: name || user.displayName || "Anonymous",
       score: 0,
       isOnline: true,
       round3Pack: [
         { difficulty: 'EASY', status: 'PENDING' },
         { difficulty: 'MEDIUM', status: 'PENDING' },
         { difficulty: 'HARD', status: 'PENDING' }
-      ]
+      ],
+      round3PackLocked: false
     };
-    updateState((prev) => ({
-      players: [...prev.players, newPlayer]
-    }));
+
+    // Use arrayUnion to safely add to list
+    await updateDoc(doc(db, "rooms", roomId), {
+        players: arrayUnion(newPlayer)
+    });
     return newPlayer.id;
   };
 
   const setRound = (round: GameRound) => {
-    updateState({ round, message: `Entering ${round}...`, activeQuestion: null, timerEndTime: null, round3Phase: 'IDLE', round3TurnPlayerId: null });
+    updateState({ 
+        round, 
+        message: `Entering ${round}...`, 
+        activeQuestion: null, 
+        timerEndTime: null, 
+        round3Phase: 'IDLE', 
+        round3TurnPlayerId: null,
+        round1TurnPlayerId: null 
+    });
   };
 
   const setQuestion = (question: Question) => {
-    updateState({ activeQuestion: question, buzzerLocked: true, message: null });
+    updateState((prev) => {
+        const isRound2 = prev.round === GameRound.ROUND_2;
+        const updatedPlayers = isRound2 ? prev.players.map(p => ({
+            ...p,
+            submittedRound2: false,
+            round2Code: undefined,
+            round2Time: undefined
+        })) : prev.players;
+
+        return { 
+            activeQuestion: question, 
+            buzzerLocked: true, 
+            message: null,
+            round2StartedAt: null,
+            usedQuestionIds: [...prev.usedQuestionIds, question.id],
+            players: updatedPlayers
+        };
+    });
   };
 
-  const clearQuestion = () => {
-    updateState({ activeQuestion: null });
-  };
+  const clearQuestion = () => updateState({ activeQuestion: null });
 
   const startTimer = (seconds: number) => {
     updateState({ 
       timerEndTime: Date.now() + seconds * 1000,
-      buzzerLocked: false // Unlock buzzer when timer starts
+      buzzerLocked: false 
     });
   };
 
-  const stopTimer = () => {
-    updateState({ timerEndTime: null, buzzerLocked: true });
+  const startRound2Timer = () => {
+      const duration = 25; 
+      const now = Date.now();
+      updateState({
+          timerEndTime: now + duration * 1000,
+          round2StartedAt: now, 
+          buzzerLocked: true
+      });
   };
+
+  const stopTimer = () => updateState({ timerEndTime: null, buzzerLocked: true });
 
   const updateScore = (playerId: string, delta: number) => {
     updateState((prev) => ({
       players: prev.players.map(p => {
           if (p.id !== playerId) return p;
           const newScore = p.score + delta;
-          // Prevent score from going below zero
           return { ...p, score: newScore < 0 ? 0 : newScore };
       })
     }));
   };
 
   const buzz = (playerId: string) => {
-    // Only first buzz counts
     updateState((prev) => {
       if (!prev.buzzerLocked) {
-        // Lock immediately so no one else can buzz
         return {
            buzzerLocked: true,
            players: prev.players.map(p => p.id === playerId ? { ...p, buzzedAt: Date.now() } : p),
@@ -161,8 +237,18 @@ export const useGameSync = () => {
     });
   };
 
-  // --- Round 3 Specifics ---
-  
+  const setRound1Turn = (playerId: string | null) => updateState({ round1TurnPlayerId: playerId });
+
+  const setRound3Pack = (playerId: string, pack: Round3Item[]) => {
+      updateState((prev) => ({
+          players: prev.players.map(p => p.id === playerId ? {
+              ...p,
+              round3Pack: pack,
+              round3PackLocked: true
+          } : p)
+      }));
+  };
+
   const updatePlayerPack = (playerId: string, packIndex: number, updates: { difficulty?: Difficulty, status?: PackStatus }) => {
     updateState((prev) => ({
         players: prev.players.map(p => {
@@ -181,41 +267,43 @@ export const useGameSync = () => {
           message: null,
           buzzerLocked: true,
           timerEndTime: null,
-          activeQuestion: null // Clear previous question when turn changes
+          activeQuestion: null
       });
   };
 
   const revealRound3Question = (difficulty: Difficulty) => {
-      // Pick a random question from pool
-      const pool = ROUND_3_QUESTIONS.filter(q => q.difficulty === difficulty);
-      const randomQ = pool[Math.floor(Math.random() * pool.length)];
-      
-      if (randomQ) {
-          updateState({
-              activeQuestion: randomQ,
-              buzzerLocked: true,
-              message: null
-          });
-      } else {
-          // Fallback if no question found
-          updateState({
-              activeQuestion: {
-                  id: `temp-${Date.now()}`,
-                  content: `No ${difficulty} questions remaining in pool!`,
-                  points: 0,
-                  difficulty: difficulty
-              }
-          });
-      }
+      updateState((prev) => {
+        const pool = ROUND_3_QUESTIONS.filter(q => 
+            q.difficulty === difficulty && 
+            !prev.usedQuestionIds.includes(q.id)
+        );
+        const randomQ = pool[Math.floor(Math.random() * pool.length)];
+        if (randomQ) {
+            return {
+                activeQuestion: randomQ,
+                buzzerLocked: true,
+                message: null,
+                usedQuestionIds: [...prev.usedQuestionIds, randomQ.id]
+            };
+        } else {
+            return {
+                activeQuestion: {
+                    id: `temp-${Date.now()}`,
+                    content: `No ${difficulty} questions remaining!`,
+                    points: 0,
+                    difficulty: difficulty
+                }
+            };
+        }
+      });
   };
 
   const startRound3Timer = (type: 'MAIN' | 'STEAL') => {
-      const duration = 15; // 15 seconds for both as per requirement
+      const duration = 15;
       updateState((prev) => ({
           round3Phase: type === 'MAIN' ? 'MAIN_ANSWER' : 'STEAL_WINDOW',
           timerEndTime: Date.now() + duration * 1000,
-          buzzerLocked: type === 'MAIN', // Locked during main answer (verbal), Unlocked during steal
-          // Clear previous buzzes if starting steal phase
+          buzzerLocked: type === 'MAIN',
           players: type === 'STEAL' ? prev.players.map(p => ({ ...p, buzzedAt: undefined })) : prev.players
       }));
   };
@@ -231,16 +319,34 @@ export const useGameSync = () => {
   };
 
   const resetGame = () => {
-      updateState(INITIAL_STATE);
+      if (roomId) {
+        setDoc(doc(db, "rooms", roomId), { ...INITIAL_STATE, roomId });
+      }
   };
 
+  // Needed for refresh button in dashboard
+  const forceSync = () => { /* Firestore handles sync automatically */ };
+
   return {
+    user,
+    authLoading,
+    login,
+    logout,
+    loginError, // Exported for App.tsx
+    
+    roomId,
+    roomError,
+    createRoom,
+    joinRoom,
+
     gameState,
-    joinGame,
+    
+    // Actions
     setRound,
     setQuestion,
     clearQuestion,
     startTimer,
+    startRound2Timer,
     stopTimer,
     updateScore,
     buzz,
@@ -248,13 +354,13 @@ export const useGameSync = () => {
     submitRound2,
     resetGame,
     endGame,
-    // R3
+    setRound1Turn,
+    setRound3Pack,
     updatePlayerPack,
     setRound3Turn,
     revealRound3Question,
     startRound3Timer,
-    forceSync,
-    // Direct state setter for complex operations if needed
-    _rawSetState: updateState 
+    joinGame, // Now async
+    forceSync
   };
 };

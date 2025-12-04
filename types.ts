@@ -1,3 +1,4 @@
+
 export enum GameRound {
   LOBBY = 'LOBBY',
   ROUND_1 = 'ROUND_1', // Reflex
@@ -25,7 +26,11 @@ export interface Player {
   round2Code?: string; // The code submitted by the student
   // Round 3 Specifics
   round3Pack: Round3Item[]; 
+  round3PackLocked?: boolean; // Has the student locked in their choices?
 }
+
+// Round 2 Categories
+export type QuestionCategory = 'LOGIC' | 'SYNTAX' | 'ALGO' | 'OUTPUT' | 'GENERAL';
 
 export interface Question {
   id: string;
@@ -33,12 +38,14 @@ export interface Question {
   answer?: string;
   codeSnippet?: string; // For Round 2
   difficulty?: Difficulty;
+  category?: QuestionCategory; // New field for Round 2 classification
   points: number;
 }
 
 export type Round3Phase = 'IDLE' | 'MAIN_ANSWER' | 'STEAL_WINDOW';
 
 export interface GameState {
+  roomId?: string; // Added Room ID
   round: GameRound;
   players: Player[];
   activeQuestion: Question | null;
@@ -47,8 +54,12 @@ export interface GameState {
   round2StartedAt: number | null;
   message: string | null; // For displaying big alerts/winners
   
-  // Round 3 State
-  round3TurnPlayerId: string | null; // Whose turn is it?
+  // Tracking used questions to prevent reuse
+  usedQuestionIds: string[];
+
+  // Turn Logic
+  round1TurnPlayerId: string | null; // Who is answering in Round 1?
+  round3TurnPlayerId: string | null; // Whose turn is it in Round 3?
   round3Phase: Round3Phase;
 }
 
@@ -61,6 +72,8 @@ export const INITIAL_STATE: GameState = {
   buzzerLocked: true,
   round2StartedAt: null,
   message: "Welcome to Coding Showdown!",
+  usedQuestionIds: [],
+  round1TurnPlayerId: null,
   round3TurnPlayerId: null,
   round3Phase: 'IDLE'
 };
