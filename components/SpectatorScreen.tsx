@@ -192,8 +192,14 @@ const SpectatorScreen: React.FC<Props> = ({ gameState, onLeave }) => {
                         {/* Fireworks overlay */}
                         <Fireworks />
                         
-                        <div className="relative z-10">
-                            <h2 className="text-8xl font-black text-transparent bg-clip-text bg-gradient-to-b from-yellow-300 to-yellow-600 mb-16 drop-shadow-lg">
+                        <div className="relative z-10 flex flex-col items-center">
+                            {/* Big Trophy Icon */}
+                            <div className="mb-6 relative animate-[bounce_2s_infinite]">
+                                <div className="absolute inset-0 bg-yellow-500 blur-3xl opacity-30 rounded-full"></div>
+                                <Trophy size={100} className="text-yellow-400 relative z-10 drop-shadow-[0_0_15px_rgba(250,204,21,0.8)]" />
+                            </div>
+
+                            <h2 className="text-7xl md:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-b from-yellow-200 to-yellow-600 mb-16 drop-shadow-2xl tracking-tight">
                                 WINNERS PODIUM
                             </h2>
                             
