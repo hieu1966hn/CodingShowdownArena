@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { doc, onSnapshot, setDoc, updateDoc, getDoc, arrayUnion } from "firebase/firestore";
 import { signInWithPopup, signOut, onAuthStateChanged, User, signInAnonymously } from "firebase/auth";
@@ -295,19 +296,33 @@ export const useGameSync = () => {
       });
   };
 
+  const setRound3SelectionMode = (mode: 'RANDOM' | 'SEQUENTIAL') => {
+      updateState({ round3SelectionMode: mode });
+  };
+
   const revealRound3Question = (difficulty: Difficulty) => {
       updateState((prev) => {
         const pool = ROUND_3_QUESTIONS.filter(q => 
             q.difficulty === difficulty && 
             !prev.usedQuestionIds.includes(q.id)
         );
-        const randomQ = pool[Math.floor(Math.random() * pool.length)];
-        if (randomQ) {
+
+        let selectedQ: Question | undefined;
+
+        if (prev.round3SelectionMode === 'SEQUENTIAL') {
+            // SEQUENTIAL: Pick the first available question in the array
+            selectedQ = pool[0];
+        } else {
+            // RANDOM: Pick randomly from the available pool
+            selectedQ = pool[Math.floor(Math.random() * pool.length)];
+        }
+
+        if (selectedQ) {
             return {
-                activeQuestion: randomQ,
+                activeQuestion: selectedQ,
                 buzzerLocked: true,
                 message: null,
-                usedQuestionIds: [...prev.usedQuestionIds, randomQ.id]
+                usedQuestionIds: [...prev.usedQuestionIds, selectedQ.id]
             };
         } else {
             return {
@@ -400,6 +415,7 @@ export const useGameSync = () => {
     setRound3Pack,
     updatePlayerPack,
     setRound3Turn,
+    setRound3SelectionMode,
     revealRound3Question,
     startRound3Timer,
     joinGame, 

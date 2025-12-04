@@ -4,7 +4,7 @@ import { useGameSync } from './hooks/useGameSync';
 import TeacherDashboard from './components/TeacherDashboard';
 import StudentView from './components/StudentView';
 import SpectatorScreen from './components/SpectatorScreen';
-import { Users, Monitor, ShieldCheck, Gamepad2, ExternalLink, Trash2, LogIn, Key, PlayCircle, LogOut, AlertTriangle, Copy, Check, Maximize, User } from 'lucide-react';
+import { Users, Monitor, ShieldCheck, Gamepad2, ExternalLink, Trash2, LogIn, Key, PlayCircle, LogOut, AlertTriangle, Copy, Check, Maximize, User, GraduationCap } from 'lucide-react';
 
 const App: React.FC = () => {
   const gameService = useGameSync();
@@ -14,11 +14,13 @@ const App: React.FC = () => {
   const [role, setRole] = useState<'SELECT' | 'TEACHER' | 'STUDENT' | 'SCREEN'>('SELECT');
   const [studentId, setStudentId] = useState<string | null>(null);
   const [tempName, setTempName] = useState('');
-  const [copied, setCopied] = useState(false);
-  const [currentDomain, setCurrentDomain] = useState<string>('');
   const [inIframe, setInIframe] = useState(false);
+  
+  // UX State
+  const [isTeacherMode, setIsTeacherMode] = useState(false);
+  const [forceStudentMode, setForceStudentMode] = useState(false);
 
-  // Detect domain and iframe status on mount
+  // Detect iframe and URL params on mount
   useEffect(() => {
       // Check if in iframe
       try {
@@ -27,30 +29,12 @@ const App: React.FC = () => {
           setInIframe(true);
       }
 
-      // Try multiple properties to get the domain
-      const hostname = window.location.hostname;
-      
-      if (hostname && hostname !== 'about:blank' && hostname !== '') {
-          setCurrentDomain(hostname);
-      } else {
-          // Fallback detection
-          try {
-             const url = new URL(window.location.href);
-             if (url.hostname) setCurrentDomain(url.hostname);
-             else setCurrentDomain("Unable to detect. Open in New Tab.");
-          } catch(e) {
-             setCurrentDomain("Click 'Open in New Tab' to see domain");
-          }
+      // Check URL for mode=student
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('mode') === 'student') {
+          setForceStudentMode(true);
       }
   }, []);
-
-  const handleCopyDomain = () => {
-      if (currentDomain && !currentDomain.includes("Open")) {
-          navigator.clipboard.writeText(currentDomain);
-          setCopied(true);
-          setTimeout(() => setCopied(false), 2000);
-      }
-  };
 
   const openNewTab = () => {
       window.open(window.location.href, '_blank');
@@ -98,11 +82,6 @@ const App: React.FC = () => {
                         <div className="break-words mb-2 opacity-90 text-xs font-mono bg-black/30 p-2 rounded">
                             {loginError}
                         </div>
-                        {loginError.includes("unauthorized-domain") && (
-                            <div className="mt-2 text-yellow-300 font-bold">
-                                Action Required: Add "{currentDomain}" to Firebase Console.
-                            </div>
-                        )}
                     </div>
                 )}
 
@@ -129,30 +108,6 @@ const App: React.FC = () => {
                         <User size={20} /> Continue as Guest
                     </button>
                     <p className="text-xs text-gray-500">Guest accounts are temporary and good for students.</p>
-                </div>
-
-                {/* DOMAIN HELPER */}
-                <div className="pt-6 border-t border-gray-700 text-left">
-                    <div className="flex items-center gap-2 mb-2">
-                        <Key size={16} className="text-gray-500"/>
-                        <p className="text-xs text-gray-500 uppercase font-bold">Domain Authorization Required (For Google Login)</p>
-                    </div>
-                    <div className="bg-black p-3 rounded border border-gray-600 font-mono text-sm text-green-400 break-all flex justify-between items-center group relative min-h-[48px]">
-                        <span className={currentDomain.includes("Open") ? "text-yellow-500 italic" : ""}>
-                            {currentDomain || "Detecting..."}
-                        </span>
-                        <button 
-                            onClick={handleCopyDomain}
-                            className="ml-2 p-2 bg-gray-800 hover:bg-gray-700 rounded text-white transition-colors border border-gray-700 flex-shrink-0"
-                            title="Copy Domain"
-                            disabled={!currentDomain || currentDomain.includes("Open")}
-                        >
-                            {copied ? <Check size={16} className="text-green-500"/> : <Copy size={16}/>}
-                        </button>
-                    </div>
-                    <p className="text-[10px] text-gray-500 mt-2">
-                        If using Google Login: Go to <a href="https://console.firebase.google.com/" target="_blank" className="text-cyan-400 underline hover:text-cyan-300">Firebase Console</a> &gt; Auth &gt; Settings &gt; Authorized Domains and add the domain above.
-                    </p>
                 </div>
             </div>
         </div>
@@ -187,32 +142,43 @@ const App: React.FC = () => {
                         {roomError && <div className="text-red-500 text-sm mt-2">{roomError}</div>}
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                        <button 
-                            onClick={async () => {
-                                const success = await gameService.createRoom(classCodeInput);
-                                if (success) setRole('TEACHER');
-                            }}
-                            disabled={!classCodeInput}
-                            className="p-4 bg-purple-900/50 border border-purple-500 hover:bg-purple-900 rounded-xl flex flex-col items-center gap-2 text-purple-200 transition-all hover:scale-105 disabled:opacity-50"
-                        >
-                            <ShieldCheck size={32} />
-                            <span className="font-bold">Create/Host</span>
-                            <span className="text-xs opacity-70">For Teachers</span>
-                        </button>
-
-                        <button 
-                            onClick={async () => {
-                                const success = await gameService.joinRoom(classCodeInput);
-                                if (success) setRole('SELECT');
-                            }}
-                            disabled={!classCodeInput}
-                            className="p-4 bg-cyan-900/50 border border-cyan-500 hover:bg-cyan-900 rounded-xl flex flex-col items-center gap-2 text-cyan-200 transition-all hover:scale-105 disabled:opacity-50"
-                        >
-                            <PlayCircle size={32} />
-                            <span className="font-bold">Join Class</span>
-                            <span className="text-xs opacity-70">For Students/Viewers</span>
-                        </button>
+                    <div className="flex flex-col gap-4">
+                        {isTeacherMode ? (
+                            <button 
+                                onClick={async () => {
+                                    const success = await gameService.createRoom(classCodeInput);
+                                    if (success) setRole('TEACHER');
+                                }}
+                                disabled={!classCodeInput}
+                                className="w-full p-4 bg-purple-900/50 border border-purple-500 hover:bg-purple-900 rounded-xl flex flex-col items-center gap-2 text-purple-200 transition-all hover:scale-105 disabled:opacity-50"
+                            >
+                                <ShieldCheck size={32} />
+                                <span className="font-bold">Create/Host Session</span>
+                                <span className="text-xs opacity-70">For Teachers</span>
+                            </button>
+                        ) : (
+                            <button 
+                                onClick={async () => {
+                                    const success = await gameService.joinRoom(classCodeInput);
+                                    if (success) setRole('SELECT');
+                                }}
+                                disabled={!classCodeInput}
+                                className="w-full p-4 bg-cyan-900/50 border border-cyan-500 hover:bg-cyan-900 rounded-xl flex flex-col items-center gap-2 text-cyan-200 transition-all hover:scale-105 disabled:opacity-50"
+                            >
+                                <PlayCircle size={32} />
+                                <span className="font-bold">Join Class</span>
+                                <span className="text-xs opacity-70">For Students/Viewers</span>
+                            </button>
+                        )}
+                        
+                        {!forceStudentMode && (
+                            <button 
+                                onClick={() => setIsTeacherMode(!isTeacherMode)}
+                                className="text-xs text-gray-500 hover:text-white underline text-center mt-2"
+                            >
+                                {isTeacherMode ? "Back to Student Join" : "Teacher? Click here to Host"}
+                            </button>
+                        )}
                     </div>
                 </div>
             </div>

@@ -4,7 +4,7 @@ import { GoogleGenAI } from "@google/genai";
 import { GameState, GameRound, Question, Player, Difficulty, PackStatus, QuestionCategory } from '../types';
 import { ROUND_1_QUESTIONS, ROUND_2_QUESTIONS } from '../data/questions';
 import { SOUND_EFFECTS } from '../config/assets';
-import { Play, Check, X, Sparkles, RefreshCw, PlusCircle, MinusCircle, Code, Eye, Timer, User, Zap, Users, Monitor, Trophy, LogOut, Filter, CheckCircle, Pointer } from 'lucide-react';
+import { Play, Check, X, Sparkles, RefreshCw, PlusCircle, MinusCircle, Code, Eye, Timer, User, Zap, Users, Monitor, Trophy, LogOut, Filter, CheckCircle, Pointer, Shuffle, ListOrdered } from 'lucide-react';
 
 interface Props {
   gameState: GameState;
@@ -326,7 +326,33 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
       {/* ROUND 3 VIEW */}
       {gameState.round === GameRound.ROUND_3 && (
           <div className="space-y-8">
-              <h2 className="text-xl font-bold flex items-center gap-2"><Sparkles className="text-cyber-secondary"/> Round 3: Tactical Finish</h2>
+              <div className="flex justify-between items-center">
+                  <h2 className="text-xl font-bold flex items-center gap-2"><Sparkles className="text-cyber-secondary"/> Round 3: Tactical Finish</h2>
+                  
+                  {/* QUESTION MODE TOGGLE */}
+                  <div className="flex bg-gray-800 p-1 rounded-lg border border-gray-700">
+                      <button 
+                          onClick={() => actions.setRound3SelectionMode('RANDOM')}
+                          className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-bold transition-all ${
+                              gameState.round3SelectionMode === 'RANDOM' 
+                              ? 'bg-cyber-secondary text-white shadow-sm' 
+                              : 'text-gray-400 hover:text-white'
+                          }`}
+                      >
+                          <Shuffle size={14} /> Random
+                      </button>
+                      <button 
+                          onClick={() => actions.setRound3SelectionMode('SEQUENTIAL')}
+                          className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-bold transition-all ${
+                              gameState.round3SelectionMode === 'SEQUENTIAL' 
+                              ? 'bg-cyber-secondary text-white shadow-sm' 
+                              : 'text-gray-400 hover:text-white'
+                          }`}
+                      >
+                          <ListOrdered size={14} /> Sequential
+                      </button>
+                  </div>
+              </div>
 
               {/* Host Monitor */}
               <div className="bg-slate-900 border border-cyber-primary rounded-lg p-4 relative">
@@ -447,8 +473,8 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                                        ) : (
                                            <div className={`text-center font-bold text-sm py-2 rounded shadow-md border ${
                                                item.status === 'CORRECT' 
-                                               ? 'bg-green-600 text-white border-green-400' 
-                                               : 'bg-red-600 text-white border-red-400'
+                                               ? 'bg-green-600 text-white border-green-400 shadow-[0_0_10px_rgba(34,197,94,0.4)]' 
+                                               : 'bg-red-600 text-white border-red-400 shadow-[0_0_10px_rgba(239,68,68,0.4)]'
                                            }`}>
                                                {item.status}
                                            </div>

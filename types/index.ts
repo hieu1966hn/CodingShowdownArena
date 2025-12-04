@@ -61,6 +61,9 @@ export interface GameState {
   round1TurnPlayerId: string | null; // Who is answering in Round 1?
   round3TurnPlayerId: string | null; // Whose turn is it in Round 3?
   round3Phase: Round3Phase;
+  
+  // Settings
+  round3SelectionMode: 'RANDOM' | 'SEQUENTIAL';
 }
 
 // Initial State constant
@@ -75,5 +78,6 @@ export const INITIAL_STATE: GameState = {
   usedQuestionIds: [],
   round1TurnPlayerId: null,
   round3TurnPlayerId: null,
-  round3Phase: 'IDLE'
+  round3Phase: 'IDLE',
+  round3SelectionMode: 'RANDOM'
 };
