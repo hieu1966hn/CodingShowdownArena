@@ -2,7 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { GoogleGenAI } from "@google/genai";
 import { GameState, GameRound, Question, Player, Difficulty, PackStatus, QuestionCategory } from '../types';
-import { ROUND_1_QUESTIONS, ROUND_2_QUESTIONS, SOUND_EFFECTS } from '../constants';
+import { ROUND_1_QUESTIONS, ROUND_2_QUESTIONS } from '../data/questions';
+import { SOUND_EFFECTS } from '../config/assets';
 import { Play, Check, X, Sparkles, RefreshCw, PlusCircle, MinusCircle, Code, Eye, Timer, User, Zap, Users, Monitor, Trophy, LogOut, Filter, CheckCircle, Pointer } from 'lucide-react';
 
 interface Props {
@@ -428,7 +429,7 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                                                         actions.updateScore(p.id, item.difficulty === 'EASY' ? 20 : item.difficulty === 'MEDIUM' ? 30 : 40);
                                                         playSound('CORRECT');
                                                     }}
-                                                    className="flex-1 bg-green-900/50 hover:bg-green-600 text-green-400 hover:text-white py-2 rounded text-xs font-bold transition-all hover:scale-105"
+                                                    className="flex-1 bg-green-900/50 hover:bg-green-600 text-green-400 hover:text-white py-2 rounded text-xs font-bold transition-all hover:scale-105 shadow-sm hover:shadow-green-500/50"
                                                 >
                                                     CORRECT
                                                 </button>
@@ -438,13 +439,17 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                                                         actions.updateScore(p.id, item.difficulty === 'EASY' ? -10 : item.difficulty === 'MEDIUM' ? -15 : -20);
                                                         playSound('WRONG');
                                                     }}
-                                                    className="flex-1 bg-red-900/50 hover:bg-red-600 text-red-400 hover:text-white py-2 rounded text-xs font-bold transition-all hover:scale-105"
+                                                    className="flex-1 bg-red-900/50 hover:bg-red-600 text-red-400 hover:text-white py-2 rounded text-xs font-bold transition-all hover:scale-105 shadow-sm hover:shadow-red-500/50"
                                                 >
                                                     WRONG
                                                 </button>
                                            </div>
                                        ) : (
-                                           <div className={`text-center font-bold text-sm py-2 rounded ${item.status === 'CORRECT' ? 'bg-green-900 text-green-400' : 'bg-red-900 text-red-400'}`}>
+                                           <div className={`text-center font-bold text-sm py-2 rounded shadow-md border ${
+                                               item.status === 'CORRECT' 
+                                               ? 'bg-green-600 text-white border-green-400' 
+                                               : 'bg-red-600 text-white border-red-400'
+                                           }`}>
                                                {item.status}
                                            </div>
                                        )}

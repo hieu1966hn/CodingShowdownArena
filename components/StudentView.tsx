@@ -2,34 +2,14 @@
 import React, { useState } from 'react';
 import { GameState, GameRound, Player, Difficulty } from '../types';
 import { Code, Send, Bell, Mic, LogOut, CheckCircle } from 'lucide-react';
-import { SOUND_EFFECTS } from '../constants';
+import { SOUND_EFFECTS } from '../config/assets';
 
 interface Props {
   gameState: GameState;
   playerId: string;
   onBuzz: () => void;
   onSubmitRound2: (code: string) => void;
-  onLeave: () => void;
-  // New action for R3 pack selection (would be passed from app/service)
-}
-
-// We need to extend props to include the service directly or pass the function
-// For simplicity in this edit, I'll assume we pass a generic action or modify App.tsx
-// But since I can't edit App.tsx to pass new props easily without updating it too,
-// I will simulate the service call logic if possible, or expect `onSubmitPack`
-// Let's assume `gameService` is available or passed via props.
-// I will update App.tsx to pass `onSetPack`.
-
-// Actually, I can't change App.tsx signature in this file block.
-// I will rely on `window.dispatchEvent` or localStorage hack? No, cleaner to update App.tsx.
-// I will add `onSetRound3Pack` to Props.
-
-interface Props {
-  gameState: GameState;
-  playerId: string;
-  onBuzz: () => void;
-  onSubmitRound2: (code: string) => void;
-  onSetRound3Pack?: (pack: any[]) => void; // Optional to avoid breaking if parent not updated yet
+  onSetRound3Pack?: (pack: any[]) => void;
   onLeave: () => void;
 }
 

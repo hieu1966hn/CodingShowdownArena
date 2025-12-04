@@ -1,10 +1,10 @@
 
 import React, { useState, useEffect } from 'react';
-import { useGameSync } from './services/gameService';
+import { useGameSync } from './hooks/useGameSync';
 import TeacherDashboard from './components/TeacherDashboard';
 import StudentView from './components/StudentView';
 import SpectatorScreen from './components/SpectatorScreen';
-import { Users, Monitor, ShieldCheck, Gamepad2, ExternalLink, Trash2, LogIn, Key, PlayCircle, LogOut, AlertTriangle, Copy, Check, Maximize } from 'lucide-react';
+import { Users, Monitor, ShieldCheck, Gamepad2, ExternalLink, Trash2, LogIn, Key, PlayCircle, LogOut, AlertTriangle, Copy, Check, Maximize, User } from 'lucide-react';
 
 const App: React.FC = () => {
   const gameService = useGameSync();
@@ -100,7 +100,7 @@ const App: React.FC = () => {
                         </div>
                         {loginError.includes("unauthorized-domain") && (
                             <div className="mt-2 text-yellow-300 font-bold">
-                                Action Required: Add "{currentDomain}" to Firebase Authorized Domains.
+                                Action Required: Add "{currentDomain}" to Firebase Console.
                             </div>
                         )}
                     </div>
@@ -108,18 +108,34 @@ const App: React.FC = () => {
 
                 <p className="text-gray-400 mb-6">Please sign in to access the arena.</p>
 
-                <button 
-                    onClick={gameService.login}
-                    className="w-full py-4 bg-white hover:bg-gray-200 text-black font-bold rounded-lg flex items-center justify-center gap-3 transition-transform hover:scale-105 mb-8"
-                >
-                    <LogIn /> Sign in with Google
-                </button>
+                <div className="space-y-3 mb-8">
+                    <button 
+                        onClick={gameService.login}
+                        className="w-full py-4 bg-white hover:bg-gray-200 text-black font-bold rounded-lg flex items-center justify-center gap-3 transition-transform hover:scale-105"
+                    >
+                        <LogIn /> Sign in with Google
+                    </button>
+                    
+                    <div className="relative flex py-2 items-center">
+                        <div className="flex-grow border-t border-gray-600"></div>
+                        <span className="flex-shrink-0 mx-4 text-gray-500 text-sm">OR</span>
+                        <div className="flex-grow border-t border-gray-600"></div>
+                    </div>
+
+                    <button 
+                        onClick={gameService.loginAnonymous}
+                        className="w-full py-3 bg-gray-700 hover:bg-gray-600 text-white font-bold rounded-lg flex items-center justify-center gap-3 transition-transform hover:scale-105 border border-gray-500"
+                    >
+                        <User size={20} /> Continue as Guest
+                    </button>
+                    <p className="text-xs text-gray-500">Guest accounts are temporary and good for students.</p>
+                </div>
 
                 {/* DOMAIN HELPER */}
                 <div className="pt-6 border-t border-gray-700 text-left">
                     <div className="flex items-center gap-2 mb-2">
                         <Key size={16} className="text-gray-500"/>
-                        <p className="text-xs text-gray-500 uppercase font-bold">Domain Authorization Required</p>
+                        <p className="text-xs text-gray-500 uppercase font-bold">Domain Authorization Required (For Google Login)</p>
                     </div>
                     <div className="bg-black p-3 rounded border border-gray-600 font-mono text-sm text-green-400 break-all flex justify-between items-center group relative min-h-[48px]">
                         <span className={currentDomain.includes("Open") ? "text-yellow-500 italic" : ""}>
@@ -135,7 +151,7 @@ const App: React.FC = () => {
                         </button>
                     </div>
                     <p className="text-[10px] text-gray-500 mt-2">
-                        Go to <a href="https://console.firebase.google.com/" target="_blank" className="text-cyan-400 underline hover:text-cyan-300">Firebase Console</a> &gt; Authentication &gt; Settings &gt; Authorized Domains and add the domain above.
+                        If using Google Login: Go to <a href="https://console.firebase.google.com/" target="_blank" className="text-cyan-400 underline hover:text-cyan-300">Firebase Console</a> &gt; Auth &gt; Settings &gt; Authorized Domains and add the domain above.
                     </p>
                 </div>
             </div>
@@ -150,7 +166,7 @@ const App: React.FC = () => {
             <div className="max-w-lg w-full bg-slate-800 p-8 rounded-2xl shadow-2xl border border-gray-700">
                 <div className="flex justify-between items-center mb-6">
                     <div>
-                        <h2 className="text-xl font-bold text-white">Welcome, {user.displayName}</h2>
+                        <h2 className="text-xl font-bold text-white">Welcome, {user.isAnonymous ? 'Guest' : user.displayName}</h2>
                         <p className="text-gray-400 text-sm">Select a class session to begin.</p>
                     </div>
                     <button onClick={gameService.logout} className="text-xs text-red-400 hover:text-red-300">Sign Out</button>
@@ -212,7 +228,7 @@ const App: React.FC = () => {
 
   const handleJoinAsStudent = async () => {
     if (!tempName.trim()) {
-        // Default to Google name if empty
+        // Default to Google name if empty, or 'Guest'
         setTempName(user.displayName || "Student");
     }
     const finalName = tempName.trim() || user.displayName || "Student";
