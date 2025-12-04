@@ -20,10 +20,10 @@ export interface Player {
   name: string;
   score: number;
   isOnline: boolean;
-  buzzedAt?: number; // Timestamp for round 3
+  buzzedAt?: number | null; // Timestamp for round 3
   submittedRound2?: boolean;
-  round2Time?: number; // Time taken
-  round2Code?: string; // The code submitted by the student
+  round2Time?: number | null; // Time taken
+  round2Code?: string | null; // The code submitted by the student
   // Round 3 Specifics
   round3Pack: Round3Item[]; 
   round3PackLocked?: boolean; // Has the student locked in their choices?

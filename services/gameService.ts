@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { doc, onSnapshot, setDoc, updateDoc, getDoc, arrayUnion } from "firebase/firestore";
 import { signInWithPopup, signOut, onAuthStateChanged, User } from "firebase/auth";
@@ -156,8 +157,8 @@ export const useGameSync = () => {
         const updatedPlayers = isRound2 ? prev.players.map(p => ({
             ...p,
             submittedRound2: false,
-            round2Code: undefined,
-            round2Time: undefined
+            round2Code: null, // Fixed: use null instead of undefined
+            round2Time: null  // Fixed: use null instead of undefined
         })) : prev.players;
 
         return { 
@@ -218,7 +219,7 @@ export const useGameSync = () => {
   const clearBuzzers = () => {
     updateState((prev) => ({
       buzzerLocked: false,
-      players: prev.players.map(p => ({ ...p, buzzedAt: undefined }))
+      players: prev.players.map(p => ({ ...p, buzzedAt: null })) // Fixed: use null instead of undefined
     }));
   };
 
