@@ -1,4 +1,3 @@
-
 import { Question } from "../types";
 
 // ============================================================================
@@ -65,12 +64,24 @@ export const ROUND_2_QUESTIONS: Question[] = [
 ];
 
 // ROUND 3: FINISH LINE (VỀ ĐÍCH)
+// Target: 45 Questions (15 per level)
+
 const R3_EASY: Question[] = [
     { id: 'r3-e1', difficulty: 'EASY', points: 20, content: 'Tên hàm dùng để in dữ liệu?', answer: 'print()' },
     { id: 'r3-e2', difficulty: 'EASY', points: 20, content: 'Phép chia lấy dư dùng ký hiệu gì?', answer: '%' },
     { id: 'r3-e3', difficulty: 'EASY', points: 20, content: 'Muốn nhập dữ liệu từ bàn phím dùng hàm gì?', answer: 'input()' },
     { id: 'r3-e4', difficulty: 'EASY', points: 20, content: 'Danh sách rỗng ký hiệu thế nào?', answer: '[]' },
     { id: 'r3-e5', difficulty: 'EASY', points: 20, content: 'Số nguyên trong tiếng Anh gọi là gì?', answer: 'Integer (int)' },
+    { id: 'r3-e6', difficulty: 'EASY', points: 20, content: 'Kết quả của "5" + "5" là gì?', answer: '"55" (Chuỗi)' },
+    { id: 'r3-e7', difficulty: 'EASY', content: 'Dấu # dùng để làm gì?', answer: 'Comment (Ghi chú)', points: 20 },
+    { id: 'r3-e8', difficulty: 'EASY', content: 'Hàm int("10") trả về gì?', answer: 'Số 10 (Integer)', points: 20 },
+    { id: 'r3-e9', difficulty: 'EASY', content: 'True và False là kiểu dữ liệu gì?', answer: 'Boolean', points: 20 },
+    { id: 'r3-e10', difficulty: 'EASY', content: 'Phép toán 10 - 5 bằng mấy?', answer: '5', points: 20 },
+    { id: 'r3-e11', difficulty: 'EASY', content: 'Ký tự xuống dòng là gì?', answer: '\\n', points: 20 },
+    { id: 'r3-e12', difficulty: 'EASY', content: 'Hàm nào dùng để tạo 1 dãy số?', answer: 'range()', points: 20 },
+    { id: 'r3-e13', difficulty: 'EASY', content: 'Phép nhân dùng ký hiệu gì?', answer: '*', points: 20 },
+    { id: 'r3-e14', difficulty: 'EASY', content: 'Biến name = "Nam" là kiểu gì?', answer: 'String', points: 20 },
+    { id: 'r3-e15', difficulty: 'EASY', content: 'Lệnh import dùng để làm gì?', answer: 'Thêm thư viện', points: 20 },
 ];
 
 const R3_MEDIUM: Question[] = [
@@ -79,6 +90,16 @@ const R3_MEDIUM: Question[] = [
     { id: 'r3-m3', difficulty: 'MEDIUM', points: 30, content: 'Lệnh nào thoát khỏi vòng lặp ngay lập tức?', answer: 'break' },
     { id: 'r3-m4', difficulty: 'MEDIUM', points: 30, content: 'Làm sao để lấy phần tử cuối cùng của List?', answer: 'list[-1]' },
     { id: 'r3-m5', difficulty: 'MEDIUM', points: 30, content: 'Hàm len("Hello") trả về bao nhiêu?', answer: '5' },
+    { id: 'r3-m6', difficulty: 'MEDIUM', content: 'Hàm str(100) trả về gì?', answer: '"100" (Chuỗi)', points: 30 },
+    { id: 'r3-m7', difficulty: 'MEDIUM', content: 'Lệnh continue dùng để làm gì?', answer: 'Bỏ qua lần lặp hiện tại', points: 30 },
+    { id: 'r3-m8', difficulty: 'MEDIUM', content: 'Cách viết hoa toàn bộ chuỗi s?', answer: 's.upper()', points: 30 },
+    { id: 'r3-m9', difficulty: 'MEDIUM', content: 'Xóa phần tử tại vị trí i trong List?', answer: 'pop(i) hoặc del', points: 30 },
+    { id: 'r3-m10', difficulty: 'MEDIUM', content: 'Toán tử nào kiểm tra phần tử có trong List?', answer: 'in', points: 30 },
+    { id: 'r3-m11', difficulty: 'MEDIUM', content: 'Hàm nào tìm giá trị lớn nhất trong List?', answer: 'max()', points: 30 },
+    { id: 'r3-m12', difficulty: 'MEDIUM', content: 'if a > 0 and b > 0: nghĩa là gì?', answer: 'Cả a và b đều dương', points: 30 },
+    { id: 'r3-m13', difficulty: 'MEDIUM', content: 'Để nối 2 chuỗi lại với nhau dùng toán tử gì?', answer: '+', points: 30 },
+    { id: 'r3-m14', difficulty: 'MEDIUM', content: 'Cách lấy 3 ký tự đầu của chuỗi s?', answer: 's[0:3]', points: 30 },
+    { id: 'r3-m15', difficulty: 'MEDIUM', content: 'Hàm input() luôn trả về kiểu gì?', answer: 'String', points: 30 },
 ];
 
 const R3_HARD: Question[] = [
@@ -87,6 +108,16 @@ const R3_HARD: Question[] = [
     { id: 'r3-h3', difficulty: 'HARD', points: 40, content: 'Vòng lặp vô hạn viết như thế nào?', answer: 'while True:' },
     { id: 'r3-h4', difficulty: 'HARD', points: 40, content: 'Cách khai báo chuỗi nhiều dòng?', answer: 'Dùng 3 dấu nháy đơn hoặc kép' },
     { id: 'r3-h5', difficulty: 'HARD', points: 40, content: 'Sự khác biệt giữa List và Tuple?', answer: 'List thay đổi được, Tuple thì không' },
+    { id: 'r3-h6', difficulty: 'HARD', content: 'Biến cục bộ (local variable) là gì?', answer: 'Biến khai báo trong hàm', points: 40 },
+    { id: 'r3-h7', difficulty: 'HARD', content: 'Làm sao để import tất cả từ thư viện math?', answer: 'from math import *', points: 40 },
+    { id: 'r3-h8', difficulty: 'HARD', content: 'Hàm nào dùng để sắp xếp List?', answer: 'sort() hoặc sorted()', points: 40 },
+    { id: 'r3-h9', difficulty: 'HARD', content: 'Dictionary lưu dữ liệu dưới dạng nào?', answer: 'Key - Value', points: 40 },
+    { id: 'r3-h10', difficulty: 'HARD', content: 'Làm sao để ép kiểu dữ liệu?', answer: 'Dùng hàm int(), float(), str()...', points: 40 },
+    { id: 'r3-h11', difficulty: 'HARD', content: 'Toán tử // khác / ở chỗ nào?', answer: '// chia lấy nguyên, / chia thường', points: 40 },
+    { id: 'r3-h12', difficulty: 'HARD', content: 'Try...Except dùng để làm gì?', answer: 'Xử lý ngoại lệ (lỗi)', points: 40 },
+    { id: 'r3-h13', difficulty: 'HARD', content: 'File mode "w" có ý nghĩa gì?', answer: 'Ghi đè (Write)', points: 40 },
+    { id: 'r3-h14', difficulty: 'HARD', content: 'Đệ quy là gì?', answer: 'Hàm tự gọi lại chính nó', points: 40 },
+    { id: 'r3-h15', difficulty: 'HARD', content: 'Lambda function là gì?', answer: 'Hàm vô danh (Anonymous function)', points: 40 },
 ];
 
 export const ROUND_3_QUESTIONS: Question[] = [
