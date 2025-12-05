@@ -8,57 +8,56 @@ import { Question } from "../types";
 
 // ROUND 1: REFLEX (VẤN ĐÁP/TRỰC TIẾP)
 export const ROUND_1_QUESTIONS: Question[] = [
-    // --- Khái niệm cơ bản ---
-    { id: 'r1-1', content: 'Từ khóa nào dùng để khai báo hàm trong Python?', answer: 'def', points: 10 },
-    { id: 'r1-2', content: 'Input() trả về kiểu dữ liệu gì?', answer: 'String (str)', points: 10 },
-    { id: 'r1-3', content: 'Hàm nào dùng để tính độ dài của danh sách?', answer: 'len()', points: 10 },
-    { id: 'r1-4', content: 'Để chuyển chuỗi thành số nguyên, dùng hàm gì?', answer: 'int()', points: 10 },
-    { id: 'r1-5', content: 'True và False thuộc kiểu dữ liệu nào?', answer: 'Boolean (bool)', points: 10 },
-    
-    // --- Tính toán ---
-    { id: 'r1-6', content: '5 // 2 bằng bao nhiêu?', answer: '2', points: 10 },
-    { id: 'r1-7', content: '5 % 2 bằng bao nhiêu?', answer: '1', points: 10 },
-    { id: 'r1-8', content: '2 ** 3 bằng bao nhiêu?', answer: '8', points: 10 },
-    { id: 'r1-9', content: '10 != 10 trả về True hay False?', answer: 'False', points: 10 },
-    { id: 'r1-10', content: 'not True là gì?', answer: 'False', points: 10 },
+    // --- EASY ---
+    { id: 'r1-1', difficulty: 'EASY', content: 'Từ khóa nào dùng để khai báo hàm trong Python?', answer: 'def', points: 10 },
+    { id: 'r1-2', difficulty: 'EASY', content: 'Input() trả về kiểu dữ liệu gì?', answer: 'String (str)', points: 10 },
+    { id: 'r1-6', difficulty: 'EASY', content: '5 // 2 bằng bao nhiêu?', answer: '2', points: 10 },
+    { id: 'r1-11', difficulty: 'EASY', content: 'Lệnh nào dùng để in ra màn hình?', answer: 'print()', points: 10 },
+    { id: 'r1-16', difficulty: 'EASY', content: 'List được bao quanh bởi dấu ngoặc gì?', answer: '[] (Ngoặc vuông)', points: 10 },
+    { id: 'r1-17', difficulty: 'EASY', content: 'Chỉ số (index) đầu tiên của chuỗi là mấy?', answer: '0', points: 10 },
 
-    // --- Cú pháp/Lệnh ---
-    { id: 'r1-11', content: 'Lệnh nào dùng để in ra màn hình?', answer: 'print()', points: 10 },
-    { id: 'r1-12', content: 'Ký hiệu nào dùng để comment?', answer: '#', points: 10 },
-    { id: 'r1-13', content: 'Vòng lặp nào dùng khi biết trước số lần lặp?', answer: 'for', points: 10 },
-    { id: 'r1-14', content: 'Vòng lặp nào chạy khi điều kiện còn đúng?', answer: 'while', points: 10 },
-    { id: 'r1-15', content: 'Cấu trúc rẽ nhánh bắt đầu bằng từ khóa gì?', answer: 'if', points: 10 },
+    // --- MEDIUM ---
+    { id: 'r1-3', difficulty: 'MEDIUM', content: 'Hàm nào dùng để tính độ dài của danh sách?', answer: 'len()', points: 15 },
+    { id: 'r1-4', difficulty: 'MEDIUM', content: 'Để chuyển chuỗi thành số nguyên, dùng hàm gì?', answer: 'int()', points: 15 },
+    { id: 'r1-5', difficulty: 'MEDIUM', content: 'True và False thuộc kiểu dữ liệu nào?', answer: 'Boolean (bool)', points: 15 },
+    { id: 'r1-7', difficulty: 'MEDIUM', content: '5 % 2 bằng bao nhiêu?', answer: '1', points: 15 },
+    { id: 'r1-12', difficulty: 'MEDIUM', content: 'Ký hiệu nào dùng để comment?', answer: '#', points: 15 },
+    { id: 'r1-13', difficulty: 'MEDIUM', content: 'Vòng lặp nào dùng khi biết trước số lần lặp?', answer: 'for', points: 15 },
+    { id: 'r1-15', difficulty: 'MEDIUM', content: 'Cấu trúc rẽ nhánh bắt đầu bằng từ khóa gì?', answer: 'if', points: 15 },
+    { id: 'r1-18', difficulty: 'MEDIUM', content: 'Phép toán so sánh bằng trong Python viết thế nào?', answer: '==', points: 15 },
 
-    { id: 'r1-16', content: 'List được bao quanh bởi dấu ngoặc gì?', answer: '[] (Ngoặc vuông)', points: 10 },
-    { id: 'r1-17', content: 'Chỉ số (index) đầu tiên của chuỗi là mấy?', answer: '0', points: 10 },
-    { id: 'r1-18', content: 'Phép toán so sánh bằng trong Python viết thế nào?', answer: '==', points: 10 },
-    { id: 'r1-19', content: 'Thư viện vẽ hình rùa trong Python tên là gì?', answer: 'turtle', points: 10 },
-    { id: 'r1-20', content: 'Từ khóa dùng để trả về giá trị trong hàm?', answer: 'return', points: 10 },
+    // --- HARD ---
+    { id: 'r1-8', difficulty: 'HARD', content: '2 ** 3 bằng bao nhiêu?', answer: '8', points: 20 },
+    { id: 'r1-9', difficulty: 'HARD', content: '10 != 10 trả về True hay False?', answer: 'False', points: 20 },
+    { id: 'r1-10', difficulty: 'HARD', content: 'not True là gì?', answer: 'False', points: 20 },
+    { id: 'r1-14', difficulty: 'HARD', content: 'Vòng lặp nào chạy khi điều kiện còn đúng?', answer: 'while', points: 20 },
+    { id: 'r1-19', difficulty: 'HARD', content: 'Thư viện vẽ hình rùa trong Python tên là gì?', answer: 'turtle', points: 20 },
+    { id: 'r1-20', difficulty: 'HARD', content: 'Từ khóa dùng để trả về giá trị trong hàm?', answer: 'return', points: 20 },
 ];
 
 // ROUND 2: OBSTACLE (VƯỢT CHƯỚNG NGẠI VẬT)
 const R2_LOGIC: Question[] = [
-    { id: 'r2-logic-1', category: 'LOGIC', points: 30, content: 'Toán tử Logic', answer: 'False', codeSnippet: 'A = True\nB = False\nprint(A and B)' },
-    { id: 'r2-logic-2', category: 'LOGIC', points: 30, content: 'Toán tử Logic', answer: 'True', codeSnippet: 'x = 5\nprint(x > 3 or x < 0)' },
-    { id: 'r2-logic-3', category: 'LOGIC', points: 30, content: 'Toán tử Logic', answer: 'False', codeSnippet: 'val = True\nprint(not val)' },
+    { id: 'r2-logic-1', difficulty: 'EASY', category: 'LOGIC', points: 30, content: 'Toán tử Logic', answer: 'False', codeSnippet: 'A = True\nB = False\nprint(A and B)' },
+    { id: 'r2-logic-2', difficulty: 'MEDIUM', category: 'LOGIC', points: 40, content: 'Toán tử Logic', answer: 'True', codeSnippet: 'x = 5\nprint(x > 3 or x < 0)' },
+    { id: 'r2-logic-3', difficulty: 'HARD', category: 'LOGIC', points: 50, content: 'Toán tử Logic', answer: 'False', codeSnippet: 'val = True\nprint(not val)' },
 ];
 
 const R2_SYNTAX: Question[] = [
-    { id: 'r2-syn-1', category: 'SYNTAX', points: 40, content: 'Tìm lỗi sai', answer: 'Tên biến không được bắt đầu bằng số', codeSnippet: '1_score = 100\nprint(1_score)' },
-    { id: 'r2-syn-2', category: 'SYNTAX', points: 40, content: 'Tìm lỗi sai', answer: 'Thiếu dấu hai chấm (:)', codeSnippet: 'if x > 5\n    print("Lon hon")' },
-    { id: 'r2-syn-3', category: 'SYNTAX', points: 40, content: 'Tìm lỗi sai', answer: 'Sai thụt đầu dòng (Indentation)', codeSnippet: 'def hello():\nprint("Hi")' },
+    { id: 'r2-syn-1', difficulty: 'EASY', category: 'SYNTAX', points: 30, content: 'Tìm lỗi sai', answer: 'Tên biến không được bắt đầu bằng số', codeSnippet: '1_score = 100\nprint(1_score)' },
+    { id: 'r2-syn-2', difficulty: 'MEDIUM', category: 'SYNTAX', points: 40, content: 'Tìm lỗi sai', answer: 'Thiếu dấu hai chấm (:)', codeSnippet: 'if x > 5\n    print("Lon hon")' },
+    { id: 'r2-syn-3', difficulty: 'HARD', category: 'SYNTAX', points: 50, content: 'Tìm lỗi sai', answer: 'Sai thụt đầu dòng (Indentation)', codeSnippet: 'def hello():\nprint("Hi")' },
 ];
 
 const R2_ALGO: Question[] = [
-    { id: 'r2-algo-1', category: 'ALGO', points: 50, content: 'Sắp xếp thuật toán', answer: 'B-A-C', codeSnippet: '# Mục tiêu: Tính tổng 2 số\n# (A) total = a + b\n# (B) a = 5, b = 10\n# (C) print(total)' },
-    { id: 'r2-algo-2', category: 'ALGO', points: 50, content: 'Sắp xếp thuật toán', answer: 'A-C-B', codeSnippet: '# Mục tiêu: Vòng lặp in 0->2\n# (A) for i in range(3):\n# (B)    print("End")\n# (C)    print(i)' },
-    { id: 'r2-algo-3', category: 'ALGO', points: 50, content: 'Sắp xếp thuật toán', answer: 'B-C-A', codeSnippet: '# Mục tiêu: Nhập và in tên\n# (A) print("Hello", name)\n# (B) name = ""\n# (C) name = input("Name?")' },
+    { id: 'r2-algo-1', difficulty: 'EASY', category: 'ALGO', points: 30, content: 'Sắp xếp thuật toán', answer: 'B-A-C', codeSnippet: '# Mục tiêu: Tính tổng 2 số\n# (A) total = a + b\n# (B) a = 5, b = 10\n# (C) print(total)' },
+    { id: 'r2-algo-2', difficulty: 'MEDIUM', category: 'ALGO', points: 40, content: 'Sắp xếp thuật toán', answer: 'A-C-B', codeSnippet: '# Mục tiêu: Vòng lặp in 0->2\n# (A) for i in range(3):\n# (B)    print("End")\n# (C)    print(i)' },
+    { id: 'r2-algo-3', difficulty: 'HARD', category: 'ALGO', points: 50, content: 'Sắp xếp thuật toán', answer: 'B-C-A', codeSnippet: '# Mục tiêu: Nhập và in tên\n# (A) print("Hello", name)\n# (B) name = ""\n# (C) name = input("Name?")' },
 ];
 
 const R2_OUTPUT: Question[] = [
-    { id: 'r2-out-1', category: 'OUTPUT', points: 40, content: 'Dự đoán Output', answer: '0\n1\n2', codeSnippet: 'for i in range(3):\n    print(i)' },
-    { id: 'r2-out-2', category: 'OUTPUT', points: 40, content: 'Dự đoán Output', answer: 'HelloHello', codeSnippet: 's = "Hello"\nprint(s * 2)' },
-    { id: 'r2-out-3', category: 'OUTPUT', points: 40, content: 'Dự đoán Output', answer: '15', codeSnippet: 'x = 10\nx = x + 5\nprint(x)' },
+    { id: 'r2-out-1', difficulty: 'EASY', category: 'OUTPUT', points: 30, content: 'Dự đoán Output', answer: '0\n1\n2', codeSnippet: 'for i in range(3):\n    print(i)' },
+    { id: 'r2-out-2', difficulty: 'MEDIUM', category: 'OUTPUT', points: 40, content: 'Dự đoán Output', answer: 'HelloHello', codeSnippet: 's = "Hello"\nprint(s * 2)' },
+    { id: 'r2-out-3', difficulty: 'HARD', category: 'OUTPUT', points: 50, content: 'Dự đoán Output', answer: '15', codeSnippet: 'x = 10\nx = x + 5\nprint(x)' },
 ];
 
 export const ROUND_2_QUESTIONS: Question[] = [

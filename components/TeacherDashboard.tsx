@@ -18,8 +18,12 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
   const [viewingPlayerCode, setViewingPlayerCode] = useState<Player | null>(null);
   const [showR3Bank, setShowR3Bank] = useState(false);
   
-  // Round 2 Category Filter State
+  // Round 1 Filter State
+  const [r1Difficulty, setR1Difficulty] = useState<Difficulty | 'ALL'>('ALL');
+
+  // Round 2 Filter State
   const [r2Category, setR2Category] = useState<QuestionCategory>('LOGIC');
+  const [r2Difficulty, setR2Difficulty] = useState<Difficulty | 'ALL'>('ALL');
 
   // Helper for Sound Effects
   const playSound = (type: keyof typeof SOUND_EFFECTS) => {
@@ -200,15 +204,34 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                         </button>
                     </div>
                </div>
+
+               {/* DIFFICULTY FILTER */}
+               <div className="flex gap-2 pb-2">
+                    <button onClick={() => setR1Difficulty('ALL')} className={`px-4 py-2 rounded-lg font-bold text-sm border transition-colors ${r1Difficulty === 'ALL' ? 'bg-white text-black border-white' : 'bg-gray-800 border-gray-600 text-gray-400'}`}>ALL</button>
+                    <button onClick={() => setR1Difficulty('EASY')} className={`px-4 py-2 rounded-lg font-bold text-sm border transition-colors ${r1Difficulty === 'EASY' ? 'bg-green-600 text-white border-green-500' : 'bg-gray-800 border-gray-600 text-gray-400'}`}>EASY</button>
+                    <button onClick={() => setR1Difficulty('MEDIUM')} className={`px-4 py-2 rounded-lg font-bold text-sm border transition-colors ${r1Difficulty === 'MEDIUM' ? 'bg-yellow-600 text-white border-yellow-500' : 'bg-gray-800 border-gray-600 text-gray-400'}`}>MEDIUM</button>
+                    <button onClick={() => setR1Difficulty('HARD')} className={`px-4 py-2 rounded-lg font-bold text-sm border transition-colors ${r1Difficulty === 'HARD' ? 'bg-red-600 text-white border-red-500' : 'bg-gray-800 border-gray-600 text-gray-400'}`}>HARD</button>
+               </div>
                
                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 h-[500px] overflow-y-auto pr-2">
-                   {ROUND_1_QUESTIONS.filter(q => !gameState.usedQuestionIds.includes(q.id)).map(q => (
+                   {ROUND_1_QUESTIONS
+                    .filter(q => (!gameState.usedQuestionIds.includes(q.id)) && (r1Difficulty === 'ALL' || q.difficulty === r1Difficulty))
+                    .map(q => (
                        <button 
                           key={q.id}
                           onClick={() => actions.setQuestion(q)}
                           className={`p-4 rounded text-left border transition-all hover:bg-slate-700 ${gameState.activeQuestion?.id === q.id ? 'border-cyber-primary bg-slate-800 ring-2 ring-cyber-primary' : 'border-gray-600 bg-gray-800'}`}
                        >
-                           <div className="font-bold text-lg mb-1">{q.content}</div>
+                           <div className="flex justify-between items-start mb-1">
+                               <div className="font-bold text-lg">{q.content}</div>
+                               <span className={`text-xs font-bold px-2 py-0.5 rounded ml-2 whitespace-nowrap ${
+                                   q.difficulty === 'EASY' ? 'bg-green-900 text-green-300' : 
+                                   q.difficulty === 'MEDIUM' ? 'bg-yellow-900 text-yellow-300' : 
+                                   'bg-red-900 text-red-300'
+                               }`}>
+                                   {q.difficulty}
+                               </span>
+                           </div>
                            <div className="text-sm text-gray-400">Ans: <span className="text-green-400">{q.answer}</span></div>
                        </button>
                    ))}
@@ -236,35 +259,55 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
           <div className="space-y-6">
               <h2 className="text-xl font-bold flex items-center gap-2"><Code className="text-green-400"/> Round 2: Obstacle Run</h2>
               
-              {/* Category Tabs */}
-              <div className="flex gap-2 overflow-x-auto pb-2">
-                  {(['LOGIC', 'SYNTAX', 'ALGO', 'OUTPUT'] as QuestionCategory[]).map(cat => (
-                      <button
-                        key={cat}
-                        onClick={() => setR2Category(cat)}
-                        className={`px-4 py-2 rounded-full font-bold text-sm whitespace-nowrap transition-colors ${r2Category === cat ? 'bg-cyber-primary text-black' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}
-                      >
-                          {cat === 'LOGIC' ? 'Tư duy Logic' : cat === 'SYNTAX' ? 'Lỗi Cú pháp' : cat === 'ALGO' ? 'Sắp xếp Thuật toán' : 'Dự đoán Output'}
-                      </button>
-                  ))}
+              <div className="space-y-2">
+                  {/* Category Tabs */}
+                  <div className="flex gap-2 overflow-x-auto pb-2">
+                      {(['LOGIC', 'SYNTAX', 'ALGO', 'OUTPUT'] as QuestionCategory[]).map(cat => (
+                          <button
+                            key={cat}
+                            onClick={() => setR2Category(cat)}
+                            className={`px-4 py-2 rounded-full font-bold text-sm whitespace-nowrap transition-colors ${r2Category === cat ? 'bg-cyber-primary text-black' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}
+                          >
+                              {cat === 'LOGIC' ? 'Tư duy Logic' : cat === 'SYNTAX' ? 'Lỗi Cú pháp' : cat === 'ALGO' ? 'Sắp xếp Thuật toán' : 'Dự đoán Output'}
+                          </button>
+                      ))}
+                  </div>
+                  
+                  {/* Difficulty Sub-Filter */}
+                  <div className="flex gap-2 border-t border-gray-700 pt-2">
+                        <span className="text-sm text-gray-400 flex items-center px-2">Difficulty:</span>
+                        <button onClick={() => setR2Difficulty('ALL')} className={`px-3 py-1 rounded text-xs font-bold transition-colors ${r2Difficulty === 'ALL' ? 'bg-white text-black' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}`}>ALL</button>
+                        <button onClick={() => setR2Difficulty('EASY')} className={`px-3 py-1 rounded text-xs font-bold transition-colors ${r2Difficulty === 'EASY' ? 'bg-green-600 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}`}>EASY</button>
+                        <button onClick={() => setR2Difficulty('MEDIUM')} className={`px-3 py-1 rounded text-xs font-bold transition-colors ${r2Difficulty === 'MEDIUM' ? 'bg-yellow-600 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}`}>MEDIUM</button>
+                        <button onClick={() => setR2Difficulty('HARD')} className={`px-3 py-1 rounded text-xs font-bold transition-colors ${r2Difficulty === 'HARD' ? 'bg-red-600 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}`}>HARD</button>
+                  </div>
               </div>
 
               {/* Question Selection Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 max-h-[300px] overflow-y-auto">
                    {ROUND_2_QUESTIONS
-                        .filter(q => q.category === r2Category && !gameState.usedQuestionIds.includes(q.id))
+                        .filter(q => q.category === r2Category && !gameState.usedQuestionIds.includes(q.id) && (r2Difficulty === 'ALL' || q.difficulty === r2Difficulty))
                         .map((q) => (
                        <button 
                            key={q.id}
                            onClick={() => actions.setQuestion(q)}
                            className={`p-4 border rounded text-left hover:bg-slate-700 transition-colors ${gameState.activeQuestion?.id === q.id ? 'bg-slate-800 border-cyber-primary ring-1 ring-cyber-primary' : 'bg-gray-800 border-gray-600'}`}
                        >
-                           <h4 className="font-bold text-cyber-primary mb-1">{q.content}</h4>
+                           <div className="flex justify-between">
+                               <h4 className="font-bold text-cyber-primary mb-1">{q.content}</h4>
+                               <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded h-fit ${
+                                   q.difficulty === 'EASY' ? 'bg-green-900 text-green-300' : 
+                                   q.difficulty === 'MEDIUM' ? 'bg-yellow-900 text-yellow-300' : 
+                                   'bg-red-900 text-red-300'
+                               }`}>
+                                   {q.difficulty}
+                               </span>
+                           </div>
                            <p className="text-xs text-gray-400 truncate font-mono">{q.answer}</p>
                        </button>
                    ))}
-                   {ROUND_2_QUESTIONS.filter(q => q.category === r2Category && !gameState.usedQuestionIds.includes(q.id)).length === 0 && (
-                       <div className="col-span-full text-center text-gray-500 py-4">No more questions in this category.</div>
+                   {ROUND_2_QUESTIONS.filter(q => q.category === r2Category && !gameState.usedQuestionIds.includes(q.id) && (r2Difficulty === 'ALL' || q.difficulty === r2Difficulty)).length === 0 && (
+                       <div className="col-span-full text-center text-gray-500 py-4">No more questions in this category/difficulty.</div>
                    )}
               </div>
 
