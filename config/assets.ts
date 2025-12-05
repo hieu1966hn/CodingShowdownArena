@@ -8,5 +8,6 @@ export const SOUND_EFFECTS = {
     SCORE_UP: 'https://actions.google.com/sounds/v1/cartoon/pop.ogg',
     SCORE_DOWN: 'https://actions.google.com/sounds/v1/cartoon/slide_whistle_down.ogg',
     VICTORY: 'https://actions.google.com/sounds/v1/crowds/female_cheer.ogg',
-    BUZZ: 'https://actions.google.com/sounds/v1/alarms/beep_short.ogg'
+    BUZZ: 'https://actions.google.com/sounds/v1/alarms/beep_short.ogg',
+    TICK: 'https://actions.google.com/sounds/v1/tools/ticking_clock.ogg'
 };

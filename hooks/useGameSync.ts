@@ -171,7 +171,9 @@ export const useGameSync = () => {
         timerEndTime: null, 
         round3Phase: 'IDLE', 
         round3TurnPlayerId: null, 
-        round1TurnPlayerId: null 
+        round1TurnPlayerId: null,
+        showAnswer: false,
+        viewingPlayerId: null
     });
   };
 
@@ -191,12 +193,14 @@ export const useGameSync = () => {
             message: null,
             round2StartedAt: null,
             usedQuestionIds: [...prev.usedQuestionIds, question.id],
-            players: updatedPlayers
+            players: updatedPlayers,
+            showAnswer: false,
+            viewingPlayerId: null
         };
     });
   };
 
-  const clearQuestion = () => updateState({ activeQuestion: null });
+  const clearQuestion = () => updateState({ activeQuestion: null, showAnswer: false });
 
   const startTimer = (seconds: number) => {
     updateState({ 
@@ -262,7 +266,7 @@ export const useGameSync = () => {
     });
   };
 
-  const setRound1Turn = (playerId: string | null) => updateState({ round1TurnPlayerId: playerId });
+  const setRound1Turn = (playerId: string | null) => updateState({ round1TurnPlayerId: playerId, showAnswer: false });
 
   const setRound3Pack = (playerId: string, pack: Round3Item[]) => {
       updateState((prev) => ({
@@ -343,7 +347,8 @@ export const useGameSync = () => {
           round3Phase: type === 'MAIN' ? 'MAIN_ANSWER' : 'STEAL_WINDOW',
           timerEndTime: Date.now() + duration * 1000,
           buzzerLocked: type === 'MAIN',
-          players: type === 'STEAL' ? prev.players.map(p => ({ ...p, buzzedAt: undefined })) : prev.players
+          // FIX: Use null instead of undefined for Firestore
+          players: type === 'STEAL' ? prev.players.map(p => ({ ...p, buzzedAt: null })) : prev.players
       }));
   };
 
@@ -383,6 +388,14 @@ export const useGameSync = () => {
   // Needed for refresh button in dashboard
   const forceSync = () => { /* Firestore handles sync automatically */ };
 
+  const toggleShowAnswer = () => {
+      updateState((prev) => ({ showAnswer: !prev.showAnswer }));
+  };
+
+  const setViewingPlayer = (playerId: string | null) => {
+      updateState({ viewingPlayerId: playerId });
+  };
+
   return {
     user,
     authLoading,
@@ -419,6 +432,8 @@ export const useGameSync = () => {
     revealRound3Question,
     startRound3Timer,
     joinGame, 
-    forceSync
+    forceSync,
+    toggleShowAnswer,
+    setViewingPlayer
   };
 };

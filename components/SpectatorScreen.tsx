@@ -1,14 +1,15 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { GameState, GameRound, Player } from '../types';
-import { Trophy, Timer, Code2, AlertCircle, Zap, User, Star, LogOut, Play, Download } from 'lucide-react';
+import { Trophy, Timer, Code2, AlertCircle, Zap, User, Star, LogOut, Play, Download, Check } from 'lucide-react';
+import { SOUND_EFFECTS } from '../config/assets';
 
 interface Props {
   gameState: GameState;
   onLeave: () => void;
 }
 
-// Fireworks Component - Adjusted Z-Index to be an overlay, not a replacement
+// Fireworks Component
 const Fireworks: React.FC = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -18,7 +19,6 @@ const Fireworks: React.FC = () => {
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
-        // Set canvas size
         const setSize = () => {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
@@ -84,9 +84,7 @@ const Fireworks: React.FC = () => {
         let animationFrameId: number;
         const animate = () => {
             animationFrameId = requestAnimationFrame(animate);
-            // Clear but keep transparent background
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
             particles.forEach((p, index) => {
                 p.update();
                 p.draw();
@@ -107,27 +105,34 @@ const Fireworks: React.FC = () => {
 };
 
 const SpectatorScreen: React.FC<Props> = ({ gameState, onLeave }) => {
-    // Force re-render for timer
     const [, setTick] = useState(0);
+    
+    // Play tick sound logic
     useEffect(() => {
         if (gameState.timerEndTime) {
             const interval = setInterval(() => {
+                const now = Date.now();
+                const timeLeft = Math.ceil((gameState.timerEndTime! - now) / 1000);
+                if (timeLeft > 0 && timeLeft <= 5) {
+                    const audio = new Audio(SOUND_EFFECTS.TICK);
+                    audio.volume = 0.3;
+                    audio.play().catch(() => {});
+                }
                 setTick(t => t + 1);
-            }, 100);
+            }, 1000);
             return () => clearInterval(interval);
         }
     }, [gameState.timerEndTime]);
 
-    // Determine leader
     const sortedPlayers = [...gameState.players].sort((a, b) => b.score - a.score);
     const leader = sortedPlayers[0];
 
     const isRound3 = gameState.round === GameRound.ROUND_3;
     const isRound1 = gameState.round === GameRound.ROUND_1;
 
-    // Active Player Display Helper
     const activePlayerId = isRound3 ? gameState.round3TurnPlayerId : (isRound1 ? gameState.round1TurnPlayerId : null);
     const activePlayerName = activePlayerId ? gameState.players.find(p => p.id === activePlayerId)?.name : null;
+    const viewingPlayer = gameState.viewingPlayerId ? gameState.players.find(p => p.id === gameState.viewingPlayerId) : null;
 
     const handleDownloadCSV = () => {
         const headers = ["Rank", "Name", "Total Score", "Round 2 Time (s)", "Round 3 Correct"];
@@ -135,7 +140,7 @@ const SpectatorScreen: React.FC<Props> = ({ gameState, onLeave }) => {
             const r3Correct = p.round3Pack.filter(item => item.status === 'CORRECT').length;
             return [
                 i + 1,
-                `"${p.name}"`, // Quote name to handle commas
+                `"${p.name}"`, 
                 p.score,
                 p.submittedRound2 && p.round2Time ? p.round2Time.toFixed(2) : "N/A",
                 `${r3Correct}/3`
@@ -154,7 +159,6 @@ const SpectatorScreen: React.FC<Props> = ({ gameState, onLeave }) => {
 
     return (
         <div className="min-h-screen bg-cyber-dark text-white p-6 flex flex-col relative overflow-hidden">
-            {/* Header */}
             <div className="flex justify-between items-center z-10 mb-8 border-b border-gray-700 pb-4">
                  <div>
                      <h1 className="text-4xl font-black italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500">
@@ -188,10 +192,8 @@ const SpectatorScreen: React.FC<Props> = ({ gameState, onLeave }) => {
                  </div>
             </div>
 
-            {/* Main Content Area */}
             <div className="flex-grow flex items-center justify-center z-10 relative">
                 
-                {/* LOBBY */}
                 {gameState.round === GameRound.LOBBY && (
                     <div className="w-full max-w-6xl text-center">
                          <h2 className="text-6xl font-black text-white mb-12 animate-pulse">WAITING FOR PLAYERS...</h2>
@@ -209,14 +211,10 @@ const SpectatorScreen: React.FC<Props> = ({ gameState, onLeave }) => {
                     </div>
                 )}
 
-                {/* GAME OVER */}
                 {gameState.round === GameRound.GAME_OVER && (
                     <div className="text-center w-full relative">
-                        {/* Fireworks overlay */}
                         <Fireworks />
-                        
                         <div className="relative z-10 flex flex-col items-center">
-                            {/* Big Trophy Icon */}
                             <div className="mb-6 relative animate-[bounce_2s_infinite]">
                                 <div className="absolute inset-0 bg-yellow-500 blur-3xl opacity-30 rounded-full"></div>
                                 <Trophy size={100} className="text-yellow-400 relative z-10 drop-shadow-[0_0_15px_rgba(250,204,21,0.8)]" />
@@ -226,7 +224,6 @@ const SpectatorScreen: React.FC<Props> = ({ gameState, onLeave }) => {
                                 WINNERS PODIUM
                             </h2>
 
-                            {/* Export Button */}
                             <button 
                                 onClick={handleDownloadCSV}
                                 className="mb-12 flex items-center gap-2 px-6 py-3 bg-gray-800 hover:bg-gray-700 rounded-full border border-gray-600 transition-all hover:scale-105 group"
@@ -236,7 +233,6 @@ const SpectatorScreen: React.FC<Props> = ({ gameState, onLeave }) => {
                             </button>
                             
                             <div className="flex justify-center items-end gap-8 h-96">
-                                {/* 2nd Place */}
                                 {sortedPlayers[1] && (
                                     <div className="flex flex-col items-center w-64 animate-[slideUp_1s_ease-out_0.2s_backwards]">
                                         <div className="mb-4 text-center">
@@ -250,7 +246,6 @@ const SpectatorScreen: React.FC<Props> = ({ gameState, onLeave }) => {
                                     </div>
                                 )}
 
-                                {/* 1st Place */}
                                 {sortedPlayers[0] && (
                                     <div className="flex flex-col items-center w-80 z-20 animate-[slideUp_1s_ease-out]">
                                         <div className="mb-4 text-center">
@@ -264,7 +259,6 @@ const SpectatorScreen: React.FC<Props> = ({ gameState, onLeave }) => {
                                     </div>
                                 )}
 
-                                {/* 3rd Place */}
                                 {sortedPlayers[2] && (
                                     <div className="flex flex-col items-center w-64 animate-[slideUp_1s_ease-out_0.4s_backwards]">
                                         <div className="mb-4 text-center">
@@ -282,12 +276,9 @@ const SpectatorScreen: React.FC<Props> = ({ gameState, onLeave }) => {
                     </div>
                 )}
 
-                {/* ACTIVE QUESTION DISPLAY (R1, R2, R3) */}
                 {gameState.round !== GameRound.LOBBY && gameState.round !== GameRound.GAME_OVER && (
                     <div className="w-full max-w-7xl grid grid-cols-12 gap-8 h-[80vh]">
-                        {/* Left: Question Area */}
                         <div className="col-span-8 bg-slate-900/90 rounded-3xl border-2 border-cyber-primary shadow-[0_0_40px_rgba(6,182,212,0.2)] p-12 flex flex-col relative overflow-hidden">
-                             {/* Background decoration */}
                              <div className="absolute top-0 right-0 w-64 h-64 bg-cyber-primary/10 rounded-full filter blur-3xl -translate-y-1/2 translate-x-1/2"></div>
                              
                              {gameState.message && (
@@ -298,7 +289,6 @@ const SpectatorScreen: React.FC<Props> = ({ gameState, onLeave }) => {
                                  </div>
                              )}
 
-                             {/* Timer Overlay */}
                              {gameState.timerEndTime && (
                                  <div className="absolute top-8 right-8 flex items-center gap-2">
                                      <Timer size={32} className="text-red-500 animate-pulse" />
@@ -312,19 +302,31 @@ const SpectatorScreen: React.FC<Props> = ({ gameState, onLeave }) => {
                                  <div className="flex-grow flex flex-col justify-center">
                                      <div className="text-2xl text-cyber-secondary font-bold mb-6 uppercase tracking-widest flex items-center gap-2">
                                          <Code2 /> 
-                                         {gameState.activeQuestion.category || gameState.activeQuestion.difficulty || "QUESTION"} 
+                                         {/* Hide Difficulty for Round 1 */}
+                                         {gameState.round === GameRound.ROUND_1 
+                                            ? "REFLEX QUESTION" 
+                                            : (gameState.activeQuestion.category || gameState.activeQuestion.difficulty || "QUESTION")} 
                                          <span className="bg-slate-700 text-white px-3 py-1 rounded text-sm">{gameState.activeQuestion.points} PTS</span>
                                      </div>
-                                     <h2 className="text-5xl font-bold leading-tight mb-8">
+                                     <h2 className="text-6xl font-bold leading-tight mb-8">
                                          {gameState.activeQuestion.content}
                                      </h2>
                                      {gameState.activeQuestion.codeSnippet && (
-                                         <pre className="bg-black p-6 rounded-xl border border-gray-700 text-green-400 font-mono text-xl overflow-x-auto shadow-inner">
+                                         <pre className="bg-black p-6 rounded-xl border border-gray-700 text-green-400 font-mono text-2xl overflow-x-auto shadow-inner">
                                              {gameState.activeQuestion.codeSnippet}
                                          </pre>
                                      )}
                                      
-                                     {/* Active Turn Indicator (R1 or R3) */}
+                                     {/* Reveal Answer Overlay */}
+                                     {gameState.showAnswer && gameState.activeQuestion.answer && (
+                                         <div className="mt-6 bg-green-900/30 border border-green-500 p-6 rounded-xl animate-[slideUp_0.3s]">
+                                             <div className="text-green-400 text-sm font-bold uppercase mb-2 flex items-center gap-2">
+                                                 <Check size={18}/> Correct Answer
+                                             </div>
+                                             <div className="text-4xl font-bold text-white">{gameState.activeQuestion.answer}</div>
+                                         </div>
+                                     )}
+
                                      {activePlayerName && (
                                          <div className="mt-8 p-6 bg-blue-900/20 border border-blue-500/50 rounded-xl flex items-center gap-4 animate-[fadeIn_0.5s]">
                                              <div className="relative">
@@ -345,7 +347,6 @@ const SpectatorScreen: React.FC<Props> = ({ gameState, onLeave }) => {
                              )}
                         </div>
 
-                        {/* Right: Leaderboard */}
                         <div className="col-span-4 bg-slate-800/80 rounded-3xl border border-gray-700 p-6 overflow-hidden flex flex-col">
                              <h3 className="text-xl font-bold text-gray-400 mb-6 flex items-center gap-2">
                                  <Star className="text-yellow-500" /> LIVE RANKINGS
@@ -359,11 +360,9 @@ const SpectatorScreen: React.FC<Props> = ({ gameState, onLeave }) => {
                                              </div>
                                              <div>
                                                  <div className="font-bold text-lg leading-none">{p.name}</div>
-                                                 {/* Round 2 Status Indicator */}
                                                  {gameState.round === GameRound.ROUND_2 && p.submittedRound2 && (
                                                      <span className="text-xs text-green-400 font-mono">✔ CODE SUBMITTED</span>
                                                  )}
-                                                  {/* Round 3 & 1 Turn Indicator */}
                                                  {activePlayerId === p.id && (
                                                      <span className="text-xs text-blue-400 font-mono animate-pulse">● ANSWERING</span>
                                                  )}
@@ -373,6 +372,25 @@ const SpectatorScreen: React.FC<Props> = ({ gameState, onLeave }) => {
                                      </div>
                                  ))}
                              </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* MODAL: View Student Code (Round 2) */}
+                {viewingPlayer && (
+                    <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-8 animate-[fadeIn_0.3s]">
+                        <div className="bg-slate-800 w-full max-w-5xl rounded-2xl shadow-2xl border-2 border-cyber-primary overflow-hidden">
+                            <div className="p-6 bg-slate-900 border-b border-gray-700 flex justify-between items-center">
+                                <h2 className="text-3xl font-bold text-white flex items-center gap-3">
+                                    <Code2 size={32} className="text-cyber-primary"/> 
+                                    Solution by <span className="text-cyber-primary">{viewingPlayer.name}</span>
+                                </h2>
+                            </div>
+                            <div className="p-8 bg-black overflow-auto max-h-[70vh]">
+                                <pre className="text-green-400 font-mono text-2xl whitespace-pre-wrap leading-relaxed">
+                                    {viewingPlayer.round2Code || "// No code submitted"}
+                                </pre>
+                            </div>
                         </div>
                     </div>
                 )}

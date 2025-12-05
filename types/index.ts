@@ -64,6 +64,10 @@ export interface GameState {
   
   // Settings
   round3SelectionMode: 'RANDOM' | 'SEQUENTIAL';
+
+  // Display Control
+  showAnswer: boolean;
+  viewingPlayerId: string | null; // For showing Round 2 code on big screen
 }
 
 // Initial State constant
@@ -79,5 +83,7 @@ export const INITIAL_STATE: GameState = {
   round1TurnPlayerId: null,
   round3TurnPlayerId: null,
   round3Phase: 'IDLE',
-  round3SelectionMode: 'RANDOM'
+  round3SelectionMode: 'RANDOM',
+  showAnswer: false,
+  viewingPlayerId: null
 };
