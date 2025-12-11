@@ -25,6 +25,7 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
 
   const playSound = (type: keyof typeof SOUND_EFFECTS) => {
     try {
+        console.log(`Attempting to play sound: ${type}`);
         const audio = new Audio(SOUND_EFFECTS[type]);
         audio.volume = 1.0; // Max volume for teacher dashboard
         const playPromise = audio.play();
@@ -97,14 +98,14 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                     <span className="truncate w-20 font-bold">{p.name}</span>
                     <div className="flex items-center gap-1">
                         <button 
-                            onClick={() => { actions.updateScore(p.id, -10); playSound('SCORE_DOWN'); }} 
+                            onClick={() => { playSound('SCORE_DOWN'); actions.updateScore(p.id, -10); }} 
                             className="text-red-400 hover:text-white hover:bg-red-600 p-1 rounded transition-colors"
                         >
                             <MinusCircle size={16}/>
                         </button>
                         <span className="w-8 text-center font-mono font-bold">{p.score}</span>
                         <button 
-                            onClick={() => { actions.updateScore(p.id, 10); playSound('SCORE_UP'); }} 
+                            onClick={() => { playSound('SCORE_UP'); actions.updateScore(p.id, 10); }} 
                             className="text-green-400 hover:text-white hover:bg-green-600 p-1 rounded transition-colors"
                         >
                             <PlusCircle size={16}/>
@@ -114,8 +115,8 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
             ))}
         </div>
         <div className="flex gap-2 mt-4">
-             <button onClick={() => { actions.clearBuzzers(); playSound('SCORE_DOWN'); }} className="px-3 py-1 bg-gray-600 hover:bg-gray-500 rounded text-sm">Reset Buzzers</button>
-             <button onClick={() => { actions.stopTimer(); playSound('SCORE_DOWN'); }} className="px-3 py-1 bg-red-900 hover:bg-red-700 text-red-100 rounded text-sm">Stop Timer</button>
+             <button onClick={() => { playSound('SCORE_DOWN'); actions.clearBuzzers(); }} className="px-3 py-1 bg-gray-600 hover:bg-gray-500 rounded text-sm">Reset Buzzers</button>
+             <button onClick={() => { playSound('SCORE_DOWN'); actions.stopTimer(); }} className="px-3 py-1 bg-red-900 hover:bg-red-700 text-red-100 rounded text-sm">Stop Timer</button>
         </div>
     </div>
   );
@@ -462,11 +463,20 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                       <Monitor size={18} /> ACTIVE QUESTION (HOST MONITOR)
                   </div>
                   {gameState.activeQuestion ? (
-                      <div className="pr-12">
+                      <div className="pr-16">
                           <div className="text-white text-lg font-bold mb-2">{gameState.activeQuestion.content}</div>
                           <div className="text-green-400 font-mono text-sm">Answer: {gameState.activeQuestion.answer}</div>
+                          
                           <button 
-                             onClick={() => { actions.clearQuestion(); playSound('SCORE_DOWN'); }}
+                             onClick={actions.toggleShowAnswer}
+                             className={`absolute top-4 right-14 mr-2 p-2 rounded transition-colors ${gameState.showAnswer ? 'bg-green-600 text-white' : 'bg-gray-800 text-gray-400 hover:text-white'}`}
+                             title={gameState.showAnswer ? "Hide Answer" : "Show Answer"}
+                          >
+                             {gameState.showAnswer ? <EyeOff size={20}/> : <Eye size={20}/>}
+                          </button>
+
+                          <button 
+                             onClick={() => { playSound('SCORE_DOWN'); actions.clearQuestion(); }}
                              className="absolute top-4 right-4 p-2 bg-gray-800 hover:bg-red-900 rounded text-gray-400 hover:text-red-400 transition-colors"
                              title="Clear Question"
                           >
@@ -537,6 +547,7 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                                                 type="button"
                                                 onClick={() => {
                                                     if (item.status !== 'CORRECT') {
+                                                        playSound('CORRECT');
                                                         let delta = 0;
                                                         if (item.status === 'PENDING') {
                                                             delta = points;
@@ -544,7 +555,6 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                                                             delta = points - penalty;
                                                         }
                                                         actions.gradeRound3Question(p.id, idx, 'CORRECT', delta);
-                                                        playSound('CORRECT');
                                                     }
                                                 }}
                                                 className={`flex-1 py-3 rounded text-xs font-bold transition-all border shadow-md uppercase tracking-wider ${
@@ -562,6 +572,7 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                                                 type="button"
                                                 onClick={() => {
                                                     if (item.status !== 'WRONG') {
+                                                        playSound('WRONG');
                                                         let delta = 0;
                                                         if (item.status === 'PENDING') {
                                                             delta = penalty;
@@ -569,7 +580,6 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                                                             delta = penalty - points;
                                                         }
                                                         actions.gradeRound3Question(p.id, idx, 'WRONG', delta);
-                                                        playSound('WRONG');
                                                     }
                                                 }}
                                                 className={`flex-1 py-3 rounded text-xs font-bold transition-all border shadow-md uppercase tracking-wider ${
@@ -611,8 +621,8 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
               <div className="pt-12 pb-12 text-center border-t border-gray-700">
                   <button 
                     onClick={() => {
-                        actions.endGame();
                         playSound('VICTORY');
+                        actions.endGame();
                     }}
                     className="group relative inline-flex items-center justify-center px-8 py-6 text-lg font-black text-white transition-all duration-200 bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-full hover:from-yellow-400 hover:to-yellow-500 focus:outline-none focus:ring-4 focus:ring-yellow-500/50 shadow-lg hover:scale-105 hover:shadow-yellow-500/50"
                   >
@@ -648,10 +658,10 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                 <div className="p-4 border-t border-gray-700 bg-slate-900 rounded-b-xl flex justify-end gap-4">
                      <button 
                          onClick={() => {
+                             playSound('SCORE_UP');
                              actions.updateScore(viewingPlayerCode.id, 50);
                              setViewingPlayerCode(null);
                              actions.setViewingPlayer(null);
-                             playSound('SCORE_UP');
                          }}
                          className="px-6 py-2 bg-green-600 hover:bg-green-500 text-white rounded font-bold flex items-center gap-2 transition-all hover:scale-105"
                      >
@@ -659,9 +669,9 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                      </button>
                      <button 
                          onClick={() => {
+                             playSound('WRONG');
                              setViewingPlayerCode(null);
                              actions.setViewingPlayer(null);
-                             playSound('WRONG');
                          }}
                          className="px-6 py-2 bg-red-600 hover:bg-red-500 text-white rounded font-bold flex items-center gap-2 transition-all hover:scale-105"
                      >
