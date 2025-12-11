@@ -205,12 +205,22 @@ export const useGameSync = () => {
   };
 
   const startRound2Timer = () => {
-      const duration = 25; 
-      const now = Date.now();
-      updateState({
-          timerEndTime: now + duration * 1000,
-          round2StartedAt: now, 
-          buzzerLocked: true
+      updateState((prev) => {
+          let duration = 25; // Default
+          if (prev.activeQuestion) {
+             switch(prev.activeQuestion.difficulty) {
+                 case 'EASY': duration = 20; break;
+                 case 'MEDIUM': duration = 60; break;
+                 case 'HARD': duration = 120; break;
+                 default: duration = 25;
+             }
+          }
+          const now = Date.now();
+          return {
+              timerEndTime: now + duration * 1000,
+              round2StartedAt: now, 
+              buzzerLocked: true
+          };
       });
   };
 
@@ -354,13 +364,24 @@ export const useGameSync = () => {
   };
 
   const startRound3Timer = (type: 'MAIN' | 'STEAL') => {
-      const duration = 15;
-      updateState((prev) => ({
-          round3Phase: type === 'MAIN' ? 'MAIN_ANSWER' : 'STEAL_WINDOW',
-          timerEndTime: Date.now() + duration * 1000,
-          buzzerLocked: type === 'MAIN',
-          players: type === 'STEAL' ? prev.players.map(p => ({ ...p, buzzedAt: null })) : prev.players
-      }));
+      updateState((prev) => {
+          let duration = 15; // Default/Steal
+          if (type === 'MAIN' && prev.activeQuestion) {
+               switch(prev.activeQuestion.difficulty) {
+                   case 'EASY': duration = 20; break;
+                   case 'MEDIUM': duration = 60; break;
+                   case 'HARD': duration = 120; break;
+                   default: duration = 15;
+               }
+          }
+          
+          return {
+            round3Phase: type === 'MAIN' ? 'MAIN_ANSWER' : 'STEAL_WINDOW',
+            timerEndTime: Date.now() + duration * 1000,
+            buzzerLocked: type === 'MAIN',
+            players: type === 'STEAL' ? prev.players.map(p => ({ ...p, buzzedAt: null })) : prev.players
+          };
+      });
   };
 
   const endGame = async () => {

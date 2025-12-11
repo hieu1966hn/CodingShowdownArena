@@ -23,9 +23,18 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
   const [r2Difficulty, setR2Difficulty] = useState<Difficulty | 'ALL'>('ALL');
 
   const playSound = (type: keyof typeof SOUND_EFFECTS) => {
-    const audio = new Audio(SOUND_EFFECTS[type]);
-    audio.volume = 0.5;
-    audio.play().catch(e => console.error("Audio playback failed:", e));
+    try {
+        const audio = new Audio(SOUND_EFFECTS[type]);
+        audio.volume = 0.5;
+        const playPromise = audio.play();
+        if (playPromise !== undefined) {
+            playPromise.catch(error => {
+                console.error(`Audio playback failed for ${type}:`, error);
+            });
+        }
+    } catch (e) {
+        console.error("Audio error:", e);
+    }
   };
 
   useEffect(() => {
@@ -58,6 +67,15 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
     } finally {
         setAiLoading(false);
     }
+  };
+
+  const getDynamicTimerDuration = (difficulty?: Difficulty) => {
+      switch(difficulty) {
+          case 'EASY': return 20;
+          case 'MEDIUM': return 60;
+          case 'HARD': return 120;
+          default: return 25;
+      }
   };
 
   const RoundControl = () => (
@@ -308,7 +326,7 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                             onClick={() => actions.startRound2Timer()} 
                             className="px-6 py-2 bg-purple-600 hover:bg-purple-500 rounded font-bold flex items-center gap-2"
                           >
-                              <Play size={18}/> START 25s TIMER
+                              <Play size={18}/> START {getDynamicTimerDuration(gameState.activeQuestion.difficulty)}s TIMER
                           </button>
                       </div>
                       
@@ -522,9 +540,6 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                                                         if (item.status === 'PENDING') {
                                                             delta = points;
                                                         } else if (item.status === 'WRONG') {
-                                                            // Previously applied penalty (negative), now need to add it back (positive) AND add points
-                                                            // Target: +20. Current: -10. Delta = 30.
-                                                            // points - penalty = 20 - (-10) = 30.
                                                             delta = points - penalty;
                                                         }
                                                         actions.gradeRound3Question(p.id, idx, 'CORRECT', delta);
@@ -550,9 +565,6 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                                                         if (item.status === 'PENDING') {
                                                             delta = penalty;
                                                         } else if (item.status === 'CORRECT') {
-                                                            // Previously applied points (positive), now need to remove them AND apply penalty
-                                                            // Target: -10. Current: +20. Delta = -30.
-                                                            // penalty - points = -10 - 20 = -30.
                                                             delta = penalty - points;
                                                         }
                                                         actions.gradeRound3Question(p.id, idx, 'WRONG', delta);
@@ -581,13 +593,13 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                                       onClick={() => actions.startRound3Timer('MAIN')}
                                       className="flex-1 bg-blue-600 hover:bg-blue-500 py-3 rounded font-bold flex items-center justify-center gap-2"
                                    >
-                                       <Timer size={18} /> 15s Answer (Student)
+                                       <Timer size={18} /> {getDynamicTimerDuration(gameState.activeQuestion?.difficulty)}s Answer
                                    </button>
                                    <button 
                                       onClick={() => actions.startRound3Timer('STEAL')}
                                       className="flex-1 bg-orange-600 hover:bg-orange-500 py-3 rounded font-bold flex items-center justify-center gap-2"
                                    >
-                                       <Zap size={18} /> 15s Steal (Others)
+                                       <Zap size={18} /> 15s Steal
                                    </button>
                                </div>
                            )}
