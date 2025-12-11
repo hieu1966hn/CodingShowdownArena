@@ -515,40 +515,52 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                                        
                                        <div className="flex gap-2 mt-1">
                                             <button 
+                                                type="button"
                                                 onClick={() => {
-                                                    if (isPending) {
+                                                    if (item.status !== 'CORRECT') {
+                                                        // Adjust score if changing from PENDING or WRONG
+                                                        if (item.status === 'PENDING') {
+                                                            actions.updateScore(p.id, points);
+                                                        } else if (item.status === 'WRONG') {
+                                                            // Reverse penalty (-penalty is positive) and add points
+                                                            actions.updateScore(p.id, points - penalty);
+                                                        }
                                                         actions.updatePlayerPack(p.id, idx, { status: 'CORRECT' });
-                                                        actions.updateScore(p.id, points);
                                                         playSound('CORRECT');
                                                     }
                                                 }}
-                                                disabled={!isPending}
                                                 className={`flex-1 py-3 rounded text-xs font-bold transition-all border shadow-md uppercase tracking-wider ${
-                                                    isCorrect 
-                                                    ? 'bg-green-600 border-green-400 text-white shadow-green-500/40 scale-105 z-10 disabled:opacity-100' 
-                                                    : isPending 
-                                                        ? 'bg-slate-800 border-gray-600 text-gray-400 hover:bg-green-900/30 hover:border-green-500 hover:text-green-400'
-                                                        : 'bg-slate-900 border-transparent text-gray-700 opacity-30'
+                                                    item.status === 'CORRECT' 
+                                                    ? 'bg-green-600 border-green-400 text-white shadow-[0_0_15px_rgba(34,197,94,0.5)] scale-105 z-10 opacity-100' 
+                                                    : item.status === 'WRONG' 
+                                                        ? 'bg-slate-900 border-transparent text-gray-700 opacity-40' 
+                                                        : 'bg-slate-800 border-gray-600 text-gray-400 hover:bg-green-900/30 hover:border-green-500 hover:text-green-400'
                                                 }`}
                                             >
                                                 CORRECT
                                             </button>
                                             
                                             <button 
+                                                type="button"
                                                 onClick={() => {
-                                                    if (isPending) {
+                                                    if (item.status !== 'WRONG') {
+                                                        // Adjust score if changing from PENDING or CORRECT
+                                                        if (item.status === 'PENDING') {
+                                                            actions.updateScore(p.id, penalty);
+                                                        } else if (item.status === 'CORRECT') {
+                                                            // Reverse points and add penalty
+                                                            actions.updateScore(p.id, penalty - points);
+                                                        }
                                                         actions.updatePlayerPack(p.id, idx, { status: 'WRONG' });
-                                                        actions.updateScore(p.id, penalty);
                                                         playSound('WRONG');
                                                     }
                                                 }}
-                                                disabled={!isPending}
                                                 className={`flex-1 py-3 rounded text-xs font-bold transition-all border shadow-md uppercase tracking-wider ${
-                                                    isWrong
-                                                    ? 'bg-red-600 border-red-400 text-white shadow-red-500/40 scale-105 z-10 disabled:opacity-100' 
-                                                    : isPending 
-                                                        ? 'bg-red-950/30 border-red-900/30 text-red-400 hover:bg-red-900/50 hover:border-red-500 hover:text-red-300'
-                                                        : 'bg-slate-900 border-transparent text-gray-700 opacity-30'
+                                                    item.status === 'WRONG'
+                                                    ? 'bg-red-600 border-red-400 text-white shadow-[0_0_15px_rgba(239,68,68,0.5)] scale-105 z-10 opacity-100' 
+                                                    : item.status === 'CORRECT'
+                                                        ? 'bg-slate-900 border-transparent text-gray-700 opacity-40' 
+                                                        : 'bg-slate-800 border-gray-600 text-gray-400 hover:bg-red-900/30 hover:border-red-500 hover:text-red-300'
                                                 }`}
                                             >
                                                 WRONG
