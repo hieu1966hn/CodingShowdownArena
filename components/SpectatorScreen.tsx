@@ -106,14 +106,25 @@ const Fireworks: React.FC = () => {
 
 const SpectatorScreen: React.FC<Props> = ({ gameState, onLeave }) => {
     const [, setTick] = useState(0);
+    const prevRound = useRef<GameRound>(GameRound.LOBBY);
+    const prevBuzzedCount = useRef(0);
+    const prevSubmittedCount = useRef(0);
     
-    // Play tick sound logic
+    // Helper to play sound
+    const playSound = (type: keyof typeof SOUND_EFFECTS) => {
+        const audio = new Audio(SOUND_EFFECTS[type]);
+        audio.volume = 0.5;
+        audio.play().catch(() => {});
+    };
+
+    // 1. Ticking Sound Logic
     useEffect(() => {
         if (gameState.timerEndTime) {
             const interval = setInterval(() => {
                 const now = Date.now();
                 const timeLeft = Math.ceil((gameState.timerEndTime! - now) / 1000);
-                if (timeLeft > 0 && timeLeft <= 5) {
+                // Play tick for last 10 seconds
+                if (timeLeft > 0 && timeLeft <= 10) {
                     const audio = new Audio(SOUND_EFFECTS.TICK);
                     audio.volume = 0.3;
                     audio.play().catch(() => {});
@@ -123,6 +134,35 @@ const SpectatorScreen: React.FC<Props> = ({ gameState, onLeave }) => {
             return () => clearInterval(interval);
         }
     }, [gameState.timerEndTime]);
+
+    // 2. Round Start Sound
+    useEffect(() => {
+        if (gameState.round !== prevRound.current) {
+            if (gameState.round !== GameRound.LOBBY) {
+                playSound('ROUND_START');
+            }
+            prevRound.current = gameState.round;
+        }
+    }, [gameState.round]);
+
+    // 3. Buzzer Sound
+    useEffect(() => {
+        const currentBuzzedCount = gameState.players.filter(p => p.buzzedAt).length;
+        if (currentBuzzedCount > prevBuzzedCount.current) {
+            playSound('BUZZ');
+        }
+        prevBuzzedCount.current = currentBuzzedCount;
+    }, [gameState.players]);
+
+    // 4. Submission Sound (Round 2)
+    useEffect(() => {
+        const currentSubmittedCount = gameState.players.filter(p => p.submittedRound2).length;
+        if (currentSubmittedCount > prevSubmittedCount.current) {
+            playSound('SUBMIT');
+        }
+        prevSubmittedCount.current = currentSubmittedCount;
+    }, [gameState.players]);
+
 
     const sortedPlayers = [...gameState.players].sort((a, b) => b.score - a.score);
     const leader = sortedPlayers[0];

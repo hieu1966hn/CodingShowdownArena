@@ -97,7 +97,7 @@ const StudentView: React.FC<Props> = ({ gameState, playerId, onBuzz, onSubmitRou
                     onClick={() => {
                         onSubmitRound2(codeAnswer);
                         setCodeAnswer('');
-                        playSound('CORRECT'); // Play sound on submit
+                        playSound('SUBMIT'); // Play sound on submit
                     }}
                     className="w-full bg-cyber-primary hover:bg-cyan-600 text-black font-bold py-4 rounded-lg flex items-center justify-center gap-2 transition-colors"
                 >

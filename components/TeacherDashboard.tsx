@@ -532,8 +532,8 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                                        ) : (
                                            <div className={`text-center font-bold text-sm py-2 rounded shadow-md border ${
                                                item.status === 'CORRECT' 
-                                               ? 'bg-green-600 text-white border-green-400 shadow-[0_0_10px_rgba(34,197,94,0.4)]' 
-                                               : 'bg-red-600 text-white border-red-400 shadow-[0_0_10px_rgba(239,68,68,0.4)]'
+                                               ? 'bg-green-600 text-white border-green-500' 
+                                               : 'bg-red-600 text-white border-red-500'
                                            }`}>
                                                {item.status}
                                            </div>
