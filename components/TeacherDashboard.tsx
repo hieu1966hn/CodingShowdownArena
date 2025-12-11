@@ -518,14 +518,16 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                                                 type="button"
                                                 onClick={() => {
                                                     if (item.status !== 'CORRECT') {
-                                                        // Adjust score if changing from PENDING or WRONG
+                                                        let delta = 0;
                                                         if (item.status === 'PENDING') {
-                                                            actions.updateScore(p.id, points);
+                                                            delta = points;
                                                         } else if (item.status === 'WRONG') {
-                                                            // Reverse penalty (-penalty is positive) and add points
-                                                            actions.updateScore(p.id, points - penalty);
+                                                            // Previously applied penalty (negative), now need to add it back (positive) AND add points
+                                                            // Target: +20. Current: -10. Delta = 30.
+                                                            // points - penalty = 20 - (-10) = 30.
+                                                            delta = points - penalty;
                                                         }
-                                                        actions.updatePlayerPack(p.id, idx, { status: 'CORRECT' });
+                                                        actions.gradeRound3Question(p.id, idx, 'CORRECT', delta);
                                                         playSound('CORRECT');
                                                     }
                                                 }}
@@ -544,14 +546,16 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                                                 type="button"
                                                 onClick={() => {
                                                     if (item.status !== 'WRONG') {
-                                                        // Adjust score if changing from PENDING or CORRECT
+                                                        let delta = 0;
                                                         if (item.status === 'PENDING') {
-                                                            actions.updateScore(p.id, penalty);
+                                                            delta = penalty;
                                                         } else if (item.status === 'CORRECT') {
-                                                            // Reverse points and add penalty
-                                                            actions.updateScore(p.id, penalty - points);
+                                                            // Previously applied points (positive), now need to remove them AND apply penalty
+                                                            // Target: -10. Current: +20. Delta = -30.
+                                                            // penalty - points = -10 - 20 = -30.
+                                                            delta = penalty - points;
                                                         }
-                                                        actions.updatePlayerPack(p.id, idx, { status: 'WRONG' });
+                                                        actions.gradeRound3Question(p.id, idx, 'WRONG', delta);
                                                         playSound('WRONG');
                                                     }
                                                 }}

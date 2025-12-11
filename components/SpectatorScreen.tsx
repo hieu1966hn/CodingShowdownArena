@@ -110,25 +110,34 @@ const SpectatorScreen: React.FC<Props> = ({ gameState, onLeave }) => {
     const prevBuzzedCount = useRef(0);
     const prevSubmittedCount = useRef(0);
     
+    // Store previous scores to detect changes
+    const prevScores = useRef<Record<string, number>>({});
+    
     // Helper to play sound
     const playSound = (type: keyof typeof SOUND_EFFECTS) => {
         const audio = new Audio(SOUND_EFFECTS[type]);
-        audio.volume = 0.5;
+        audio.volume = 0.6; // Slightly louder for spectator
         audio.play().catch(() => {});
     };
 
-    // 1. Ticking Sound Logic
+    // 1. Ticking & Timeout Sound Logic
     useEffect(() => {
         if (gameState.timerEndTime) {
             const interval = setInterval(() => {
                 const now = Date.now();
                 const timeLeft = Math.ceil((gameState.timerEndTime! - now) / 1000);
+                
                 // Play tick for last 10 seconds
                 if (timeLeft > 0 && timeLeft <= 10) {
                     const audio = new Audio(SOUND_EFFECTS.TICK);
                     audio.volume = 0.3;
                     audio.play().catch(() => {});
                 }
+                // Play timeout sound at 0
+                if (timeLeft === 0) {
+                     playSound('WRONG'); // Use standard buzzer/wrong sound for timeout
+                }
+
                 setTick(t => t + 1);
             }, 1000);
             return () => clearInterval(interval);
@@ -163,6 +172,19 @@ const SpectatorScreen: React.FC<Props> = ({ gameState, onLeave }) => {
         prevSubmittedCount.current = currentSubmittedCount;
     }, [gameState.players]);
 
+    // 5. Score Update Sounds (Global)
+    useEffect(() => {
+        gameState.players.forEach(p => {
+            const oldScore = prevScores.current[p.id] ?? 0;
+            if (p.score > oldScore) {
+                playSound('SCORE_UP');
+            } else if (p.score < oldScore) {
+                playSound('SCORE_DOWN');
+            }
+            // Update tracking
+            prevScores.current[p.id] = p.score;
+        });
+    }, [gameState.players]);
 
     const sortedPlayers = [...gameState.players].sort((a, b) => b.score - a.score);
     const leader = sortedPlayers[0];

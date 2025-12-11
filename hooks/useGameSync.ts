@@ -89,11 +89,9 @@ export const useGameSync = () => {
           const snap = await getDoc(ref);
           
           if (snap.exists()) {
-              // Resume existing room
               console.log("Room exists, resuming...");
               setRoomId(code);
           } else {
-              // Create new room
               const newState = { ...INITIAL_STATE, roomId: code };
               await setDoc(ref, newState);
               setRoomId(code);
@@ -120,7 +118,6 @@ export const useGameSync = () => {
   };
 
   // --- State Helper ---
-  // Calculates new state based on current local state and pushes to Firestore
   const updateState = async (updater: Partial<GameState> | ((prev: GameState) => Partial<GameState>)) => {
       if (!roomId) return;
       
@@ -137,10 +134,9 @@ export const useGameSync = () => {
   const joinGame = async (name: string) => {
     if (!roomId || !user) return null;
     
-    // Check if player already exists with this auth ID to reconnect
     const existingPlayer = gameState.players.find(p => p.id === user.uid);
     if (existingPlayer) {
-        return user.uid; // Already joined
+        return user.uid;
     }
 
     const newPlayer: Player = {
@@ -156,7 +152,6 @@ export const useGameSync = () => {
       round3PackLocked: false
     };
 
-    // Use arrayUnion to safely add to list
     await updateDoc(doc(db, "rooms", roomId), {
         players: arrayUnion(newPlayer)
     });
@@ -289,6 +284,25 @@ export const useGameSync = () => {
     }));
   };
 
+  const gradeRound3Question = (playerId: string, packIndex: number, newStatus: PackStatus, scoreDelta: number) => {
+      updateState((prev) => ({
+          players: prev.players.map(p => {
+              if (p.id !== playerId) return p;
+              
+              const newPack = [...p.round3Pack];
+              newPack[packIndex] = { ...newPack[packIndex], status: newStatus };
+              
+              const newScore = p.score + scoreDelta;
+
+              return { 
+                  ...p, 
+                  round3Pack: newPack,
+                  score: newScore < 0 ? 0 : newScore
+              };
+          })
+      }));
+  };
+
   const setRound3Turn = (playerId: string) => {
       updateState({ 
           round3TurnPlayerId: playerId, 
@@ -314,10 +328,8 @@ export const useGameSync = () => {
         let selectedQ: Question | undefined;
 
         if (prev.round3SelectionMode === 'SEQUENTIAL') {
-            // SEQUENTIAL: Pick the first available question in the array
             selectedQ = pool[0];
         } else {
-            // RANDOM: Pick randomly from the available pool
             selectedQ = pool[Math.floor(Math.random() * pool.length)];
         }
 
@@ -347,13 +359,11 @@ export const useGameSync = () => {
           round3Phase: type === 'MAIN' ? 'MAIN_ANSWER' : 'STEAL_WINDOW',
           timerEndTime: Date.now() + duration * 1000,
           buzzerLocked: type === 'MAIN',
-          // FIX: Use null instead of undefined for Firestore
           players: type === 'STEAL' ? prev.players.map(p => ({ ...p, buzzedAt: null })) : prev.players
       }));
   };
 
   const endGame = async () => {
-    // 1. Update Game State to Over
     await updateState({
         round: GameRound.GAME_OVER,
         message: "CONGRATULATIONS!",
@@ -362,11 +372,9 @@ export const useGameSync = () => {
         buzzerLocked: true
     });
 
-    // 2. Archive to History
     if (roomId) {
         const archiveId = `${roomId}_${new Date().toISOString().replace(/[:.]/g, '-')}`;
         try {
-            // Save a snapshot of the current state to the 'history' collection
             await setDoc(doc(db, "history", archiveId), {
                 ...gameState,
                 archivedAt: new Date(),
@@ -385,15 +393,14 @@ export const useGameSync = () => {
       }
   };
 
-  // Needed for refresh button in dashboard
-  const forceSync = () => { /* Firestore handles sync automatically */ };
+  const forceSync = () => { };
 
   const toggleShowAnswer = () => {
       updateState((prev) => ({ showAnswer: !prev.showAnswer }));
   };
 
   const setViewingPlayer = (playerId: string | null) => {
-      updateState({ viewingPlayerId: playerId });
+      updateState((prev) => ({ viewingPlayerId: playerId }));
   };
 
   return {
@@ -427,6 +434,7 @@ export const useGameSync = () => {
     setRound1Turn,
     setRound3Pack,
     updatePlayerPack,
+    gradeRound3Question,
     setRound3Turn,
     setRound3SelectionMode,
     revealRound3Question,
