@@ -513,7 +513,7 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                                            </button>
                                        </div>
                                        
-                                       <div className="flex gap-1 mt-1 bg-gray-900 rounded p-1 border border-gray-700">
+                                       <div className="flex gap-2 mt-1">
                                             <button 
                                                 onClick={() => {
                                                     if (isPending) {
@@ -523,15 +523,15 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                                                     }
                                                 }}
                                                 disabled={!isPending}
-                                                className={`flex-1 py-2 rounded text-xs font-bold transition-all flex items-center justify-center gap-1 ${
+                                                className={`flex-1 py-3 rounded text-xs font-bold transition-all border shadow-md uppercase tracking-wider ${
                                                     isCorrect 
-                                                    ? 'bg-green-600 text-white shadow-[0_0_15px_rgba(34,197,94,0.5)] border border-green-400 scale-105 z-10' 
+                                                    ? 'bg-green-600 border-green-400 text-white shadow-green-500/40 scale-105 z-10 disabled:opacity-100' 
                                                     : isPending 
-                                                        ? 'bg-gray-800 text-gray-400 hover:bg-green-900/30 hover:text-green-400'
-                                                        : 'bg-gray-800 text-gray-600 opacity-50'
+                                                        ? 'bg-slate-800 border-gray-600 text-gray-400 hover:bg-green-900/30 hover:border-green-500 hover:text-green-400'
+                                                        : 'bg-slate-900 border-transparent text-gray-700 opacity-30'
                                                 }`}
                                             >
-                                                {isCorrect ? <CheckCircle size={14} className="text-white"/> : "CORRECT"}
+                                                CORRECT
                                             </button>
                                             
                                             <button 
@@ -543,15 +543,15 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                                                     }
                                                 }}
                                                 disabled={!isPending}
-                                                className={`flex-1 py-2 rounded text-xs font-bold transition-all flex items-center justify-center gap-1 ${
+                                                className={`flex-1 py-3 rounded text-xs font-bold transition-all border shadow-md uppercase tracking-wider ${
                                                     isWrong
-                                                    ? 'bg-red-600 text-white shadow-[0_0_15px_rgba(239,68,68,0.5)] border border-red-400 scale-105 z-10' 
+                                                    ? 'bg-red-600 border-red-400 text-white shadow-red-500/40 scale-105 z-10 disabled:opacity-100' 
                                                     : isPending 
-                                                        ? 'bg-gray-800 text-gray-400 hover:bg-red-900/30 hover:text-red-400'
-                                                        : 'bg-gray-800 text-gray-600 opacity-50'
+                                                        ? 'bg-red-950/30 border-red-900/30 text-red-400 hover:bg-red-900/50 hover:border-red-500 hover:text-red-300'
+                                                        : 'bg-slate-900 border-transparent text-gray-700 opacity-30'
                                                 }`}
                                             >
-                                                {isWrong ? <XCircle size={14} className="text-white"/> : "WRONG"}
+                                                WRONG
                                             </button>
                                        </div>
                                    </div>
