@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from 'react';
 import { GoogleGenAI } from "@google/genai";
 import { GameState, GameRound, Question, Player, Difficulty, PackStatus, QuestionCategory } from '../types';
@@ -25,7 +26,7 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
   const playSound = (type: keyof typeof SOUND_EFFECTS) => {
     try {
         const audio = new Audio(SOUND_EFFECTS[type]);
-        audio.volume = 0.5;
+        audio.volume = 1.0; // Max volume for teacher dashboard
         const playPromise = audio.play();
         if (playPromise !== undefined) {
             playPromise.catch(error => {

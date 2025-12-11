@@ -116,7 +116,7 @@ const SpectatorScreen: React.FC<Props> = ({ gameState, onLeave }) => {
     // Helper to play sound
     const playSound = (type: keyof typeof SOUND_EFFECTS) => {
         const audio = new Audio(SOUND_EFFECTS[type]);
-        audio.volume = 0.6; // Slightly louder for spectator
+        audio.volume = 0.8; // Loud for spectator
         audio.play().catch(() => {});
     };
 
@@ -130,7 +130,7 @@ const SpectatorScreen: React.FC<Props> = ({ gameState, onLeave }) => {
                 // Play tick for last 10 seconds
                 if (timeLeft > 0 && timeLeft <= 10) {
                     const audio = new Audio(SOUND_EFFECTS.TICK);
-                    audio.volume = 0.3;
+                    audio.volume = 0.8; // Increased volume
                     audio.play().catch(() => {});
                 }
                 // Play timeout sound at 0

@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { GameState, GameRound, Player, Difficulty } from '../types';
 import { Code, Send, Bell, Mic, LogOut, CheckCircle } from 'lucide-react';
 import { SOUND_EFFECTS } from '../config/assets';
@@ -26,6 +26,30 @@ const StudentView: React.FC<Props> = ({ gameState, playerId, onBuzz, onSubmitRou
     audio.volume = 0.5;
     audio.play().catch(e => console.error("Audio playback failed:", e));
   };
+
+  // Timer Sound Logic for Student Device
+  useEffect(() => {
+    if (gameState.timerEndTime) {
+        const interval = setInterval(() => {
+            const now = Date.now();
+            const timeLeft = Math.ceil((gameState.timerEndTime! - now) / 1000);
+            
+            // Play tick for last 10 seconds
+            if (timeLeft > 0 && timeLeft <= 10) {
+                const audio = new Audio(SOUND_EFFECTS.TICK);
+                audio.volume = 0.6; // Clear volume for student
+                audio.play().catch(() => {});
+            }
+            // Play timeout sound at 0
+            if (timeLeft === 0) {
+                 const audio = new Audio(SOUND_EFFECTS.WRONG); // Or BUZZ
+                 audio.volume = 0.6;
+                 audio.play().catch(() => {});
+            }
+        }, 1000);
+        return () => clearInterval(interval);
+    }
+  }, [gameState.timerEndTime]);
 
   if (!me) return <div className="text-white p-10">Error: Player not found. Please refresh.</div>;
 
