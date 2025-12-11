@@ -4,7 +4,7 @@ import { GoogleGenAI } from "@google/genai";
 import { GameState, GameRound, Question, Player, Difficulty, PackStatus, QuestionCategory } from '../types';
 import { ROUND_1_QUESTIONS, ROUND_2_QUESTIONS, ROUND_3_QUESTIONS } from '../data/questions';
 import { SOUND_EFFECTS } from '../config/assets';
-import { Play, Check, X, Sparkles, RefreshCw, PlusCircle, MinusCircle, Code, Eye, Timer, User, Zap, Users, Monitor, Trophy, LogOut, Filter, CheckCircle, Pointer, Shuffle, ListOrdered, ChevronDown, ChevronUp, Database, EyeOff } from 'lucide-react';
+import { Play, Check, X, Sparkles, RefreshCw, PlusCircle, MinusCircle, Code, Eye, Timer, User, Zap, Users, Monitor, Trophy, LogOut, Filter, CheckCircle, Pointer, Shuffle, ListOrdered, ChevronDown, ChevronUp, Database, EyeOff, XCircle } from 'lucide-react';
 
 interface Props {
   gameState: GameState;
@@ -491,7 +491,14 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                            </div>
                            
                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                               {p.round3Pack.map((item, idx) => (
+                               {p.round3Pack.map((item, idx) => {
+                                   const isPending = item.status === 'PENDING';
+                                   const isCorrect = item.status === 'CORRECT';
+                                   const isWrong = item.status === 'WRONG';
+                                   const points = item.difficulty === 'EASY' ? 20 : item.difficulty === 'MEDIUM' ? 30 : 40;
+                                   const penalty = item.difficulty === 'EASY' ? -10 : item.difficulty === 'MEDIUM' ? -15 : -20;
+
+                                   return (
                                    <div key={idx} className="bg-black/40 p-3 rounded border border-gray-700 flex flex-col gap-2">
                                        <div className="flex justify-between items-center">
                                            <span className={`text-xs font-bold px-2 py-0.5 rounded ${item.difficulty === 'EASY' ? 'bg-green-900 text-green-300' : item.difficulty === 'MEDIUM' ? 'bg-yellow-900 text-yellow-300' : 'bg-red-900 text-red-300'}`}>
@@ -506,40 +513,50 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                                            </button>
                                        </div>
                                        
-                                       {item.status === 'PENDING' ? (
-                                           <div className="flex gap-1 mt-1">
-                                                <button 
-                                                    onClick={() => {
+                                       <div className="flex gap-1 mt-1 bg-gray-900 rounded p-1 border border-gray-700">
+                                            <button 
+                                                onClick={() => {
+                                                    if (isPending) {
                                                         actions.updatePlayerPack(p.id, idx, { status: 'CORRECT' });
-                                                        actions.updateScore(p.id, item.difficulty === 'EASY' ? 20 : item.difficulty === 'MEDIUM' ? 30 : 40);
+                                                        actions.updateScore(p.id, points);
                                                         playSound('CORRECT');
-                                                    }}
-                                                    className="flex-1 bg-green-900/50 hover:bg-green-600 text-green-400 hover:text-white py-2 rounded text-xs font-bold transition-all hover:scale-105 shadow-sm hover:shadow-green-500/50"
-                                                >
-                                                    CORRECT
-                                                </button>
-                                                <button 
-                                                    onClick={() => {
+                                                    }
+                                                }}
+                                                disabled={!isPending}
+                                                className={`flex-1 py-2 rounded text-xs font-bold transition-all flex items-center justify-center gap-1 ${
+                                                    isCorrect 
+                                                    ? 'bg-green-600 text-white shadow-[0_0_15px_rgba(34,197,94,0.5)] border border-green-400 scale-105 z-10' 
+                                                    : isPending 
+                                                        ? 'bg-gray-800 text-gray-400 hover:bg-green-900/30 hover:text-green-400'
+                                                        : 'bg-gray-800 text-gray-600 opacity-50'
+                                                }`}
+                                            >
+                                                {isCorrect ? <CheckCircle size={14} className="text-white"/> : "CORRECT"}
+                                            </button>
+                                            
+                                            <button 
+                                                onClick={() => {
+                                                    if (isPending) {
                                                         actions.updatePlayerPack(p.id, idx, { status: 'WRONG' });
-                                                        actions.updateScore(p.id, item.difficulty === 'EASY' ? -10 : item.difficulty === 'MEDIUM' ? -15 : -20);
+                                                        actions.updateScore(p.id, penalty);
                                                         playSound('WRONG');
-                                                    }}
-                                                    className="flex-1 bg-red-900/50 hover:bg-red-600 text-red-400 hover:text-white py-2 rounded text-xs font-bold transition-all hover:scale-105 shadow-sm hover:shadow-red-500/50"
-                                                >
-                                                    WRONG
-                                                </button>
-                                           </div>
-                                       ) : (
-                                           <div className={`text-center font-bold text-sm py-2 rounded shadow-md border ${
-                                               item.status === 'CORRECT' 
-                                               ? 'bg-green-600 text-white border-green-500' 
-                                               : 'bg-red-600 text-white border-red-500'
-                                           }`}>
-                                               {item.status}
-                                           </div>
-                                       )}
+                                                    }
+                                                }}
+                                                disabled={!isPending}
+                                                className={`flex-1 py-2 rounded text-xs font-bold transition-all flex items-center justify-center gap-1 ${
+                                                    isWrong
+                                                    ? 'bg-red-600 text-white shadow-[0_0_15px_rgba(239,68,68,0.5)] border border-red-400 scale-105 z-10' 
+                                                    : isPending 
+                                                        ? 'bg-gray-800 text-gray-400 hover:bg-red-900/30 hover:text-red-400'
+                                                        : 'bg-gray-800 text-gray-600 opacity-50'
+                                                }`}
+                                            >
+                                                {isWrong ? <XCircle size={14} className="text-white"/> : "WRONG"}
+                                            </button>
+                                       </div>
                                    </div>
-                               ))}
+                                   );
+                               })}
                            </div>
 
                            {gameState.round3TurnPlayerId === p.id && (
