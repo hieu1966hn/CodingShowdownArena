@@ -4,7 +4,7 @@ import { GoogleGenAI } from "@google/genai";
 import { GameState, GameRound, Question, Player, Difficulty, PackStatus, QuestionCategory } from '../types';
 import { ROUND_1_QUESTIONS, ROUND_2_QUESTIONS, ROUND_3_QUESTIONS } from '../data/questions';
 import { SOUND_EFFECTS } from '../config/assets';
-import { Play, Check, X, Sparkles, RefreshCw, PlusCircle, MinusCircle, Code, Eye, Timer, User, Zap, Users, Monitor, Trophy, LogOut, Filter, CheckCircle, Pointer, Shuffle, ListOrdered, ChevronDown, ChevronUp, Database, EyeOff, XCircle, BookOpen, Terminal } from 'lucide-react';
+import { Play, Check, X, Sparkles, RefreshCw, PlusCircle, MinusCircle, Code, Eye, Timer, User, Zap, Users, Monitor, Trophy, LogOut, Filter, CheckCircle, Pointer, Shuffle, ListOrdered, ChevronDown, ChevronUp, Database, EyeOff, XCircle, BookOpen, Terminal, Trash2 } from 'lucide-react';
 
 interface Props {
   gameState: GameState;
@@ -49,7 +49,15 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
 
   const PlayerManager = () => (
     <div className="bg-gray-800 p-4 rounded-lg mb-6 shadow-lg">
-        <h3 className="text-gray-400 font-bold mb-2">Live Score Adjustment</h3>
+        <div className="flex justify-between items-center mb-2">
+            <h3 className="text-gray-400 font-bold">Live Score Adjustment</h3>
+            <button 
+                onClick={() => { if(window.confirm("Reset all scores and question progress?")) actions.resetGame(); }}
+                className="text-xs flex items-center gap-1 text-red-400 hover:text-red-300 transition-colors bg-red-900/20 px-2 py-1 rounded"
+            >
+                <Trash2 size={12}/> Reset Session
+            </button>
+        </div>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
             {gameState.players.map(p => (
                 <div key={p.id} className={`p-2 rounded border flex justify-between items-center transition-colors ${p.buzzedAt ? 'bg-yellow-900/50 border-yellow-500 animate-pulse' : 'border-gray-600 bg-gray-700/50'}`}>
@@ -73,7 +81,10 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
     <div className="min-h-screen bg-cyber-dark text-white p-6 pb-24">
       <header className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-cyber-primary">Teacher Control Panel</h1>
-        <button onClick={onLeave} className="flex items-center gap-2 px-4 py-2 bg-red-600 rounded"><LogOut size={18} /> Exit</button>
+        <div className="flex items-center gap-4">
+            <div className="text-xs font-mono text-gray-500">ROOM ID: <span className="text-cyber-primary">{gameState.roomId}</span></div>
+            <button onClick={onLeave} className="flex items-center gap-2 px-4 py-2 bg-red-600 rounded"><LogOut size={18} /> Exit</button>
+        </div>
       </header>
 
       <RoundControl />
@@ -84,6 +95,7 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
           <div className="space-y-4">
                <div className="flex justify-between items-center">
                    <h2 className="text-xl font-bold flex items-center gap-2"><Sparkles className="text-yellow-400"/> Round 1: Reflex Quiz</h2>
+                   <span className="text-xs text-gray-500">Used: {gameState.usedQuestionIds.filter(id => id.startsWith('r1')).length} / {ROUND_1_QUESTIONS.length}</span>
                </div>
                <div className="bg-gray-800 p-4 rounded-lg border border-gray-700 mb-4">
                     <h3 className="text-gray-300 font-bold mb-3">Select Student for Turn:</h3>
@@ -93,13 +105,20 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                         ))}
                     </div>
                </div>
-               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                   {ROUND_1_QUESTIONS.filter(q => !gameState.usedQuestionIds.includes(q.id)).map(q => (
-                       <button key={q.id} onClick={() => actions.setQuestion(q)} className={`p-4 rounded text-left border ${gameState.activeQuestion?.id === q.id ? 'border-cyber-primary bg-slate-800' : 'border-gray-600 bg-gray-800'}`}>
+               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
+                   {ROUND_1_QUESTIONS.map(q => {
+                       const isUsed = gameState.usedQuestionIds.includes(q.id);
+                       return (
+                       <button 
+                         key={q.id} 
+                         onClick={() => actions.setQuestion(q)} 
+                         className={`p-4 rounded text-left border relative transition-all ${gameState.activeQuestion?.id === q.id ? 'border-cyber-primary bg-slate-800' : isUsed ? 'border-gray-800 bg-gray-900 opacity-50 grayscale' : 'border-gray-600 bg-gray-800'}`}
+                       >
+                           {isUsed && <span className="absolute top-2 right-2 text-[10px] font-black bg-gray-700 text-gray-300 px-1 rounded">USED</span>}
                            <div className="font-bold mb-1">{q.content}</div>
                            <div className="text-xs text-green-400">{q.answer}</div>
                        </button>
-                   ))}
+                   );})}
                </div>
                {gameState.activeQuestion && (
                    <div className="fixed bottom-0 left-0 w-full bg-gray-900 p-4 border-t border-gray-700 flex justify-center gap-4 z-50 shadow-2xl">
@@ -113,45 +132,55 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
           </div>
       )}
 
-      {/* ROUND 2 VIEW - BỔ SUNG GIAO DIỆN */}
+      {/* ROUND 2 VIEW */}
       {gameState.round === GameRound.ROUND_2 && (
           <div className="space-y-6">
               <div className="flex justify-between items-center">
                   <h2 className="text-xl font-bold flex items-center gap-2"><Terminal className="text-cyber-primary"/> Round 2: Obstacle - Debugging</h2>
-                  <div className="flex gap-2">
-                      {(['ALL', 'LOGIC', 'SYNTAX', 'ALGO', 'OUTPUT', 'DEBUG', 'LIST'] as const).map(cat => (
-                          <button 
-                            key={cat} 
-                            onClick={() => setR2Category(cat)}
-                            className={`px-3 py-1 rounded text-xs font-bold ${r2Category === cat ? 'bg-cyber-primary text-black' : 'bg-gray-700 text-gray-300'}`}
-                          >
-                              {cat}
-                          </button>
-                      ))}
+                  <div className="flex items-center gap-4">
+                      <span className="text-xs text-gray-500">Total: {ROUND_2_QUESTIONS.length} Questions</span>
+                      <div className="flex gap-2">
+                          {(['ALL', 'LOGIC', 'SYNTAX', 'ALGO', 'OUTPUT', 'DEBUG', 'LIST'] as const).map(cat => (
+                              <button 
+                                key={cat} 
+                                onClick={() => setR2Category(cat)}
+                                className={`px-3 py-1 rounded text-xs font-bold ${r2Category === cat ? 'bg-cyber-primary text-black' : 'bg-gray-700 text-gray-300'}`}
+                              >
+                                  {cat}
+                              </button>
+                          ))}
+                      </div>
                   </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-96 overflow-y-auto pr-2 custom-scrollbar">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[650px] overflow-y-auto pr-2 custom-scrollbar p-2 bg-slate-900/30 rounded-xl">
                   {ROUND_2_QUESTIONS
-                    .filter(q => (r2Category === 'ALL' || q.category === r2Category) && !gameState.usedQuestionIds.includes(q.id))
-                    .map(q => (
-                      <button key={q.id} onClick={() => actions.setQuestion(q)} className={`p-4 rounded text-left border transition-all ${gameState.activeQuestion?.id === q.id ? 'border-cyber-primary bg-slate-800 shadow-[0_0_15px_rgba(6,182,212,0.3)]' : 'border-gray-600 bg-gray-800'}`}>
+                    .filter(q => (r2Category === 'ALL' || q.category === r2Category))
+                    .map(q => {
+                      const isUsed = gameState.usedQuestionIds.includes(q.id);
+                      return (
+                      <button 
+                        key={q.id} 
+                        onClick={() => actions.setQuestion(q)} 
+                        className={`p-4 rounded text-left border relative transition-all ${gameState.activeQuestion?.id === q.id ? 'border-cyber-primary bg-slate-800 shadow-[0_0_15px_rgba(6,182,212,0.3)] scale-105 z-10' : isUsed ? 'border-gray-800 bg-gray-900 opacity-40 grayscale' : 'border-gray-600 bg-gray-800 hover:border-cyber-primary'}`}
+                      >
+                          {isUsed && <span className="absolute top-2 right-2 text-[10px] font-black bg-gray-700 text-gray-300 px-1 rounded">USED</span>}
                           <div className="flex justify-between mb-2">
                               <span className="text-[10px] bg-cyber-primary/20 text-cyber-primary px-2 py-0.5 rounded uppercase font-black">{q.category}</span>
                               <span className="text-[10px] text-gray-500 font-mono">{q.points}pts</span>
                           </div>
-                          <div className="font-bold text-sm mb-2">{q.content}</div>
+                          <div className="font-bold text-sm mb-2 h-10 overflow-hidden line-clamp-2">{q.content}</div>
                           <pre className="text-[10px] bg-black/40 p-2 rounded text-green-500 font-mono truncate">{q.codeSnippet}</pre>
                       </button>
-                  ))}
+                  );})}
               </div>
 
               {gameState.activeQuestion && (
-                  <div className="bg-slate-900 border border-cyber-primary p-6 rounded-xl">
+                  <div className="bg-slate-900 border border-cyber-primary p-6 rounded-xl shadow-2xl">
                        <div className="flex justify-between items-start mb-4">
-                           <div>
+                           <div className="flex-1">
                                <h3 className="text-cyber-primary font-black uppercase text-sm mb-1">Active Challenge</h3>
-                               <p className="text-xl font-bold">{gameState.activeQuestion.content}</p>
+                               <p className="text-xl font-bold mb-4">{gameState.activeQuestion.content}</p>
                            </div>
                            <div className="flex gap-2">
                                <button onClick={() => actions.startRound2Timer()} className="px-4 py-2 bg-blue-600 rounded font-bold flex items-center gap-2 hover:bg-blue-500"><Timer size={18}/> Start Round Timer</button>
@@ -170,9 +199,9 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                                    {p.submittedRound2 && (
                                        <button 
                                             onClick={() => actions.setViewingPlayer(p.id)}
-                                            className="w-full py-1 bg-cyber-primary/20 text-cyber-primary text-[10px] font-bold rounded hover:bg-cyber-primary/40"
+                                            className={`w-full py-1 text-[10px] font-bold rounded ${gameState.viewingPlayerId === p.id ? 'bg-cyber-primary text-black' : 'bg-cyber-primary/20 text-cyber-primary hover:bg-cyber-primary/40'}`}
                                        >
-                                           VIEW CODE
+                                           {gameState.viewingPlayerId === p.id ? 'VIEWING...' : 'VIEW CODE'}
                                        </button>
                                    )}
                                </div>
@@ -188,31 +217,36 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
           <div className="space-y-8">
               <div className="flex justify-between items-center">
                   <h2 className="text-xl font-bold flex items-center gap-2"><Sparkles className="text-cyber-secondary"/> Round 3: Tactical Finish</h2>
-                  <button 
-                    onClick={() => setShowR3Bank(!showR3Bank)} 
-                    className={`px-4 py-2 rounded-lg font-bold flex items-center gap-2 transition-all ${showR3Bank ? 'bg-cyber-secondary text-white' : 'bg-gray-700 text-gray-300'}`}
-                  >
-                      <BookOpen size={18}/> {showR3Bank ? "Close Bank" : "Open Question Bank"}
-                  </button>
+                  <div className="flex items-center gap-3">
+                      <span className="text-xs text-gray-500">Used: {gameState.usedQuestionIds.filter(id => id.startsWith('r3')).length} / {ROUND_3_QUESTIONS.length}</span>
+                      <button 
+                        onClick={() => setShowR3Bank(!showR3Bank)} 
+                        className={`px-4 py-2 rounded-lg font-bold flex items-center gap-2 transition-all ${showR3Bank ? 'bg-cyber-secondary text-white' : 'bg-gray-700 text-gray-300'}`}
+                      >
+                          <BookOpen size={18}/> {showR3Bank ? "Close Bank" : "Open Question Bank"}
+                      </button>
+                  </div>
               </div>
 
-              {/* NGÂN HÀNG CÂU HỎI VÒNG 3 - BỔ SUNG LOGIC HIỂN THỊ */}
               {showR3Bank && (
-                  <div className="bg-slate-800 border-2 border-cyber-secondary rounded-xl p-6 animate-in slide-in-from-top duration-300">
+                  <div className="bg-slate-800 border-2 border-cyber-secondary rounded-xl p-6 animate-in slide-in-from-top duration-300 shadow-2xl">
                       <div className="flex gap-4 mb-6">
                           {(['EASY', 'MEDIUM', 'HARD'] as const).map(diff => (
                               <div key={diff} className="flex-1">
                                   <h4 className={`text-xs font-black mb-3 uppercase tracking-widest ${diff === 'EASY' ? 'text-green-400' : diff === 'MEDIUM' ? 'text-yellow-400' : 'text-red-400'}`}>{diff} Bank</h4>
-                                  <div className="space-y-2 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
-                                      {ROUND_3_QUESTIONS.filter(q => q.difficulty === diff && !gameState.usedQuestionIds.includes(q.id)).map(q => (
+                                  <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                                      {ROUND_3_QUESTIONS.filter(q => q.difficulty === diff).map(q => {
+                                          const isUsed = gameState.usedQuestionIds.includes(q.id);
+                                          return (
                                           <button 
                                             key={q.id} 
                                             onClick={() => actions.setQuestion(q)}
-                                            className="w-full p-2 text-left text-[10px] bg-black/30 hover:bg-black/60 rounded border border-gray-700 transition-colors"
+                                            className={`w-full p-2 text-left text-[10px] rounded border transition-colors ${gameState.activeQuestion?.id === q.id ? 'bg-cyber-secondary/30 border-cyber-secondary' : isUsed ? 'bg-gray-900 border-gray-800 opacity-40 grayscale' : 'bg-black/30 border-gray-700 hover:bg-black/60'}`}
                                           >
+                                              {isUsed && <span className="mr-1 text-[8px] font-black bg-gray-700 text-gray-300 px-1 rounded">USED</span>}
                                               {q.content}
                                           </button>
-                                      ))}
+                                      );})}
                                   </div>
                               </div>
                           ))}
@@ -247,7 +281,7 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                           </div>
                       </div>
                   ) : (
-                      <div className="text-gray-500 italic text-center py-6">Chọn gói câu hỏi từ danh sách học sinh phía dưới để bắt đầu.</div>
+                      <div className="text-gray-500 italic text-center py-6">Chọn gói câu hỏi từ danh sách học sinh phía dưới hoặc Ngân hàng để bắt đầu.</div>
                   )}
               </div>
               

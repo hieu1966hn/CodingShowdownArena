@@ -1,8 +1,5 @@
-import { Question } from "../types";
 
-// ============================================================================
-// BỘ CÂU HỎI - CẬP NHẬT TỪ MA TRẬN CODING SHOWDOWN
-// ============================================================================
+import { Question } from "../types";
 
 // VÒNG 1: KHỞI ĐỘNG (REFLEX) - 80 CÂU
 export const ROUND_1_QUESTIONS: Question[] = [
@@ -90,186 +87,26 @@ export const ROUND_1_QUESTIONS: Question[] = [
 
 // VÒNG 2: VƯỢT CHƯỚNG NGẠI VẬT (OBSTACLE) - 20 CÂU
 export const ROUND_2_QUESTIONS: Question[] = [
-    {
-        id: 'r2-01',
-        category: 'SYNTAX',
-        difficulty: 'MEDIUM',
-        points: 40,
-        content: 'Tìm 2 lỗi sai: if x = 5: print("Hello")',
-        answer: '1. x = 5 → x == 5 2. Thiếu thụt lề dòng print',
-        codeSnippet: 'if x = 5: print("Hello")'
-    },
-    {
-        id: 'r2-02',
-        category: 'OUTPUT',
-        difficulty: 'MEDIUM',
-        points: 40,
-        content: 'Dự đoán kết quả hiển thị với đoạn code sau: a=[1,2,3]; b=a; b.append(4); print(a)',
-        answer: '[1, 2, 3, 4] (List tham chiếu)',
-        codeSnippet: 'a=[1,2,3]; b=a; b.append(4); print(a)'
-    },
-    {
-        id: 'r2-03',
-        category: 'LOGIC',
-        difficulty: 'EASY',
-        points: 30,
-        content: 'Điền điều kiện in số chẵn trong for i in range(10)',
-        answer: 'i % 2 == 0',
-        codeSnippet: 'for i in range(10):\n    if ???:\n        print(i)'
-    },
-    {
-        id: 'r2-04',
-        category: 'ALGO',
-        difficulty: 'HARD',
-        points: 50,
-        content: 'Sắp xếp thứ tự để vẽ hình vuông: A. t.forward(100) B. for i in range(4): C. import turtle D. t.right(90)',
-        answer: 'C → B → A → D',
-        codeSnippet: 'A. t.forward(100)\nB. for i in range(4):\nC. import turtle\nD. t.right(90)'
-    },
-    {
-        id: 'r2-05',
-        category: 'DEBUG',
-        difficulty: 'MEDIUM',
-        points: 40,
-        content: 'Tại sao loop vô hạn? i=0; while i<5: print(i)',
-        answer: 'Thiếu i += 1',
-        codeSnippet: 'i=0\nwhile i<5:\n    print(i)'
-    },
-    {
-        id: 'r2-06',
-        category: 'OUTPUT',
-        difficulty: 'MEDIUM',
-        points: 40,
-        content: 'Kết quả của đoạn lệnh sau là gì? print("MindX"[::-1])',
-        answer: '"XndiM"',
-        codeSnippet: 'print("MindX"[::-1])'
-    },
-    {
-        id: 'r2-07',
-        category: 'LOGIC',
-        difficulty: 'MEDIUM',
-        points: 40,
-        content: 'Điều kiện: "n dương và chia hết cho 5"',
-        answer: 'n > 0 and n % 5 == 0',
-        codeSnippet: '# Viết biểu thức logic'
-    },
-    {
-        id: 'r2-08',
-        category: 'LIST',
-        difficulty: 'EASY',
-        points: 30,
-        content: 'Lấy phần tử cuối list arr',
-        answer: 'arr[-1]',
-        codeSnippet: 'arr = [...]\n# lấy phần tử cuối'
-    },
-    {
-        id: 'r2-09',
-        category: 'OUTPUT',
-        difficulty: 'EASY',
-        points: 30,
-        content: 'x=True; y=False; print(x or y)',
-        answer: 'True',
-        codeSnippet: 'x=True; y=False; print(x or y)'
-    },
-    {
-        id: 'r2-10',
-        category: 'ALGO',
-        difficulty: 'MEDIUM',
-        points: 40,
-        content: 'Tìm max của [1, 5, 2, 8]',
-        answer: 'max([1, 5, 2, 8])',
-        codeSnippet: '# Tìm max của list'
-    },
-    {
-        id: 'r2-11',
-        category: 'SYNTAX',
-        difficulty: 'EASY',
-        points: 30,
-        content: 'Lỗi gì? for i in range(5) print(i)',
-        answer: 'Thiếu dấu :',
-        codeSnippet: 'for i in range(5) print(i)'
-    },
-    {
-        id: 'r2-12',
-        category: 'OUTPUT',
-        difficulty: 'MEDIUM',
-        points: 40,
-        content: 'x=10; if x>5: print("A") elif x>8: print("B")',
-        answer: 'In "A"',
-        codeSnippet: 'x=10\nif x>5:\n    print("A")\nelif x>8:\n    print("B")'
-    },
-    {
-        id: 'r2-13',
-        category: 'LOGIC',
-        difficulty: 'EASY',
-        points: 30,
-        content: 'Hoàn thành hàm: def sum(a,b): ___ a+b',
-        answer: 'return',
-        codeSnippet: 'def sum(a,b): ___ a+b'
-    },
-    {
-        id: 'r2-14',
-        category: 'DEBUG',
-        difficulty: 'MEDIUM',
-        points: 40,
-        content: 'Đoạn code sau gặp lỗi gì? age=input(); if age>18:',
-        answer: 'So sánh string với int → cần int(age)',
-        codeSnippet: 'age=input()\nif age>18:'
-    },
-    {
-        id: 'r2-15',
-        category: 'ALGO',
-        difficulty: 'MEDIUM',
-        points: 40,
-        content: 'Sắp xếp bước giải PT bậc 1: A. Tìm Ẩn ($x = \\frac{-b}{a}$) B. Chuyển Vế ($ax = -b$) C. Kết Luận (tập nghiệm)',
-        answer: 'B → A → C',
-        codeSnippet: 'A. Tìm Ẩn (x = -b/a)\nB. Chuyển Vế (ax = -b)\nC. Kết Luận'
-    },
-    {
-        id: 'r2-16',
-        category: 'OUTPUT',
-        difficulty: 'MEDIUM',
-        points: 40,
-        content: 'Lồng 2 vòng for in "X"',
-        answer: 'XXXXXX',
-        codeSnippet: 'for i in range(2):\n    for j in range(3):\n        print("X", end="")'
-    },
-    {
-        id: 'r2-17',
-        category: 'LOGIC',
-        difficulty: 'EASY',
-        points: 30,
-        content: 'Biểu thức: "x nằm trong khoảng 1 đến 10"',
-        answer: '1 <= x <= 10',
-        codeSnippet: '# Viết biểu thức logic'
-    },
-    {
-        id: 'r2-18',
-        category: 'LIST',
-        difficulty: 'EASY',
-        points: 30,
-        content: 'Xóa phần tử thứ 2 trong list L',
-        answer: 'L.pop(1) hoặc del L[1]',
-        codeSnippet: 'L = [...]\n# xóa phần tử thứ 2'
-    },
-    {
-        id: 'r2-19',
-        category: 'DEBUG',
-        difficulty: 'MEDIUM',
-        points: 40,
-        content: 'Lỗi sai ở đâu? import random; print(random(1,10))',
-        answer: 'Sai hàm → random.randint(1,10)',
-        codeSnippet: 'import random\nprint(random(1,10))'
-    },
-    {
-        id: 'r2-20',
-        category: 'OUTPUT',
-        difficulty: 'EASY',
-        points: 30,
-        content: 'a="1"; b=2; print(int(a)+b)',
-        answer: '3',
-        codeSnippet: 'a="1"; b=2; print(int(a)+b)'
-    }
+    { id: 'r2-01', category: 'SYNTAX', difficulty: 'MEDIUM', points: 40, content: 'Tìm 2 lỗi sai: if x = 5: print("Hello")', answer: '1. x = 5 → x == 5 2. Thiếu thụt lề dòng print', codeSnippet: 'if x = 5: print("Hello")' },
+    { id: 'r2-02', category: 'OUTPUT', difficulty: 'MEDIUM', points: 40, content: 'Dự đoán kết quả hiển thị với đoạn code sau: a=[1,2,3]; b=a; b.append(4); print(a)', answer: '[1, 2, 3, 4] (List tham chiếu)', codeSnippet: 'a=[1,2,3]; b=a; b.append(4); print(a)' },
+    { id: 'r2-03', category: 'LOGIC', difficulty: 'EASY', points: 30, content: 'Điền điều kiện in số chẵn trong for i in range(10)', answer: 'i % 2 == 0', codeSnippet: 'for i in range(10):\n    if ???:\n        print(i)' },
+    { id: 'r2-04', category: 'ALGO', difficulty: 'HARD', points: 50, content: 'Sắp xếp thứ tự để vẽ hình vuông: A. t.forward(100) B. for i in range(4): C. import turtle D. t.right(90)', answer: 'C → B → A → D', codeSnippet: 'A. t.forward(100)\nB. for i in range(4):\nC. import turtle\nD. t.right(90)' },
+    { id: 'r2-05', category: 'DEBUG', difficulty: 'MEDIUM', points: 40, content: 'Tại sao loop vô hạn? i=0; while i<5: print(i)', answer: 'Thiếu i += 1', codeSnippet: 'i=0\nwhile i<5:\n    print(i)' },
+    { id: 'r2-06', category: 'OUTPUT', difficulty: 'MEDIUM', points: 40, content: 'Kết quả của đoạn lệnh sau là gì? print("MindX"[::-1])', answer: '"XndiM"', codeSnippet: 'print("MindX"[::-1])' },
+    { id: 'r2-07', category: 'LOGIC', difficulty: 'MEDIUM', points: 40, content: 'Điều kiện: "n dương và chia hết cho 5"', answer: 'n > 0 and n % 5 == 0', codeSnippet: '# Viết biểu thức logic' },
+    { id: 'r2-08', category: 'LIST', difficulty: 'EASY', points: 30, content: 'Lấy phần tử cuối list arr', answer: 'arr[-1]', codeSnippet: 'arr = [...]\n# lấy phần tử cuối' },
+    { id: 'r2-09', category: 'OUTPUT', difficulty: 'EASY', points: 30, content: 'x=True; y=False; print(x or y)', answer: 'True', codeSnippet: 'x=True; y=False; print(x or y)' },
+    { id: 'r2-10', category: 'ALGO', difficulty: 'MEDIUM', points: 40, content: 'Tìm max của [1, 5, 2, 8]', answer: 'max([1, 5, 2, 8])', codeSnippet: '# Tìm max của list' },
+    { id: 'r2-11', category: 'SYNTAX', difficulty: 'EASY', points: 30, content: 'Lỗi gì? for i in range(5) print(i)', answer: 'Thiếu dấu :', codeSnippet: 'for i in range(5) print(i)' },
+    { id: 'r2-12', category: 'OUTPUT', difficulty: 'MEDIUM', points: 40, content: 'x=10; if x>5: print("A") elif x>8: print("B")', answer: 'In "A"', codeSnippet: 'x=10\nif x>5:\n    print("A")\nelif x>8:\n    print("B")' },
+    { id: 'r2-13', category: 'LOGIC', difficulty: 'EASY', points: 30, content: 'Hoàn thành hàm: def sum(a,b): ___ a+b', answer: 'return', codeSnippet: 'def sum(a,b): ___ a+b' },
+    { id: 'r2-14', category: 'DEBUG', difficulty: 'MEDIUM', points: 40, content: 'Đoạn code sau gặp lỗi gì? age=input(); if age>18:', answer: 'So sánh string với int → cần int(age)', codeSnippet: 'age=input()\nif age>18:' },
+    { id: 'r2-15', category: 'ALGO', difficulty: 'MEDIUM', points: 40, content: 'Sắp xếp bước giải PT bậc 1: A. Tìm Ẩn (x = -b/a) B. Chuyển Vế (ax = -b) C. Kết Luận', answer: 'B → A → C', codeSnippet: 'A. Tìm Ẩn (x = -b/a)\nB. Chuyển Vế (ax = -b)\nC. Kết Luận' },
+    { id: 'r2-16', category: 'OUTPUT', difficulty: 'MEDIUM', points: 40, content: 'Lồng 2 vòng for in "X"', answer: 'XXXXXX', codeSnippet: 'for i in range(2):\n    for j in range(3):\n        print("X", end="")' },
+    { id: 'r2-17', category: 'LOGIC', difficulty: 'EASY', points: 30, content: 'Biểu thức: "x nằm trong khoảng 1 đến 10"', answer: '1 <= x <= 10', codeSnippet: '# Viết biểu thức logic' },
+    { id: 'r2-18', category: 'LIST', difficulty: 'EASY', points: 30, content: 'Xóa phần tử thứ 2 trong list L', answer: 'L.pop(1) hoặc del L[1]', codeSnippet: 'L = [...]\n# xóa phần tử thứ 2' },
+    { id: 'r2-19', category: 'DEBUG', difficulty: 'MEDIUM', points: 40, content: 'Lỗi sai ở đâu? import random; print(random(1,10))', answer: 'Sai hàm → random.randint(1,10)', codeSnippet: 'import random\nprint(random(1,10))' },
+    { id: 'r2-20', category: 'OUTPUT', difficulty: 'EASY', points: 30, content: 'a="1"; b=2; print(int(a)+b)', answer: '3', codeSnippet: 'a="1"; b=2; print(int(a)+b)' }
 ];
 
 // VÒNG 3: VỀ ĐÍCH (FINISH LINE) - 110 CÂU

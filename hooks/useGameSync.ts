@@ -84,7 +84,6 @@ export const useGameSync = () => {
       if (!classCode) return false;
       const code = classCode.trim().toUpperCase();
       try {
-          // Check if room exists first to avoid accidental wipes
           const ref = doc(db, "rooms", code);
           const snap = await getDoc(ref);
           
@@ -206,7 +205,7 @@ export const useGameSync = () => {
 
   const startRound2Timer = () => {
       updateState((prev) => {
-          let duration = 25; // Default
+          let duration = 25; 
           if (prev.activeQuestion) {
              switch(prev.activeQuestion.difficulty) {
                  case 'EASY': duration = 20; break;
@@ -365,7 +364,7 @@ export const useGameSync = () => {
 
   const startRound3Timer = (type: 'MAIN' | 'STEAL') => {
       updateState((prev) => {
-          let duration = 15; // Default/Steal
+          let duration = 15; 
           if (type === 'MAIN' && prev.activeQuestion) {
                switch(prev.activeQuestion.difficulty) {
                    case 'EASY': duration = 20; break;
@@ -410,7 +409,23 @@ export const useGameSync = () => {
 
   const resetGame = () => {
       if (roomId) {
-        setDoc(doc(db, "rooms", roomId), { ...INITIAL_STATE, roomId });
+        // Khôi phục usedQuestionIds về rỗng khi reset game
+        setDoc(doc(db, "rooms", roomId), { 
+            ...INITIAL_STATE, 
+            roomId,
+            players: gameState.players.map(p => ({
+                ...p,
+                score: 0,
+                submittedRound2: false,
+                round3PackLocked: false,
+                round3Pack: [
+                    { difficulty: 'EASY', status: 'PENDING' },
+                    { difficulty: 'MEDIUM', status: 'PENDING' },
+                    { difficulty: 'HARD', status: 'PENDING' }
+                ]
+            })),
+            usedQuestionIds: [] 
+        });
       }
   };
 
