@@ -4,7 +4,7 @@ import { GoogleGenAI } from "@google/genai";
 import { GameState, GameRound, Question, Player, Difficulty, PackStatus, QuestionCategory } from '../types';
 import { ROUND_1_QUESTIONS, ROUND_2_QUESTIONS, ROUND_3_QUESTIONS } from '../data/questions';
 import { SOUND_EFFECTS } from '../config/assets';
-import { Play, Check, X, Sparkles, RefreshCw, PlusCircle, MinusCircle, Code, Eye, Timer, User, Zap, Users, Monitor, Trophy, LogOut, Filter, CheckCircle, Pointer, Shuffle, ListOrdered, ChevronDown, ChevronUp, Database, EyeOff, XCircle } from 'lucide-react';
+import { Play, Check, X, Sparkles, RefreshCw, PlusCircle, MinusCircle, Code, Eye, Timer, User, Zap, Users, Monitor, Trophy, LogOut, Filter, CheckCircle, Pointer, Shuffle, ListOrdered, ChevronDown, ChevronUp, Database, EyeOff, XCircle, BookOpen, Terminal } from 'lucide-react';
 
 interface Props {
   gameState: GameState;
@@ -16,8 +16,8 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
   const [customPrompt, setCustomPrompt] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
   const [showR3Bank, setShowR3Bank] = useState(false);
+  const [r2Category, setR2Category] = useState<QuestionCategory | 'ALL'>('ALL');
   
-  // Hàm phát âm thanh cải tiến để đảm bảo hoạt động ngay lập tức
   const playSound = (type: keyof typeof SOUND_EFFECTS) => {
     try {
         const audio = new Audio(SOUND_EFFECTS[type]);
@@ -113,15 +113,113 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
           </div>
       )}
 
+      {/* ROUND 2 VIEW - BỔ SUNG GIAO DIỆN */}
+      {gameState.round === GameRound.ROUND_2 && (
+          <div className="space-y-6">
+              <div className="flex justify-between items-center">
+                  <h2 className="text-xl font-bold flex items-center gap-2"><Terminal className="text-cyber-primary"/> Round 2: Obstacle - Debugging</h2>
+                  <div className="flex gap-2">
+                      {(['ALL', 'LOGIC', 'SYNTAX', 'ALGO', 'OUTPUT', 'DEBUG', 'LIST'] as const).map(cat => (
+                          <button 
+                            key={cat} 
+                            onClick={() => setR2Category(cat)}
+                            className={`px-3 py-1 rounded text-xs font-bold ${r2Category === cat ? 'bg-cyber-primary text-black' : 'bg-gray-700 text-gray-300'}`}
+                          >
+                              {cat}
+                          </button>
+                      ))}
+                  </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-96 overflow-y-auto pr-2 custom-scrollbar">
+                  {ROUND_2_QUESTIONS
+                    .filter(q => (r2Category === 'ALL' || q.category === r2Category) && !gameState.usedQuestionIds.includes(q.id))
+                    .map(q => (
+                      <button key={q.id} onClick={() => actions.setQuestion(q)} className={`p-4 rounded text-left border transition-all ${gameState.activeQuestion?.id === q.id ? 'border-cyber-primary bg-slate-800 shadow-[0_0_15px_rgba(6,182,212,0.3)]' : 'border-gray-600 bg-gray-800'}`}>
+                          <div className="flex justify-between mb-2">
+                              <span className="text-[10px] bg-cyber-primary/20 text-cyber-primary px-2 py-0.5 rounded uppercase font-black">{q.category}</span>
+                              <span className="text-[10px] text-gray-500 font-mono">{q.points}pts</span>
+                          </div>
+                          <div className="font-bold text-sm mb-2">{q.content}</div>
+                          <pre className="text-[10px] bg-black/40 p-2 rounded text-green-500 font-mono truncate">{q.codeSnippet}</pre>
+                      </button>
+                  ))}
+              </div>
+
+              {gameState.activeQuestion && (
+                  <div className="bg-slate-900 border border-cyber-primary p-6 rounded-xl">
+                       <div className="flex justify-between items-start mb-4">
+                           <div>
+                               <h3 className="text-cyber-primary font-black uppercase text-sm mb-1">Active Challenge</h3>
+                               <p className="text-xl font-bold">{gameState.activeQuestion.content}</p>
+                           </div>
+                           <div className="flex gap-2">
+                               <button onClick={() => actions.startRound2Timer()} className="px-4 py-2 bg-blue-600 rounded font-bold flex items-center gap-2 hover:bg-blue-500"><Timer size={18}/> Start Round Timer</button>
+                               <button onClick={() => actions.toggleShowAnswer()} className="px-4 py-2 bg-gray-700 rounded font-bold">{gameState.showAnswer ? "Hide Answer" : "Show Answer"}</button>
+                               <button onClick={() => actions.clearQuestion()} className="px-4 py-2 bg-red-900 rounded font-bold"><X size={18}/></button>
+                           </div>
+                       </div>
+                       
+                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+                           {gameState.players.map(p => (
+                               <div key={p.id} className={`p-3 rounded-lg border-2 ${p.submittedRound2 ? 'border-green-500 bg-green-900/20' : 'border-gray-700 bg-gray-800/50'}`}>
+                                   <div className="flex justify-between items-center mb-2">
+                                       <span className="font-bold truncate max-w-[80px]">{p.name}</span>
+                                       {p.submittedRound2 ? <CheckCircle size={16} className="text-green-500"/> : <RefreshCw size={16} className="text-gray-600 animate-spin"/>}
+                                   </div>
+                                   {p.submittedRound2 && (
+                                       <button 
+                                            onClick={() => actions.setViewingPlayer(p.id)}
+                                            className="w-full py-1 bg-cyber-primary/20 text-cyber-primary text-[10px] font-bold rounded hover:bg-cyber-primary/40"
+                                       >
+                                           VIEW CODE
+                                       </button>
+                                   )}
+                               </div>
+                           ))}
+                       </div>
+                  </div>
+              )}
+          </div>
+      )}
+
       {/* ROUND 3 VIEW */}
       {gameState.round === GameRound.ROUND_3 && (
           <div className="space-y-8">
               <div className="flex justify-between items-center">
                   <h2 className="text-xl font-bold flex items-center gap-2"><Sparkles className="text-cyber-secondary"/> Round 3: Tactical Finish</h2>
-                  <button onClick={() => setShowR3Bank(!showR3Bank)} className="px-3 py-1.5 bg-gray-700 rounded text-sm">Question Bank</button>
+                  <button 
+                    onClick={() => setShowR3Bank(!showR3Bank)} 
+                    className={`px-4 py-2 rounded-lg font-bold flex items-center gap-2 transition-all ${showR3Bank ? 'bg-cyber-secondary text-white' : 'bg-gray-700 text-gray-300'}`}
+                  >
+                      <BookOpen size={18}/> {showR3Bank ? "Close Bank" : "Open Question Bank"}
+                  </button>
               </div>
 
-              {/* BẢNG ĐIỀU KHIỂN CÂU HỎI ĐANG CHẠY (BỔ SUNG SHOW ANSWER) */}
+              {/* NGÂN HÀNG CÂU HỎI VÒNG 3 - BỔ SUNG LOGIC HIỂN THỊ */}
+              {showR3Bank && (
+                  <div className="bg-slate-800 border-2 border-cyber-secondary rounded-xl p-6 animate-in slide-in-from-top duration-300">
+                      <div className="flex gap-4 mb-6">
+                          {(['EASY', 'MEDIUM', 'HARD'] as const).map(diff => (
+                              <div key={diff} className="flex-1">
+                                  <h4 className={`text-xs font-black mb-3 uppercase tracking-widest ${diff === 'EASY' ? 'text-green-400' : diff === 'MEDIUM' ? 'text-yellow-400' : 'text-red-400'}`}>{diff} Bank</h4>
+                                  <div className="space-y-2 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
+                                      {ROUND_3_QUESTIONS.filter(q => q.difficulty === diff && !gameState.usedQuestionIds.includes(q.id)).map(q => (
+                                          <button 
+                                            key={q.id} 
+                                            onClick={() => actions.setQuestion(q)}
+                                            className="w-full p-2 text-left text-[10px] bg-black/30 hover:bg-black/60 rounded border border-gray-700 transition-colors"
+                                          >
+                                              {q.content}
+                                          </button>
+                                      ))}
+                                  </div>
+                              </div>
+                          ))}
+                      </div>
+                  </div>
+              )}
+
               <div className="bg-slate-900 border border-cyber-primary rounded-xl p-6 shadow-xl">
                   <div className="flex items-center justify-between mb-4 border-b border-gray-700 pb-3">
                       <div className="flex items-center gap-2 text-cyber-primary font-bold uppercase tracking-widest text-sm">
