@@ -1,125 +1,392 @@
 import { Question } from "../types";
 
 // ============================================================================
-// DATA STORAGE NOTE:
-// Giáo viên có thể chỉnh sửa trực tiếp nội dung ở đây.
+// BỘ CÂU HỎI - CẬP NHẬT TỪ MA TRẬN CODING SHOWDOWN
 // ============================================================================
 
-// ROUND 1: REFLEX (VẤN ĐÁP/TRỰC TIẾP)
+// VÒNG 1: KHỞI ĐỘNG (REFLEX) - 80 CÂU
 export const ROUND_1_QUESTIONS: Question[] = [
-    // --- EASY ---
-    { id: 'r1-1', difficulty: 'EASY', content: 'Từ khóa nào dùng để khai báo hàm trong Python?', answer: 'def', points: 10 },
-    { id: 'r1-2', difficulty: 'EASY', content: 'Input() trả về kiểu dữ liệu gì?', answer: 'String (str)', points: 10 },
-    { id: 'r1-6', difficulty: 'EASY', content: '5 // 2 bằng bao nhiêu?', answer: '2', points: 10 },
-    { id: 'r1-11', difficulty: 'EASY', content: 'Lệnh nào dùng để in ra màn hình?', answer: 'print()', points: 10 },
-    { id: 'r1-16', difficulty: 'EASY', content: 'List được bao quanh bởi dấu ngoặc gì?', answer: '[] (Ngoặc vuông)', points: 10 },
-    { id: 'r1-17', difficulty: 'EASY', content: 'Chỉ số (index) đầu tiên của chuỗi là mấy?', answer: '0', points: 10 },
-
-    // --- MEDIUM ---
-    { id: 'r1-3', difficulty: 'MEDIUM', content: 'Hàm nào dùng để tính độ dài của danh sách?', answer: 'len()', points: 15 },
-    { id: 'r1-4', difficulty: 'MEDIUM', content: 'Để chuyển chuỗi thành số nguyên, dùng hàm gì?', answer: 'int()', points: 15 },
-    { id: 'r1-5', difficulty: 'MEDIUM', content: 'True và False thuộc kiểu dữ liệu nào?', answer: 'Boolean (bool)', points: 15 },
-    { id: 'r1-7', difficulty: 'MEDIUM', content: '5 % 2 bằng bao nhiêu?', answer: '1', points: 15 },
-    { id: 'r1-12', difficulty: 'MEDIUM', content: 'Ký hiệu nào dùng để comment?', answer: '#', points: 15 },
-    { id: 'r1-13', difficulty: 'MEDIUM', content: 'Vòng lặp nào dùng khi biết trước số lần lặp?', answer: 'for', points: 15 },
-    { id: 'r1-15', difficulty: 'MEDIUM', content: 'Cấu trúc rẽ nhánh bắt đầu bằng từ khóa gì?', answer: 'if', points: 15 },
-    { id: 'r1-18', difficulty: 'MEDIUM', content: 'Phép toán so sánh bằng trong Python viết thế nào?', answer: '==', points: 15 },
-
-    // --- HARD ---
-    { id: 'r1-8', difficulty: 'HARD', content: '2 ** 3 bằng bao nhiêu?', answer: '8', points: 20 },
-    { id: 'r1-9', difficulty: 'HARD', content: '10 != 10 trả về True hay False?', answer: 'False', points: 20 },
-    { id: 'r1-10', difficulty: 'HARD', content: 'not True là gì?', answer: 'False', points: 20 },
-    { id: 'r1-14', difficulty: 'HARD', content: 'Vòng lặp nào chạy khi điều kiện còn đúng?', answer: 'while', points: 20 },
-    { id: 'r1-19', difficulty: 'HARD', content: 'Thư viện vẽ hình rùa trong Python tên là gì?', answer: 'turtle', points: 20 },
-    { id: 'r1-20', difficulty: 'HARD', content: 'Từ khóa dùng để trả về giá trị trong hàm?', answer: 'return', points: 20 },
+    { id: 'r1-01', difficulty: 'EASY', content: 'Kết quả của type(10.5) là gì?', answer: "<class 'float'>", points: 10 },
+    { id: 'r1-02', difficulty: 'EASY', content: '10 // 3 bằng bao nhiêu?', answer: '3', points: 10 },
+    { id: 'r1-03', difficulty: 'EASY', content: '10 % 3 bằng bao nhiêu?', answer: '1', points: 10 },
+    { id: 'r1-04', difficulty: 'EASY', content: '2 ** 3 bằng bao nhiêu?', answer: '8', points: 10 },
+    { id: 'r1-05', difficulty: 'EASY', content: 'Ký tự dùng để comment 1 dòng trong Python?', answer: '#', points: 10 },
+    { id: 'r1-06', difficulty: 'EASY', content: 'Tên biến 1_student có hợp lệ không?', answer: 'Không', points: 10 },
+    { id: 'r1-07', difficulty: 'EASY', content: 'len("MindX") trả về gì?', answer: '5', points: 10 },
+    { id: 'r1-08', difficulty: 'MEDIUM', content: '5 > 3 and 2 < 1 là True hay False?', answer: 'False', points: 15 },
+    { id: 'r1-09', difficulty: 'MEDIUM', content: 'int("10") + 5 bằng bao nhiêu?', answer: '15', points: 15 },
+    { id: 'r1-10', difficulty: 'EASY', content: 'Chỉ số đầu tiên của List là gì?', answer: '0', points: 10 },
+    { id: 'r1-11', difficulty: 'EASY', content: '[1,2,3][1] bằng mấy?', answer: '2', points: 10 },
+    { id: 'r1-12', difficulty: 'EASY', content: '"Python".upper() trả về gì?', answer: '"PYTHON"', points: 10 },
+    { id: 'r1-13', difficulty: 'EASY', content: 'Từ khóa điều kiện phụ?', answer: 'elif', points: 10 },
+    { id: 'r1-14', difficulty: 'MEDIUM', content: 'range(5) tạo ra dãy nào?', answer: '0–4', points: 15 },
+    { id: 'r1-15', difficulty: 'EASY', content: 'turtle.forward(100) làm gì?', answer: 'Đi thẳng 100 đơn vị', points: 10 },
+    { id: 'r1-16', difficulty: 'EASY', content: 'Dùng sqrt cần import gì?', answer: 'math', points: 10 },
+    { id: 'r1-17', difficulty: 'EASY', content: 'Phủ định của True?', answer: 'False', points: 10 },
+    { id: 'r1-18', difficulty: 'MEDIUM', content: '"Ha" * 3 = ?', answer: '"HaHaHa"', points: 15 },
+    { id: 'r1-19', difficulty: 'MEDIUM', content: 'input() trả về kiểu dữ liệu gì?', answer: 'String', points: 15 },
+    { id: 'r1-20', difficulty: 'MEDIUM', content: 'append() thêm phần tử ở đâu?', answer: 'Cuối list', points: 15 },
+    { id: 'r1-21', difficulty: 'EASY', content: '10 != 10 → True/False?', answer: 'False', points: 10 },
+    { id: 'r1-22', difficulty: 'EASY', content: 'Từ khóa định nghĩa hàm?', answer: 'def', points: 10 },
+    { id: 'r1-23', difficulty: 'MEDIUM', content: 'Vòng lặp khi không biết số lần lặp?', answer: 'while', points: 15 },
+    { id: 'r1-24', difficulty: 'MEDIUM', content: 'IndentationError là gì?', answer: 'Lỗi thụt lề', points: 15 },
+    { id: 'r1-25', difficulty: 'EASY', content: 'Python phân biệt hoa thường không?', answer: 'Có', points: 10 },
+    { id: 'r1-26', difficulty: 'MEDIUM', content: 'break làm gì?', answer: 'Thoát vòng lặp', points: 15 },
+    { id: 'r1-27', difficulty: 'MEDIUM', content: 'continue làm gì?', answer: 'Bỏ qua lượt lặp hiện tại', points: 15 },
+    { id: 'r1-28', difficulty: 'EASY', content: 'len([1,2,3]) = ?', answer: '3', points: 10 },
+    { id: 'r1-29', difficulty: 'MEDIUM', content: 'my-name hợp lệ không?', answer: 'Không', points: 15 },
+    { id: 'r1-30', difficulty: 'EASY', content: '"Hello"[0] = ?', answer: '"H"', points: 10 },
+    { id: 'r1-31', difficulty: 'MEDIUM', content: '3 + 2 * 2 = ?', answer: '7', points: 15 },
+    { id: 'r1-32', difficulty: 'EASY', content: 'turtle.left(90) làm gì?', answer: 'Quay trái 90°', points: 10 },
+    { id: 'r1-33', difficulty: 'MEDIUM', content: 'random.choice([1,2]) làm gì?', answer: 'Chọn ngẫu nhiên 1 phần tử', points: 15 },
+    { id: 'r1-34', difficulty: 'MEDIUM', content: 'Hàm có thể không return không?', answer: 'Có', points: 15 },
+    { id: 'r1-35', difficulty: 'MEDIUM', content: 'not (5 > 10) = ?', answer: 'True', points: 15 },
+    { id: 'r1-36', difficulty: 'EASY', content: 'min([1,5,2]) = ?', answer: '1', points: 10 },
+    { id: 'r1-37', difficulty: 'EASY', content: 'max([1,5,2]) = ?', answer: '5', points: 10 },
+    { id: 'r1-38', difficulty: 'EASY', content: 'str(100) = ?', answer: '"100"', points: 10 },
+    { id: 'r1-39', difficulty: 'EASY', content: 'if có bắt buộc else không?', answer: 'Không', points: 10 },
+    { id: 'r1-40', difficulty: 'EASY', content: 'Dấu : trong if để làm gì?', answer: 'Mở block code', points: 10 },
+    { id: 'r1-41', difficulty: 'MEDIUM', content: 'range(1,5) tạo ra?', answer: '1,2,3,4', points: 15 },
+    { id: 'r1-42', difficulty: 'EASY', content: 'x += 1 = ?', answer: 'x = x + 1', points: 10 },
+    { id: 'r1-43', difficulty: 'MEDIUM', content: 'turtle.penup()', answer: 'Nhấc bút', points: 15 },
+    { id: 'r1-44', difficulty: 'MEDIUM', content: 'turtle.pendown()', answer: 'Đặt bút', points: 15 },
+    { id: 'r1-45', difficulty: 'EASY', content: '"1" + "2" = ?', answer: '"12"', points: 10 },
+    { id: 'r1-46', difficulty: 'MEDIUM', content: '"MindX"[-1] = ?', answer: '"X"', points: 15 },
+    { id: 'r1-47', difficulty: 'EASY', content: 'sum([1,2,3]) = ?', answer: '6', points: 10 },
+    { id: 'r1-48', difficulty: 'HARD', content: 'Biến trong hàm gọi là?', answer: 'Local', points: 20 },
+    { id: 'r1-49', difficulty: 'HARD', content: 'Biến ngoài hàm gọi là?', answer: 'Global', points: 20 },
+    { id: 'r1-50', difficulty: 'EASY', content: 'turtle.circle(50) vẽ gì?', answer: 'Hình tròn R=50', points: 10 },
+    { id: 'r1-51', difficulty: 'MEDIUM', content: '"\\n" nghĩa là gì?', answer: 'Xuống dòng', points: 15 },
+    { id: 'r1-52', difficulty: 'EASY', content: 'List chứa nhiều kiểu dữ liệu?', answer: 'Có', points: 10 },
+    { id: 'r1-53', difficulty: 'EASY', content: 'Print("Hello") chạy được không?', answer: 'Không', points: 10 },
+    { id: 'r1-54', difficulty: 'EASY', content: 'Toán tử so sánh bằng?', answer: '==', points: 10 },
+    { id: 'r1-55', difficulty: 'EASY', content: 'True thuộc kiểu gì?', answer: 'bool', points: 10 },
+    { id: 'r1-56', difficulty: 'MEDIUM', content: 'while True chạy bao lâu?', answer: 'Vô hạn', points: 15 },
+    { id: 'r1-57', difficulty: 'MEDIUM', content: 'pop() xóa phần tử ở đâu?', answer: 'Cuối list', points: 15 },
+    { id: 'r1-58', difficulty: 'EASY', content: 'abs(-5) = ?', answer: '5', points: 10 },
+    { id: 'r1-59', difficulty: 'HARD', content: 'turtle.speed(0)', answer: 'Nhanh nhất', points: 20 },
+    { id: 'r1-60', difficulty: 'MEDIUM', content: '(10>5) or (1>2) = ?', answer: 'True', points: 15 },
+    { id: 'r1-61', difficulty: 'EASY', content: 'input("Nhập tên:") in ra gì?', answer: '"Nhập tên:"', points: 10 },
+    { id: 'r1-62', difficulty: 'HARD', content: 'Kiểm tra 5 trong A?', answer: '5 in A', points: 20 },
+    { id: 'r1-63', difficulty: 'HARD', content: '4**0.5 = ?', answer: '2.0', points: 20 },
+    { id: 'r1-64', difficulty: 'MEDIUM', content: 'x,y = 1,2 → x = ?', answer: '1', points: 15 },
+    { id: 'r1-65', difficulty: 'EASY', content: 'lower() làm gì?', answer: 'Chuyển thành chữ thường', points: 10 },
+    { id: 'r1-66', difficulty: 'MEDIUM', content: 'turtle.bgcolor("black")', answer: 'Đổi nền thành đen', points: 15 },
+    { id: 'r1-67', difficulty: 'HARD', content: '[1,2] * 2 = ?', answer: '[1,2,1,2]', points: 20 },
+    { id: 'r1-68', difficulty: 'HARD', content: 'range(0,10,2) = ?', answer: '0,2,4,6,8', points: 20 },
+    { id: 'r1-69', difficulty: 'EASY', content: 'import turtle dùng để làm gì?', answer: 'Import thư viện turtle', points: 10 },
+    { id: 'r1-70', difficulty: 'EASY', content: 'Nếu if sai thì kiểm tra gì tiếp?', answer: 'elif hoặc else', points: 10 },
+    { id: 'r1-71', difficulty: 'EASY', content: '"a" in "apple"?', answer: 'True', points: 10 },
+    { id: 'r1-72', difficulty: 'MEDIUM', content: 'Hàm sắp xếp tăng dần?', answer: 'sort()', points: 15 },
+    { id: 'r1-73', difficulty: 'MEDIUM', content: 'round(3.14159,2) = ?', answer: '3.14', points: 15 },
+    { id: 'r1-74', difficulty: 'MEDIUM', content: 'turtle.home() đưa rùa về đâu?', answer: '(0,0)', points: 15 },
+    { id: 'r1-75', difficulty: 'MEDIUM', content: 'Tham số nằm ở đâu?', answer: 'Trong ngoặc hàm', points: 15 },
+    { id: 'r1-76', difficulty: 'HARD', content: 'x=5; x="Hi" → kiểu gì?', answer: 'String', points: 20 },
+    { id: 'r1-77', difficulty: 'HARD', content: '15/3 trả về kiểu gì?', answer: 'float', points: 20 },
+    { id: 'r1-78', difficulty: 'MEDIUM', content: 'NameError xảy ra khi?', answer: 'Dùng biến chưa định nghĩa', points: 15 },
+    { id: 'r1-79', difficulty: 'EASY', content: '"10" + "10" = ?', answer: '"1010"', points: 10 },
+    { id: 'r1-80', difficulty: 'MEDIUM', content: 'print() kết thúc bằng gì?', answer: '"\\n"', points: 15 }
 ];
 
-// ROUND 2: OBSTACLE (VƯỢT CHƯỚNG NGẠI VẬT)
-const R2_LOGIC: Question[] = [
-    { id: 'r2-logic-1', difficulty: 'EASY', category: 'LOGIC', points: 30, content: 'Toán tử Logic', answer: 'False', codeSnippet: 'A = True\nB = False\nprint(A and B)' },
-    { id: 'r2-logic-2', difficulty: 'MEDIUM', category: 'LOGIC', points: 40, content: 'Toán tử Logic', answer: 'True', codeSnippet: 'x = 5\nprint(x > 3 or x < 0)' },
-    { id: 'r2-logic-3', difficulty: 'HARD', category: 'LOGIC', points: 50, content: 'Toán tử Logic', answer: 'False', codeSnippet: 'val = True\nprint(not val)' },
-];
-
-const R2_SYNTAX: Question[] = [
-    { id: 'r2-syn-1', difficulty: 'EASY', category: 'SYNTAX', points: 30, content: 'Tìm lỗi sai', answer: 'Tên biến không được bắt đầu bằng số', codeSnippet: '1_score = 100\nprint(1_score)' },
-    { id: 'r2-syn-2', difficulty: 'MEDIUM', category: 'SYNTAX', points: 40, content: 'Tìm lỗi sai', answer: 'Thiếu dấu hai chấm (:)', codeSnippet: 'if x > 5\n    print("Lon hon")' },
-    { id: 'r2-syn-3', difficulty: 'HARD', category: 'SYNTAX', points: 50, content: 'Tìm lỗi sai', answer: 'Sai thụt đầu dòng (Indentation)', codeSnippet: 'def hello():\nprint("Hi")' },
-];
-
-const R2_ALGO: Question[] = [
-    { id: 'r2-algo-1', difficulty: 'EASY', category: 'ALGO', points: 30, content: 'Sắp xếp thuật toán', answer: 'B-A-C', codeSnippet: '# Mục tiêu: Tính tổng 2 số\n# (A) total = a + b\n# (B) a = 5, b = 10\n# (C) print(total)' },
-    { id: 'r2-algo-2', difficulty: 'MEDIUM', category: 'ALGO', points: 40, content: 'Sắp xếp thuật toán', answer: 'A-C-B', codeSnippet: '# Mục tiêu: Vòng lặp in 0->2\n# (A) for i in range(3):\n# (B)    print("End")\n# (C)    print(i)' },
-    { id: 'r2-algo-3', difficulty: 'HARD', category: 'ALGO', points: 50, content: 'Sắp xếp thuật toán', answer: 'B-C-A', codeSnippet: '# Mục tiêu: Nhập và in tên\n# (A) print("Hello", name)\n# (B) name = ""\n# (C) name = input("Name?")' },
-];
-
-const R2_OUTPUT: Question[] = [
-    { id: 'r2-out-1', difficulty: 'EASY', category: 'OUTPUT', points: 30, content: 'Dự đoán Output', answer: '0\n1\n2', codeSnippet: 'for i in range(3):\n    print(i)' },
-    { id: 'r2-out-2', difficulty: 'MEDIUM', category: 'OUTPUT', points: 40, content: 'Dự đoán Output', answer: 'HelloHello', codeSnippet: 's = "Hello"\nprint(s * 2)' },
-    { id: 'r2-out-3', difficulty: 'HARD', category: 'OUTPUT', points: 50, content: 'Dự đoán Output', answer: '15', codeSnippet: 'x = 10\nx = x + 5\nprint(x)' },
-];
-
+// VÒNG 2: VƯỢT CHƯỚNG NGẠI VẬT (OBSTACLE) - 20 CÂU
 export const ROUND_2_QUESTIONS: Question[] = [
-    ...R2_LOGIC, ...R2_SYNTAX, ...R2_ALGO, ...R2_OUTPUT
+    {
+        id: 'r2-01',
+        category: 'SYNTAX',
+        difficulty: 'MEDIUM',
+        points: 40,
+        content: 'Tìm 2 lỗi sai: if x = 5: print("Hello")',
+        answer: '1. x = 5 → x == 5 2. Thiếu thụt lề dòng print',
+        codeSnippet: 'if x = 5: print("Hello")'
+    },
+    {
+        id: 'r2-02',
+        category: 'OUTPUT',
+        difficulty: 'MEDIUM',
+        points: 40,
+        content: 'Dự đoán kết quả hiển thị với đoạn code sau: a=[1,2,3]; b=a; b.append(4); print(a)',
+        answer: '[1, 2, 3, 4] (List tham chiếu)',
+        codeSnippet: 'a=[1,2,3]; b=a; b.append(4); print(a)'
+    },
+    {
+        id: 'r2-03',
+        category: 'LOGIC',
+        difficulty: 'EASY',
+        points: 30,
+        content: 'Điền điều kiện in số chẵn trong for i in range(10)',
+        answer: 'i % 2 == 0',
+        codeSnippet: 'for i in range(10):\n    if ???:\n        print(i)'
+    },
+    {
+        id: 'r2-04',
+        category: 'ALGO',
+        difficulty: 'HARD',
+        points: 50,
+        content: 'Sắp xếp thứ tự để vẽ hình vuông: A. t.forward(100) B. for i in range(4): C. import turtle D. t.right(90)',
+        answer: 'C → B → A → D',
+        codeSnippet: 'A. t.forward(100)\nB. for i in range(4):\nC. import turtle\nD. t.right(90)'
+    },
+    {
+        id: 'r2-05',
+        category: 'DEBUG',
+        difficulty: 'MEDIUM',
+        points: 40,
+        content: 'Tại sao loop vô hạn? i=0; while i<5: print(i)',
+        answer: 'Thiếu i += 1',
+        codeSnippet: 'i=0\nwhile i<5:\n    print(i)'
+    },
+    {
+        id: 'r2-06',
+        category: 'OUTPUT',
+        difficulty: 'MEDIUM',
+        points: 40,
+        content: 'Kết quả của đoạn lệnh sau là gì? print("MindX"[::-1])',
+        answer: '"XndiM"',
+        codeSnippet: 'print("MindX"[::-1])'
+    },
+    {
+        id: 'r2-07',
+        category: 'LOGIC',
+        difficulty: 'MEDIUM',
+        points: 40,
+        content: 'Điều kiện: "n dương và chia hết cho 5"',
+        answer: 'n > 0 and n % 5 == 0',
+        codeSnippet: '# Viết biểu thức logic'
+    },
+    {
+        id: 'r2-08',
+        category: 'LIST',
+        difficulty: 'EASY',
+        points: 30,
+        content: 'Lấy phần tử cuối list arr',
+        answer: 'arr[-1]',
+        codeSnippet: 'arr = [...]\n# lấy phần tử cuối'
+    },
+    {
+        id: 'r2-09',
+        category: 'OUTPUT',
+        difficulty: 'EASY',
+        points: 30,
+        content: 'x=True; y=False; print(x or y)',
+        answer: 'True',
+        codeSnippet: 'x=True; y=False; print(x or y)'
+    },
+    {
+        id: 'r2-10',
+        category: 'ALGO',
+        difficulty: 'MEDIUM',
+        points: 40,
+        content: 'Tìm max của [1, 5, 2, 8]',
+        answer: 'max([1, 5, 2, 8])',
+        codeSnippet: '# Tìm max của list'
+    },
+    {
+        id: 'r2-11',
+        category: 'SYNTAX',
+        difficulty: 'EASY',
+        points: 30,
+        content: 'Lỗi gì? for i in range(5) print(i)',
+        answer: 'Thiếu dấu :',
+        codeSnippet: 'for i in range(5) print(i)'
+    },
+    {
+        id: 'r2-12',
+        category: 'OUTPUT',
+        difficulty: 'MEDIUM',
+        points: 40,
+        content: 'x=10; if x>5: print("A") elif x>8: print("B")',
+        answer: 'In "A"',
+        codeSnippet: 'x=10\nif x>5:\n    print("A")\nelif x>8:\n    print("B")'
+    },
+    {
+        id: 'r2-13',
+        category: 'LOGIC',
+        difficulty: 'EASY',
+        points: 30,
+        content: 'Hoàn thành hàm: def sum(a,b): ___ a+b',
+        answer: 'return',
+        codeSnippet: 'def sum(a,b): ___ a+b'
+    },
+    {
+        id: 'r2-14',
+        category: 'DEBUG',
+        difficulty: 'MEDIUM',
+        points: 40,
+        content: 'Đoạn code sau gặp lỗi gì? age=input(); if age>18:',
+        answer: 'So sánh string với int → cần int(age)',
+        codeSnippet: 'age=input()\nif age>18:'
+    },
+    {
+        id: 'r2-15',
+        category: 'ALGO',
+        difficulty: 'MEDIUM',
+        points: 40,
+        content: 'Sắp xếp bước giải PT bậc 1: A. Tìm Ẩn ($x = \\frac{-b}{a}$) B. Chuyển Vế ($ax = -b$) C. Kết Luận (tập nghiệm)',
+        answer: 'B → A → C',
+        codeSnippet: 'A. Tìm Ẩn (x = -b/a)\nB. Chuyển Vế (ax = -b)\nC. Kết Luận'
+    },
+    {
+        id: 'r2-16',
+        category: 'OUTPUT',
+        difficulty: 'MEDIUM',
+        points: 40,
+        content: 'Lồng 2 vòng for in "X"',
+        answer: 'XXXXXX',
+        codeSnippet: 'for i in range(2):\n    for j in range(3):\n        print("X", end="")'
+    },
+    {
+        id: 'r2-17',
+        category: 'LOGIC',
+        difficulty: 'EASY',
+        points: 30,
+        content: 'Biểu thức: "x nằm trong khoảng 1 đến 10"',
+        answer: '1 <= x <= 10',
+        codeSnippet: '# Viết biểu thức logic'
+    },
+    {
+        id: 'r2-18',
+        category: 'LIST',
+        difficulty: 'EASY',
+        points: 30,
+        content: 'Xóa phần tử thứ 2 trong list L',
+        answer: 'L.pop(1) hoặc del L[1]',
+        codeSnippet: 'L = [...]\n# xóa phần tử thứ 2'
+    },
+    {
+        id: 'r2-19',
+        category: 'DEBUG',
+        difficulty: 'MEDIUM',
+        points: 40,
+        content: 'Lỗi sai ở đâu? import random; print(random(1,10))',
+        answer: 'Sai hàm → random.randint(1,10)',
+        codeSnippet: 'import random\nprint(random(1,10))'
+    },
+    {
+        id: 'r2-20',
+        category: 'OUTPUT',
+        difficulty: 'EASY',
+        points: 30,
+        content: 'a="1"; b=2; print(int(a)+b)',
+        answer: '3',
+        codeSnippet: 'a="1"; b=2; print(int(a)+b)'
+    }
 ];
 
-// ROUND 3: FINISH LINE (VỀ ĐÍCH)
-// Target: 45 Questions (15 per level)
-
-const R3_EASY: Question[] = [
-    { id: 'r3-e1', difficulty: 'EASY', points: 20, content: 'Tên hàm dùng để in dữ liệu?', answer: 'print()' },
-    { id: 'r3-e2', difficulty: 'EASY', points: 20, content: 'Phép chia lấy dư dùng ký hiệu gì?', answer: '%' },
-    { id: 'r3-e3', difficulty: 'EASY', points: 20, content: 'Muốn nhập dữ liệu từ bàn phím dùng hàm gì?', answer: 'input()' },
-    { id: 'r3-e4', difficulty: 'EASY', points: 20, content: 'Danh sách rỗng ký hiệu thế nào?', answer: '[]' },
-    { id: 'r3-e5', difficulty: 'EASY', points: 20, content: 'Số nguyên trong tiếng Anh gọi là gì?', answer: 'Integer (int)' },
-    { id: 'r3-e6', difficulty: 'EASY', points: 20, content: 'Kết quả của "5" + "5" là gì?', answer: '"55" (Chuỗi)' },
-    { id: 'r3-e7', difficulty: 'EASY', content: 'Dấu # dùng để làm gì?', answer: 'Comment (Ghi chú)', points: 20 },
-    { id: 'r3-e8', difficulty: 'EASY', content: 'Hàm int("10") trả về gì?', answer: 'Số 10 (Integer)', points: 20 },
-    { id: 'r3-e9', difficulty: 'EASY', content: 'True và False là kiểu dữ liệu gì?', answer: 'Boolean', points: 20 },
-    { id: 'r3-e10', difficulty: 'EASY', content: 'Phép toán 10 - 5 bằng mấy?', answer: '5', points: 20 },
-    { id: 'r3-e11', difficulty: 'EASY', content: 'Ký tự xuống dòng là gì?', answer: '\\n', points: 20 },
-    { id: 'r3-e12', difficulty: 'EASY', content: 'Hàm nào dùng để tạo 1 dãy số?', answer: 'range()', points: 20 },
-    { id: 'r3-e13', difficulty: 'EASY', content: 'Phép nhân dùng ký hiệu gì?', answer: '*', points: 20 },
-    { id: 'r3-e14', difficulty: 'EASY', content: 'Biến name = "Nam" là kiểu gì?', answer: 'String', points: 20 },
-    { id: 'r3-e15', difficulty: 'EASY', content: 'Lệnh import dùng để làm gì?', answer: 'Thêm thư viện', points: 20 },
-];
-
-const R3_MEDIUM: Question[] = [
-    { id: 'r3-m1', difficulty: 'MEDIUM', points: 30, content: 'Làm sao thêm phần tử vào cuối List?', answer: '.append()' },
-    { id: 'r3-m2', difficulty: 'MEDIUM', points: 30, content: 'Range(5) tạo ra các số nào?', answer: '0, 1, 2, 3, 4' },
-    { id: 'r3-m3', difficulty: 'MEDIUM', points: 30, content: 'Lệnh nào thoát khỏi vòng lặp ngay lập tức?', answer: 'break' },
-    { id: 'r3-m4', difficulty: 'MEDIUM', points: 30, content: 'Làm sao để lấy phần tử cuối cùng của List?', answer: 'list[-1]' },
-    { id: 'r3-m5', difficulty: 'MEDIUM', points: 30, content: 'Hàm len("Hello") trả về bao nhiêu?', answer: '5' },
-    { id: 'r3-m6', difficulty: 'MEDIUM', content: 'Hàm str(100) trả về gì?', answer: '"100" (Chuỗi)', points: 30 },
-    { id: 'r3-m7', difficulty: 'MEDIUM', content: 'Lệnh continue dùng để làm gì?', answer: 'Bỏ qua lần lặp hiện tại', points: 30 },
-    { id: 'r3-m8', difficulty: 'MEDIUM', content: 'Cách viết hoa toàn bộ chuỗi s?', answer: 's.upper()', points: 30 },
-    { id: 'r3-m9', difficulty: 'MEDIUM', content: 'Xóa phần tử tại vị trí i trong List?', answer: 'pop(i) hoặc del', points: 30 },
-    { id: 'r3-m10', difficulty: 'MEDIUM', content: 'Toán tử nào kiểm tra phần tử có trong List?', answer: 'in', points: 30 },
-    { id: 'r3-m11', difficulty: 'MEDIUM', content: 'Hàm nào tìm giá trị lớn nhất trong List?', answer: 'max()', points: 30 },
-    { id: 'r3-m12', difficulty: 'MEDIUM', content: 'if a > 0 and b > 0: nghĩa là gì?', answer: 'Cả a và b đều dương', points: 30 },
-    { id: 'r3-m13', difficulty: 'MEDIUM', content: 'Để nối 2 chuỗi lại với nhau dùng toán tử gì?', answer: '+', points: 30 },
-    { id: 'r3-m14', difficulty: 'MEDIUM', content: 'Cách lấy 3 ký tự đầu của chuỗi s?', answer: 's[0:3]', points: 30 },
-    { id: 'r3-m15', difficulty: 'MEDIUM', content: 'Hàm input() luôn trả về kiểu gì?', answer: 'String', points: 30 },
-];
-
-const R3_HARD: Question[] = [
-    { id: 'r3-h1', difficulty: 'HARD', points: 40, content: 'Viết hàm kiểm tra số chẵn?', answer: 'def check(n): return n % 2 == 0' },
-    { id: 'r3-h2', difficulty: 'HARD', points: 40, content: 'Thuật toán Hoán đổi giá trị 2 biến?', answer: 'temp = a; a = b; b = temp' },
-    { id: 'r3-h3', difficulty: 'HARD', points: 40, content: 'Vòng lặp vô hạn viết như thế nào?', answer: 'while True:' },
-    { id: 'r3-h4', difficulty: 'HARD', points: 40, content: 'Cách khai báo chuỗi nhiều dòng?', answer: 'Dùng 3 dấu nháy đơn hoặc kép' },
-    { id: 'r3-h5', difficulty: 'HARD', points: 40, content: 'Sự khác biệt giữa List và Tuple?', answer: 'List thay đổi được, Tuple thì không' },
-    { id: 'r3-h6', difficulty: 'HARD', content: 'Biến cục bộ (local variable) là gì?', answer: 'Biến khai báo trong hàm', points: 40 },
-    { id: 'r3-h7', difficulty: 'HARD', content: 'Làm sao để import tất cả từ thư viện math?', answer: 'from math import *', points: 40 },
-    { id: 'r3-h8', difficulty: 'HARD', content: 'Hàm nào dùng để sắp xếp List?', answer: 'sort() hoặc sorted()', points: 40 },
-    { id: 'r3-h9', difficulty: 'HARD', content: 'Dictionary lưu dữ liệu dưới dạng nào?', answer: 'Key - Value', points: 40 },
-    { id: 'r3-h10', difficulty: 'HARD', content: 'Làm sao để ép kiểu dữ liệu?', answer: 'Dùng hàm int(), float(), str()...', points: 40 },
-    { id: 'r3-h11', difficulty: 'HARD', content: 'Toán tử // khác / ở chỗ nào?', answer: '// chia lấy nguyên, / chia thường', points: 40 },
-    { id: 'r3-h12', difficulty: 'HARD', content: 'Try...Except dùng để làm gì?', answer: 'Xử lý ngoại lệ (lỗi)', points: 40 },
-    { id: 'r3-h13', difficulty: 'HARD', content: 'File mode "w" có ý nghĩa gì?', answer: 'Ghi đè (Write)', points: 40 },
-    { id: 'r3-h14', difficulty: 'HARD', content: 'Đệ quy là gì?', answer: 'Hàm tự gọi lại chính nó', points: 40 },
-    { id: 'r3-h15', difficulty: 'HARD', content: 'Lambda function là gì?', answer: 'Hàm vô danh (Anonymous function)', points: 40 },
-];
-
+// VÒNG 3: VỀ ĐÍCH (FINISH LINE) - 110 CÂU
 export const ROUND_3_QUESTIONS: Question[] = [
-    ...R3_EASY, ...R3_MEDIUM, ...R3_HARD
+    // --- EASY (40 CÂU) ---
+    { id: 'r3-e-01', difficulty: 'EASY', points: 20, content: 'Nhập tên và in "Xin chào tên"', answer: 'n=input(); print("Xin chao "+n)' },
+    { id: 'r3-e-02', difficulty: 'EASY', points: 20, content: 'Dùng for in ra 0–9', answer: 'for i in range(10): print(i)' },
+    { id: 'r3-e-03', difficulty: 'EASY', points: 20, content: 'Tính diện tích HCN a=5, b=10', answer: 'print(5 * 10)' },
+    { id: 'r3-e-04', difficulty: 'EASY', points: 20, content: 'Tạo list rỗng my_list', answer: 'my_list = []' },
+    { id: 'r3-e-05', difficulty: 'EASY', points: 20, content: 'Nếu n > 10 in "Lớn"', answer: 'if n > 10: print("Lớn")' },
+    { id: 'r3-e-06', difficulty: 'EASY', points: 20, content: 'In số ngẫu nhiên 1–100', answer: 'import random; print(random.randint(1,100))' },
+    { id: 'r3-e-07', difficulty: 'EASY', points: 20, content: 'Nối s1="Good", s2="Job"', answer: 'print(s1 + s2)' },
+    { id: 'r3-e-08', difficulty: 'EASY', points: 20, content: 'Ép 9.8 → số nguyên', answer: 'print(int(9.8))' },
+    { id: 'r3-e-09', difficulty: 'EASY', points: 20, content: 'Khởi tạo bút vẽ', answer: 'import turtle; t = turtle.Turtle()' },
+    { id: 'r3-e-10', difficulty: 'EASY', points: 20, content: 'Xóa "Cơm" khỏi list', answer: 'menu.remove("Cơm")' },
+    { id: 'r3-e-11', difficulty: 'EASY', points: 20, content: 'Bình phương 7', answer: 'print(7 ** 2)' },
+    { id: 'r3-e-12', difficulty: 'EASY', points: 20, content: 'Độ dài chuỗi "Python"', answer: 'print(len("Python"))' },
+    { id: 'r3-e-13', difficulty: 'EASY', points: 20, content: 'Thêm 10 vào cuối list A', answer: 'A.append(10)' },
+    { id: 'r3-e-14', difficulty: 'EASY', points: 20, content: 'x = 5, y = 6, tính tổng', answer: 'x=5; y=6; print(x+y)' },
+    { id: 'r3-e-15', difficulty: 'EASY', points: 20, content: 'Vẽ đoạn thẳng dài 50', answer: 't.forward(50)' },
+    { id: 'r3-e-16', difficulty: 'EASY', points: 20, content: 'In "Hello" 5 lần', answer: 'for i in range(5): print("Hello")' },
+    { id: 'r3-e-17', difficulty: 'EASY', points: 20, content: 'Nhập n, nếu chẵn in "Chẵn"', answer: 'if n%2==0: print("Chẵn")' },
+    { id: 'r3-e-18', difficulty: 'EASY', points: 20, content: 'Truy cập phần tử đầu L', answer: 'print(L[0])' },
+    { id: 'r3-e-19', difficulty: 'EASY', points: 20, content: 'Đổi "abc" thành in hoa', answer: 'print("abc".upper())' },
+    { id: 'r3-e-20', difficulty: 'EASY', points: 20, content: 'Chu vi hình vuông cạnh a', answer: 'print(a * 4)' },
+    { id: 'r3-e-21', difficulty: 'EASY', points: 20, content: 'Import thư viện toán', answer: 'import math' },
+    { id: 'r3-e-22', difficulty: 'EASY', points: 20, content: 'Gọi hàm hello()', answer: 'hello()' },
+    { id: 'r3-e-23', difficulty: 'EASY', points: 20, content: 'Đếm số phần tử list A', answer: 'print(len(A))' },
+    { id: 'r3-e-24', difficulty: 'EASY', points: 20, content: 'Xoay phải 90 độ', answer: 't.right(90)' },
+    { id: 'r3-e-25', difficulty: 'EASY', points: 20, content: 'Kiểm tra "a" trong s', answer: 'if "a" in s: print("Yes")' },
+    { id: 'r3-e-26', difficulty: 'EASY', points: 20, content: 'Nhập tuổi (int)', answer: 'age = int(input())' },
+    { id: 'r3-e-27', difficulty: 'EASY', points: 20, content: 'While vô hạn', answer: 'while True: pass' },
+    { id: 'r3-e-28', difficulty: 'EASY', points: 20, content: 'Căn bậc 2 của 16', answer: 'import math; print(math.sqrt(16))' },
+    { id: 'r3-e-29', difficulty: 'EASY', points: 20, content: 'Đổi giá trị a và b', answer: 'a, b = b, a' },
+    { id: 'r3-e-30', difficulty: 'EASY', points: 20, content: 'Kiểm tra a > b', answer: 'print(a > b)' },
+    { id: 'r3-e-31', difficulty: 'EASY', points: 20, content: 'Tạo list [1,2,3]', answer: 'L = [1, 2, 3]' },
+    { id: 'r3-e-32', difficulty: 'EASY', points: 20, content: 'In ký tự thứ 2 của "Alo"', answer: 'print("Alo"[1])' },
+    { id: 'r3-e-33', difficulty: 'EASY', points: 20, content: 'Đổi màu bút sang đỏ', answer: 't.pencolor("red")' },
+    { id: 'r3-e-34', difficulty: 'EASY', points: 20, content: 'Kiểm tra n ≠ 0', answer: 'if n != 0: print("Khác 0")' },
+    { id: 'r3-e-35', difficulty: 'EASY', points: 20, content: '10 % 3', answer: 'print(10 % 3)' },
+    { id: 'r3-e-36', difficulty: 'EASY', points: 20, content: 'Loop từ 2 đến 4', answer: 'for i in range(2,5): print(i)' },
+    { id: 'r3-e-37', difficulty: 'EASY', points: 20, content: 'Định nghĩa hàm hi', answer: 'def hi(): print("Hi")' },
+    { id: 'r3-e-38', difficulty: 'EASY', points: 20, content: 'Sắp xếp list A', answer: 'A.sort()' },
+    { id: 'r3-e-39', difficulty: 'EASY', points: 20, content: 'In kiểu dữ liệu x', answer: 'print(type(x))' },
+    { id: 'r3-e-40', difficulty: 'EASY', points: 20, content: 'Vẽ hình tròn bán kính 100', answer: 't.circle(100)' },
+
+    // --- MEDIUM (40 CÂU) ---
+    { id: 'r3-m-01', difficulty: 'MEDIUM', points: 30, content: 'In số chẵn 1–20', answer: 'for i in range(1,21):\n if i%2==0: print(i)' },
+    { id: 'r3-m-02', difficulty: 'MEDIUM', points: 30, content: 'Tính tổng list nums', answer: 's=0\nfor x in nums: s+=x\nprint(s)' },
+    { id: 'r3-m-03', difficulty: 'MEDIUM', points: 30, content: 'Nhập điểm, >=5 đậu', answer: 'd=float(input()); print("Đậu" if d>=5 else "Rớt")' },
+    { id: 'r3-m-04', difficulty: 'MEDIUM', points: 30, content: 'Đếm chữ \'a\' trong "banana"', answer: 'print("banana".count(\'a\'))' },
+    { id: 'r3-m-05', difficulty: 'MEDIUM', points: 30, content: 'Nhập pass đến khi đúng "123"', answer: 'while input()!="123": pass' },
+    { id: 'r3-m-06', difficulty: 'MEDIUM', points: 30, content: 'Tạo list bình phương 1–5', answer: 'L = [i**2 for i in range(1,6)]' },
+    { id: 'r3-m-07', difficulty: 'MEDIUM', points: 30, content: 'Hàm tong(a,b)', answer: 'def tong(a,b): return a+b' },
+    { id: 'r3-m-08', difficulty: 'MEDIUM', points: 30, content: 'Vẽ tam giác đều', answer: 'for _ in range(3): t.fd(100); t.lt(120)' },
+    { id: 'r3-m-09', difficulty: 'MEDIUM', points: 30, content: 'Giải PT ax+b=0', answer: 'if a!=0: print(-b/a) else: print("Lỗi")' },
+    { id: 'r3-m-10', difficulty: 'MEDIUM', points: 30, content: 'Kiểm tra năm nhuận', answer: 'if (y%4==0 and y%100!=0) or y%400==0:' },
+    { id: 'r3-m-11', difficulty: 'MEDIUM', points: 30, content: 'In số >10 trong list A', answer: 'for x in A: if x>10: print(x)' },
+    { id: 'r3-m-12', difficulty: 'MEDIUM', points: 30, content: 'Đảo ngược chuỗi', answer: 'print(s[::-1])' },
+    { id: 'r3-m-13', difficulty: 'MEDIUM', points: 30, content: 'Tổng 1 → n', answer: 's=0\nfor i in range(1,n+1): s+=i' },
+    { id: 'r3-m-14', difficulty: 'MEDIUM', points: 30, content: 'Vẽ hình vuông đỏ', answer: 't.color("red"); for _ in range(4): t.fd(100); t.rt(90)' },
+    { id: 'r3-m-15', difficulty: 'MEDIUM', points: 30, content: 'Tung xúc xắc', answer: 'import random; print(random.randint(1,6))' },
+    { id: 'r3-m-16', difficulty: 'MEDIUM', points: 30, content: 'Tìm max 2 số a,b', answer: 'if a>b: print(a) else: print(b)' },
+    { id: 'r3-m-17', difficulty: 'MEDIUM', points: 30, content: 'Nhập 5 số vào list', answer: 'L=[]\nfor _ in range(5): L.append(int(input()))' },
+    { id: 'r3-m-18', difficulty: 'MEDIUM', points: 30, content: 'Kiểm tra số chính phương', answer: 'sqrt_n=n**0.5\nif int(sqrt_n)**2==n:' },
+    { id: 'r3-m-19', difficulty: 'MEDIUM', points: 30, content: 'In mỗi ký tự 1 dòng', answer: 'for char in s: print(char)' },
+    { id: 'r3-m-20', difficulty: 'MEDIUM', points: 30, content: 'Vẽ 2 hình tròn cách nhau', answer: 't.circle(50); t.pu(); t.fd(100); t.pd(); t.circle(50)' },
+    { id: 'r3-m-21', difficulty: 'MEDIUM', points: 30, content: 'Tính trung bình cộng', answer: 'print(sum(L)/len(L))' },
+    { id: 'r3-m-22', difficulty: 'MEDIUM', points: 30, content: 'Hàm kiểm tra chẵn', answer: 'def check(n): return n%2==0' },
+    { id: 'r3-m-23', difficulty: 'MEDIUM', points: 30, content: 'In bảng cửu chương 5', answer: 'for i in range(1,11): print(5*i)' },
+    { id: 'r3-m-24', difficulty: 'MEDIUM', points: 30, content: 'Xếp loại học lực', answer: 'if d>=8: "Giỏi"\nelif d>=6.5: "Khá"\nelse: "TB"' },
+    { id: 'r3-m-25', difficulty: 'MEDIUM', points: 30, content: 'Thay "a" thành "b"', answer: 's = s.replace("a", "b")' },
+    { id: 'r3-m-26', difficulty: 'MEDIUM', points: 30, content: 'Xóa phần tử đầu & cuối', answer: 'L.pop(0); L.pop(-1)' },
+    { id: 'r3-m-27', difficulty: 'MEDIUM', points: 30, content: 'Kiểm tra 3 cạnh tam giác', answer: 'if a+b>c and a+c>b and b+c>a:' },
+    { id: 'r3-m-28', difficulty: 'MEDIUM', points: 30, content: 'Chọn ngẫu nhiên 1 tên', answer: 'names=["A","B"]; print(random.choice(names))' },
+    { id: 'r3-m-29', difficulty: 'MEDIUM', points: 30, content: 'Vẽ HCN 100×50', answer: 'for _ in range(2): t.fd(100); t.rt(90); t.fd(50); t.rt(90)' },
+    { id: 'r3-m-30', difficulty: 'MEDIUM', points: 30, content: 'Đổi °C sang °F', answer: 'f = c * 1.8 + 32' },
+    { id: 'r3-m-31', difficulty: 'MEDIUM', points: 30, content: 'Đếm ngược 10 → 0', answer: 'i=10\nwhile i>=0:\n print(i)\n i-=1' },
+    { id: 'r3-m-32', difficulty: 'MEDIUM', points: 30, content: 'Ghép 2 list A, B', answer: 'C = A + B' },
+    { id: 'r3-m-33', difficulty: 'MEDIUM', points: 30, content: 'Lấy tên file từ path', answer: 'path.split("/")[-1]' },
+    { id: 'r3-m-34', difficulty: 'MEDIUM', points: 30, content: 'Diện tích hình tròn', answer: 'def dt_tron(r): return 3.14*r**2' },
+    { id: 'r3-m-35', difficulty: 'MEDIUM', points: 30, content: 'Đăng nhập user/pass', answer: 'u=input(); p=input(); if u=="admin" and p=="123":' },
+    { id: 'r3-m-36', difficulty: 'MEDIUM', points: 30, content: 'In số chia hết 3 & 5', answer: 'if i%3==0 and i%5==0:' },
+    { id: 'r3-m-37', difficulty: 'MEDIUM', points: 30, content: 'Vẽ nét đứt', answer: 'for _ in range(10): t.fd(10); t.pu(); t.fd(10); t.pd()' },
+    { id: 'r3-m-38', difficulty: 'MEDIUM', points: 30, content: 'Đảo ngược list không dùng hàm', answer: 'L2 = L[::-1]' },
+    { id: 'r3-m-39', difficulty: 'MEDIUM', points: 30, content: 'Giai thừa bằng math', answer: 'import math; print(math.factorial(5))' },
+    { id: 'r3-m-40', difficulty: 'MEDIUM', points: 30, content: 'Sửa lỗi chia 0', answer: 'if b!=0: print(a/b) else: print("Lỗi")' },
+
+    // --- HARD (30 CÂU) ---
+    { id: 'r3-h-01', difficulty: 'HARD', points: 40, content: 'Tìm số lớn thứ 2', answer: 'A=list(set(A)); A.sort(); print(A[-2])' },
+    { id: 'r3-h-02', difficulty: 'HARD', points: 40, content: 'Kiểm tra số nguyên tố', answer: 'ok=True; for i in range(2,int(n**0.5)+1): if n%i==0: ok=False' },
+    { id: 'r3-h-03', difficulty: 'HARD', points: 40, content: 'Palindrome (đối xứng)', answer: 's="".join(filter(str.isalnum,s)).lower(); check=s==s[::-1]' },
+    { id: 'r3-h-04', difficulty: 'HARD', points: 40, content: 'Xóa trùng lặp giữ thứ tự', answer: 'res=[]; [res.append(x) for x in L if x not in res]' },
+    { id: 'r3-h-05', difficulty: 'HARD', points: 40, content: 'Vẽ ngôi sao 5 cánh', answer: 'for i in range(5): t.fd(100); t.rt(144)' },
+    { id: 'r3-h-06', difficulty: 'HARD', points: 40, content: '10 số Fibonacci đầu', answer: 'a,b=0,1; for _ in range(10): print(a); a,b=b,a+b' },
+    { id: 'r3-h-07', difficulty: 'HARD', points: 40, content: 'Bảng cửu chương 2–9', answer: 'for i in range(2,10): for j in range(1,11): print(i*j)' },
+    { id: 'r3-h-08', difficulty: 'HARD', points: 40, content: 'Tính giai thừa (Loop)', answer: 'gt=1; for i in range(1,n+1): gt*=i' },
+    { id: 'r3-h-09', difficulty: 'HARD', points: 40, content: 'Tách chuỗi theo ký tự đặc biệt', answer: 'import re; re.split(r\'[;,\\s]\\s*\', s)' },
+    { id: 'r3-h-10', difficulty: 'HARD', points: 40, content: 'Oẳn tù tì logic', answer: 'map={0:\'Búa\',1:\'Kéo\',2:\'Lá\'}; kq=(nguoi-may)%3…' },
+    { id: 'r3-h-11', difficulty: 'HARD', points: 40, content: 'Phần tử xuất hiện nhiều nhất', answer: 'max(set(L), key=L.count)' },
+    { id: 'r3-h-12', difficulty: 'HARD', points: 40, content: 'Bubble Sort', answer: 'for i in range(n): for j in range(0,n-i-1): if arr[j]>arr[j+1]: ...' },
+    { id: 'r3-h-13', difficulty: 'HARD', points: 40, content: 'Vẽ hình xoắn ốc', answer: 'for i in range(100): t.fd(i); t.lt(90)' },
+    { id: 'r3-h-14', difficulty: 'HARD', points: 40, content: 'Giải PT Bậc 2', answer: 'delta=b*b-4*a*c; if delta<0... elif delta==0... else...' },
+    { id: 'r3-h-15', difficulty: 'HARD', points: 40, content: 'Chuẩn hóa họ tên (Title Case)', answer: 'print(" ".join(w.title() for w in s.split()))' },
+    { id: 'r3-h-16', difficulty: 'HARD', points: 40, content: 'Tính tiền taxi theo km', answer: 'if km<=1: tien=15; elif km<=30: tien=15+(km-1)*12 ...' },
+    { id: 'r3-h-17', difficulty: 'HARD', points: 40, content: 'Tổng đường chéo chính Matrix', answer: 'sum(matrix[i][i] for i in range(len(matrix)))' },
+    { id: 'r3-h-18', difficulty: 'HARD', points: 40, content: 'Đếm tần suất ký tự', answer: 'd={}; for c in s: d[c]=d.get(c,0)+1' },
+    { id: 'r3-h-19', difficulty: 'HARD', points: 40, content: 'Vẽ bông hoa (36 hình tròn)', answer: 'for _ in range(36): t.circle(50); t.lt(10)' },
+    { id: 'r3-h-20', difficulty: 'HARD', points: 40, content: 'Game đoán số (gợi ý)', answer: 'while Doan!=kq: if Doan>kq: print("Bé hơn") ...' },
+    { id: 'r3-h-21', difficulty: 'HARD', points: 40, content: 'GCD – Ước chung lớn nhất', answer: 'import math; print(math.gcd(a,b))' },
+    { id: 'r3-h-22', difficulty: 'HARD', points: 40, content: 'LCM – Bội chung nhỏ nhất', answer: '(a*b) // math.gcd(a,b)' },
+    { id: 'r3-h-23', difficulty: 'HARD', points: 40, content: 'List Comprehension số lẻ', answer: '[x for x in range(100) if x%2!=0]' },
+    { id: 'r3-h-24', difficulty: 'HARD', points: 40, content: 'Kiểm tra Anagram', answer: 'sorted(s1) == sorted(s2)' },
+    { id: 'r3-h-25', difficulty: 'HARD', points: 40, content: 'Vẽ đa giác n cạnh', answer: 'goc=360/n; for _ in range(n): t.fd(50); t.lt(goc)' },
+    { id: 'r3-h-26', difficulty: 'HARD', points: 40, content: 'Đệ quy giai thừa', answer: 'def fact(n): return 1 if n==0 else n*fact(n-1)' },
+    { id: 'r3-h-27', difficulty: 'HARD', points: 40, content: 'Số hoàn hảo (Perfect)', answer: 'sum([i for i in range(1,n) if n%i==0]) == n' },
+    { id: 'r3-h-28', difficulty: 'HARD', points: 40, content: 'Flatten list 2D', answer: '[item for sub in l for item in sub]' },
+    { id: 'r3-h-29', difficulty: 'HARD', points: 40, content: 'Đổi số 10 → nhị phân', answer: 'bin(n).replace("0b","")' },
+    { id: 'r3-h-30', difficulty: 'HARD', points: 40, content: 'Vẽ bàn cờ (Grid)', answer: 'Dùng nested loop để vẽ từng ô vuông' }
 ];

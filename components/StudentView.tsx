@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { GameState, GameRound, Player, Difficulty } from '../types';
 import { Code, Send, Bell, Mic, LogOut, CheckCircle } from 'lucide-react';
@@ -16,35 +15,34 @@ interface Props {
 const StudentView: React.FC<Props> = ({ gameState, playerId, onBuzz, onSubmitRound2, onSetRound3Pack, onLeave }) => {
   const me = gameState.players.find(p => p.id === playerId);
   const [codeAnswer, setCodeAnswer] = useState('');
-  
-  // Round 3 Selection State
   const [packSelection, setPackSelection] = useState<Difficulty[]>(['EASY', 'MEDIUM', 'HARD']);
 
-  // Helper for Sound Effects
   const playSound = (type: keyof typeof SOUND_EFFECTS) => {
-    const audio = new Audio(SOUND_EFFECTS[type]);
-    audio.volume = 0.5;
-    audio.play().catch(e => console.error("Audio playback failed:", e));
+    try {
+        const audio = new Audio(SOUND_EFFECTS[type]);
+        audio.volume = 0.5;
+        audio.play().catch(e => console.error("Audio playback failed:", e));
+    } catch (e) {
+        console.warn("Audio error", e);
+    }
   };
 
-  // Timer Sound Logic for Student Device
+  // LOGIC ÂM THANH TICK TRÊN ĐIỆN THOẠI HỌC SINH
   useEffect(() => {
     if (gameState.timerEndTime) {
         const interval = setInterval(() => {
             const now = Date.now();
             const timeLeft = Math.ceil((gameState.timerEndTime! - now) / 1000);
             
-            // Play tick for last 10 seconds
             if (timeLeft > 0 && timeLeft <= 10) {
                 const audio = new Audio(SOUND_EFFECTS.TICK);
-                audio.volume = 0.6; // Clear volume for student
+                audio.volume = 0.5;
                 audio.play().catch(() => {});
             }
-            // Play timeout sound at 0
             if (timeLeft === 0) {
-                 const audio = new Audio(SOUND_EFFECTS.WRONG); // Or BUZZ
-                 audio.volume = 0.6;
-                 audio.play().catch(() => {});
+                const audio = new Audio(SOUND_EFFECTS.WRONG);
+                audio.volume = 0.5;
+                audio.play().catch(() => {});
             }
         }, 1000);
         return () => clearInterval(interval);
@@ -72,28 +70,20 @@ const StudentView: React.FC<Props> = ({ gameState, playerId, onBuzz, onSubmitRou
 
   return (
     <div className="min-h-screen bg-cyber-dark text-white p-4 flex flex-col">
-      {/* Top Bar */}
       <div className="flex justify-between items-center bg-cyber-light p-4 rounded-lg mb-6 shadow-lg border border-gray-700">
         <div>
-           <h2 className="text-xl font-bold text-cyber-primary">{me.name}</h2>
+           <h2 className="text-xl font-bold text-cyber-primary truncate max-w-[150px]">{me.name}</h2>
            <span className="text-sm text-gray-400">Player</span>
         </div>
         <div className="flex items-center gap-4">
             <div className="text-3xl font-mono font-bold">{me.score} <span className="text-sm text-gray-500">pts</span></div>
-            <button 
-                onClick={onLeave}
-                className="p-2 bg-red-900/50 hover:bg-red-600 rounded-full text-red-200 hover:text-white transition-colors"
-                title="Leave Game"
-            >
+            <button onClick={onLeave} className="p-2 bg-red-900/50 hover:bg-red-600 rounded-full text-red-200 hover:text-white transition-colors">
                 <LogOut size={20} />
             </button>
         </div>
       </div>
 
-      {/* Main Area */}
       <div className="flex-grow flex flex-col justify-center items-center">
-        
-        {/* LOBBY / IDLE */}
         {!gameState.activeQuestion && !isRound2 && !isRound3 && (
              <div className="text-center animate-pulse">
                 <Code size={64} className="mx-auto text-gray-600 mb-4" />
@@ -102,7 +92,6 @@ const StudentView: React.FC<Props> = ({ gameState, playerId, onBuzz, onSubmitRou
              </div>
         )}
 
-        {/* ROUND 2: CODING */}
         {isRound2 && gameState.activeQuestion && !me.submittedRound2 && (
             <div className="w-full max-w-2xl space-y-4">
                 <div className="bg-slate-800 p-4 rounded border border-cyber-primary">
@@ -121,7 +110,7 @@ const StudentView: React.FC<Props> = ({ gameState, playerId, onBuzz, onSubmitRou
                     onClick={() => {
                         onSubmitRound2(codeAnswer);
                         setCodeAnswer('');
-                        playSound('SUBMIT'); // Play sound on submit
+                        playSound('SUBMIT');
                     }}
                     className="w-full bg-cyber-primary hover:bg-cyan-600 text-black font-bold py-4 rounded-lg flex items-center justify-center gap-2 transition-colors"
                 >
@@ -130,7 +119,6 @@ const StudentView: React.FC<Props> = ({ gameState, playerId, onBuzz, onSubmitRou
             </div>
         )}
 
-        {/* ROUND 2: SUBMITTED */}
         {isRound2 && me.submittedRound2 && (
              <div className="text-center">
                 <div className="text-green-500 text-4xl mb-2">✔ Submitted</div>
@@ -138,16 +126,12 @@ const StudentView: React.FC<Props> = ({ gameState, playerId, onBuzz, onSubmitRou
              </div>
         )}
 
-        {/* ROUND 3: TACTICAL FINISH */}
         {isRound3 && (
             <div className="w-full max-w-md">
-                 
-                 {/* PACK SELECTION PHASE */}
                  {!me.round3PackLocked ? (
                      <div className="bg-slate-800 p-6 rounded-xl border border-cyber-primary">
                          <h2 className="text-2xl font-bold mb-4 text-center">Choose Your Challenge</h2>
                          <p className="text-gray-400 text-center mb-6 text-sm">Select 3 difficulty levels for your turn.</p>
-                         
                          <div className="space-y-4 mb-8">
                              {[0, 1, 2].map((idx) => (
                                  <div key={idx} className="flex items-center gap-4">
@@ -164,41 +148,31 @@ const StudentView: React.FC<Props> = ({ gameState, playerId, onBuzz, onSubmitRou
                                  </div>
                              ))}
                          </div>
-
-                         <button 
-                            onClick={submitPack}
-                            className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-bold py-4 rounded-lg shadow-lg transform transition-all active:scale-95"
-                         >
+                         <button onClick={submitPack} className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-bold py-4 rounded-lg shadow-lg transform transition-all active:scale-95">
                              LOCK IN SELECTION
                          </button>
                      </div>
                  ) : (
-                     // GAMEPLAY PHASE
                      <>
                         {gameState.round3TurnPlayerId === me.id ? (
-                            // IT IS MY TURN
                             <div className="text-center">
                                 <div className="bg-blue-900/50 p-6 rounded-full inline-block mb-4 animate-pulse">
                                     <Mic size={64} className="text-blue-300" />
                                 </div>
                                 <h2 className="text-3xl font-bold text-blue-400 mb-2">YOUR TURN!</h2>
                                 <p className="text-xl">Answer the question verbally.</p>
-                                
                                 <div className="mt-6 flex justify-center gap-2">
                                     {me.round3Pack.map((item, idx) => (
                                         <div key={idx} className={`w-3 h-3 rounded-full ${item.status === 'PENDING' ? 'bg-gray-600' : item.status === 'CORRECT' ? 'bg-green-500' : 'bg-red-500'}`}></div>
                                     ))}
                                 </div>
-
                                 {gameState.round3Phase === 'MAIN_ANSWER' && (
                                     <div className="mt-4 text-yellow-400 font-mono text-2xl">Time is ticking...</div>
                                 )}
                             </div>
                         ) : (
-                            // NOT MY TURN
                             <>
                                 {gameState.round3Phase === 'STEAL_WINDOW' ? (
-                                    // STEAL PHASE - SHOW BUZZER
                                     <button 
                                         disabled={gameState.buzzerLocked || !!me.buzzedAt}
                                         onMouseDown={onBuzz}
@@ -215,7 +189,6 @@ const StudentView: React.FC<Props> = ({ gameState, playerId, onBuzz, onSubmitRou
                                         </span>
                                     </button>
                                 ) : (
-                                    // LISTENING PHASE
                                     <div className="text-center text-gray-500">
                                         {gameState.round3TurnPlayerId ? (
                                             <div className="flex flex-col items-center">
@@ -239,7 +212,6 @@ const StudentView: React.FC<Props> = ({ gameState, playerId, onBuzz, onSubmitRou
                  )}
             </div>
         )}
-
       </div>
     </div>
   );

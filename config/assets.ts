@@ -1,9 +1,6 @@
-
-
 export const STORAGE_KEY = 'coding-showdown-state';
 
 export const SOUND_EFFECTS = {
-    // Google Actions Sound Library (Reliable & HTTPS)
     CORRECT: 'https://actions.google.com/sounds/v1/cartoon/magic_chime.ogg',
     WRONG: 'https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg',
     SCORE_UP: 'https://actions.google.com/sounds/v1/cartoon/pop.ogg',
