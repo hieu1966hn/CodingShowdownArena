@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { GameState, GameRound, Player, Difficulty } from '../types';
 import { Code, Send, Bell, Mic, LogOut, CheckCircle } from 'lucide-react';
 import { SOUND_EFFECTS } from '../config/assets';
@@ -16,37 +16,41 @@ const StudentView: React.FC<Props> = ({ gameState, playerId, onBuzz, onSubmitRou
   const me = gameState.players.find(p => p.id === playerId);
   const [codeAnswer, setCodeAnswer] = useState('');
   const [packSelection, setPackSelection] = useState<Difficulty[]>(['EASY', 'MEDIUM', 'HARD']);
+  const lastPlayedSecond = useRef<number | null>(null);
 
-  const playSound = (type: keyof typeof SOUND_EFFECTS) => {
+  const playSound = (type: keyof typeof SOUND_EFFECTS, volume = 0.5) => {
     try {
         const audio = new Audio(SOUND_EFFECTS[type]);
-        audio.volume = 0.5;
+        audio.volume = volume;
         audio.play().catch(e => console.error("Audio playback failed:", e));
     } catch (e) {
         console.warn("Audio error", e);
     }
   };
 
-  // LOGIC ÂM THANH TICK TRÊN ĐIỆN THOẠI HỌC SINH
+  // LOGIC ÂM THANH ĐẾM NGƯỢC (ĐÃ TỐI ƯU)
   useEffect(() => {
-    if (gameState.timerEndTime) {
-        const interval = setInterval(() => {
-            const now = Date.now();
-            const timeLeft = Math.ceil((gameState.timerEndTime! - now) / 1000);
-            
-            if (timeLeft > 0 && timeLeft <= 10) {
-                const audio = new Audio(SOUND_EFFECTS.TICK);
-                audio.volume = 0.5;
-                audio.play().catch(() => {});
-            }
-            if (timeLeft === 0) {
-                const audio = new Audio(SOUND_EFFECTS.WRONG);
-                audio.volume = 0.5;
-                audio.play().catch(() => {});
-            }
-        }, 1000);
-        return () => clearInterval(interval);
+    if (!gameState.timerEndTime) {
+        lastPlayedSecond.current = null;
+        return;
     }
+
+    const interval = setInterval(() => {
+        const now = Date.now();
+        const timeLeft = Math.max(0, Math.ceil((gameState.timerEndTime! - now) / 1000));
+        
+        if (timeLeft <= 10 && timeLeft > 0 && timeLeft !== lastPlayedSecond.current) {
+            lastPlayedSecond.current = timeLeft;
+            playSound('TICK', 0.4);
+        }
+        
+        if (timeLeft === 0 && lastPlayedSecond.current !== 0) {
+            lastPlayedSecond.current = 0;
+            playSound('WRONG', 0.5);
+        }
+    }, 100);
+    
+    return () => clearInterval(interval);
   }, [gameState.timerEndTime]);
 
   if (!me) return <div className="text-white p-10">Error: Player not found. Please refresh.</div>;

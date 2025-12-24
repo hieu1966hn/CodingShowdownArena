@@ -8,7 +8,7 @@ interface Props {
   onLeave: () => void;
 }
 
-// Fireworks Component
+// Add React namespace prefix fix
 const Fireworks: React.FC = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     useEffect(() => {
@@ -51,42 +51,51 @@ const Fireworks: React.FC = () => {
     return <canvas ref={canvasRef} className="fixed inset-0 pointer-events-none z-50" />;
 };
 
+// Add React namespace prefix fix
 const SpectatorScreen: React.FC<Props> = ({ gameState, onLeave }) => {
     const [, setTick] = useState(0);
     const prevRound = useRef<GameRound>(GameRound.LOBBY);
     const prevBuzzedCount = useRef(0);
     const prevScores = useRef<Record<string, number>>({});
+    const lastPlayedSecond = useRef<number | null>(null);
     
-    const playSound = (type: keyof typeof SOUND_EFFECTS) => {
+    const playSound = (type: keyof typeof SOUND_EFFECTS, volume = 0.9) => {
         try {
             const audio = new Audio(SOUND_EFFECTS[type]);
-            audio.volume = 0.9;
+            audio.volume = volume;
             audio.play().catch(() => {});
         } catch (e) {
             console.warn("Sound play error", e);
         }
     };
 
-    // LOGIC ÂM THANH ĐẾM NGƯỢC (TICKING) TRONG 10S CUỐI
+    // LOGIC ÂM THANH ĐẾM NGƯỢC (ĐÃ TỐI ƯU)
     useEffect(() => {
-        if (gameState.timerEndTime) {
-            const interval = setInterval(() => {
-                const now = Date.now();
-                const timeLeft = Math.ceil((gameState.timerEndTime! - now) / 1000);
-                
-                if (timeLeft > 0 && timeLeft <= 10) {
-                    const audio = new Audio(SOUND_EFFECTS.TICK);
-                    audio.volume = 0.7;
-                    audio.play().catch(() => {});
-                }
-                
-                if (timeLeft === 0) {
-                    playSound('WRONG'); 
-                }
-                setTick(t => t + 1);
-            }, 1000);
-            return () => clearInterval(interval);
+        if (!gameState.timerEndTime) {
+            lastPlayedSecond.current = null;
+            return;
         }
+
+        const interval = setInterval(() => {
+            const now = Date.now();
+            const timeLeft = Math.max(0, Math.ceil((gameState.timerEndTime! - now) / 1000));
+            
+            // Chỉ phát âm thanh khi giây thay đổi và nằm trong 10 giây cuối
+            if (timeLeft <= 10 && timeLeft > 0 && timeLeft !== lastPlayedSecond.current) {
+                lastPlayedSecond.current = timeLeft;
+                playSound('TICK', 0.5); // Giảm âm lượng một chút cho tiếng tick
+            }
+            
+            // Phát âm thanh báo hết giờ
+            if (timeLeft === 0 && lastPlayedSecond.current !== 0) {
+                lastPlayedSecond.current = 0;
+                playSound('WRONG'); 
+            }
+            
+            setTick(t => t + 1);
+        }, 100); // Kiểm tra mỗi 100ms để đảm bảo độ chính xác
+        
+        return () => clearInterval(interval);
     }, [gameState.timerEndTime]);
 
     useEffect(() => {
