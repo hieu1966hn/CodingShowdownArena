@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { GameState, GameRound, Player, Difficulty } from '../types';
 import { Code, Send, Bell, Mic, LogOut, CheckCircle } from 'lucide-react';
@@ -28,7 +29,7 @@ const StudentView: React.FC<Props> = ({ gameState, playerId, onBuzz, onSubmitRou
     }
   };
 
-  // LOGIC ÂM THANH ĐẾM NGƯỢC (ĐÃ TỐI ƯU)
+  // LOGIC ÂM THANH ĐẾM NGƯỢC - ĐỒNG BỘ MỖI GIÂY
   useEffect(() => {
     if (!gameState.timerEndTime) {
         lastPlayedSecond.current = null;
@@ -39,14 +40,16 @@ const StudentView: React.FC<Props> = ({ gameState, playerId, onBuzz, onSubmitRou
         const now = Date.now();
         const timeLeft = Math.max(0, Math.ceil((gameState.timerEndTime! - now) / 1000));
         
-        if (timeLeft <= 10 && timeLeft > 0 && timeLeft !== lastPlayedSecond.current) {
+        // Phát TICK cho mỗi giây trôi qua
+        if (timeLeft > 0 && timeLeft !== lastPlayedSecond.current) {
             lastPlayedSecond.current = timeLeft;
-            playSound('TICK', 0.4);
+            playSound('TICK', 0.3);
         }
         
+        // Phát tiếng chuông báo khi hết giờ
         if (timeLeft === 0 && lastPlayedSecond.current !== 0) {
             lastPlayedSecond.current = 0;
-            playSound('WRONG', 0.5);
+            playSound('WRONG', 0.4);
         }
     }, 100);
     

@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState } from 'react';
 import { GameState, GameRound, Player } from '../types';
 import { Trophy, Timer, Code2, AlertCircle, Zap, User, Star, LogOut, Play, Download, Check } from 'lucide-react';
@@ -8,7 +9,6 @@ interface Props {
   onLeave: () => void;
 }
 
-// Add React namespace prefix fix
 const Fireworks: React.FC = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     useEffect(() => {
@@ -51,7 +51,6 @@ const Fireworks: React.FC = () => {
     return <canvas ref={canvasRef} className="fixed inset-0 pointer-events-none z-50" />;
 };
 
-// Add React namespace prefix fix
 const SpectatorScreen: React.FC<Props> = ({ gameState, onLeave }) => {
     const [, setTick] = useState(0);
     const prevRound = useRef<GameRound>(GameRound.LOBBY);
@@ -69,7 +68,7 @@ const SpectatorScreen: React.FC<Props> = ({ gameState, onLeave }) => {
         }
     };
 
-    // LOGIC ÂM THANH ĐẾM NGƯỢC (ĐÃ TỐI ƯU)
+    // LOGIC ÂM THANH ĐẾM NGƯỢC - PHÁT MỖI GIÂY TRONG SUỐT QUÁ TRÌNH
     useEffect(() => {
         if (!gameState.timerEndTime) {
             lastPlayedSecond.current = null;
@@ -80,20 +79,20 @@ const SpectatorScreen: React.FC<Props> = ({ gameState, onLeave }) => {
             const now = Date.now();
             const timeLeft = Math.max(0, Math.ceil((gameState.timerEndTime! - now) / 1000));
             
-            // Chỉ phát âm thanh khi giây thay đổi và nằm trong 10 giây cuối
-            if (timeLeft <= 10 && timeLeft > 0 && timeLeft !== lastPlayedSecond.current) {
+            // Phát âm thanh TICK mỗi khi giây đếm ngược thay đổi (cho tất cả các giây)
+            if (timeLeft > 0 && timeLeft !== lastPlayedSecond.current) {
                 lastPlayedSecond.current = timeLeft;
-                playSound('TICK', 0.5); // Giảm âm lượng một chút cho tiếng tick
+                playSound('TICK', 0.4); 
             }
             
-            // Phát âm thanh báo hết giờ
+            // Phát âm thanh báo hết giờ khi về 0
             if (timeLeft === 0 && lastPlayedSecond.current !== 0) {
                 lastPlayedSecond.current = 0;
                 playSound('WRONG'); 
             }
             
             setTick(t => t + 1);
-        }, 100); // Kiểm tra mỗi 100ms để đảm bảo độ chính xác
+        }, 100); 
         
         return () => clearInterval(interval);
     }, [gameState.timerEndTime]);
