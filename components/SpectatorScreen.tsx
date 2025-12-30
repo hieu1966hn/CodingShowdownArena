@@ -1,7 +1,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { GameState, GameRound, Player } from '../types';
-import { Trophy, Timer, Code2, AlertCircle, Zap, User, Star, LogOut, Play, Download, Check } from 'lucide-react';
+import { Trophy, Timer, Code2, AlertCircle, Zap, User, Star, LogOut, Play, Download, Check, CheckCircle } from 'lucide-react';
 import { SOUND_EFFECTS } from '../config/assets';
 
 interface Props {
@@ -126,6 +126,9 @@ const SpectatorScreen: React.FC<Props> = ({ gameState, onLeave }) => {
     const activePlayerId = isRound3 ? gameState.round3TurnPlayerId : (isRound1 ? gameState.round1TurnPlayerId : null);
     const activePlayerName = activePlayerId ? gameState.players.find(p => p.id === activePlayerId)?.name : null;
 
+    // Viewing Player for Round 2 Code Review
+    const viewingPlayer = gameState.viewingPlayerId ? gameState.players.find(p => p.id === gameState.viewingPlayerId) : null;
+
     return (
         <div className="min-h-screen bg-cyber-dark text-white p-6 flex flex-col relative overflow-hidden">
             <div className="flex justify-between items-center z-10 mb-8 border-b border-gray-700 pb-4">
@@ -181,7 +184,23 @@ const SpectatorScreen: React.FC<Props> = ({ gameState, onLeave }) => {
                                  </div>
                              )}
 
-                             {gameState.activeQuestion ? (
+                             {/* CODE REVIEW MODE (Priority Display) */}
+                             {viewingPlayer ? (
+                                 <div className="flex-grow flex flex-col animate-in zoom-in-95 duration-300">
+                                      <div className="flex items-center gap-4 mb-6 border-b border-gray-700 pb-4">
+                                          <div className="w-16 h-16 bg-yellow-600 rounded-full flex items-center justify-center text-3xl font-black text-black">
+                                              {viewingPlayer.name.charAt(0)}
+                                          </div>
+                                          <div>
+                                              <div className="text-yellow-500 font-bold uppercase tracking-widest text-sm">Code Review</div>
+                                              <div className="text-4xl font-black">{viewingPlayer.name}'s Submission</div>
+                                          </div>
+                                      </div>
+                                      <div className="flex-grow bg-black rounded-xl p-6 border-2 border-yellow-500/50 shadow-inner overflow-auto">
+                                          <pre className="text-green-400 font-mono text-3xl whitespace-pre-wrap">{viewingPlayer.round2Code || "// No code submitted"}</pre>
+                                      </div>
+                                 </div>
+                             ) : gameState.activeQuestion ? (
                                  <div className="flex-grow flex flex-col justify-center animate-in zoom-in-95 duration-300">
                                      <div className="text-2xl text-cyber-secondary font-black mb-6 uppercase tracking-widest flex items-center gap-2">
                                          <Code2 size={28}/> 
@@ -239,6 +258,12 @@ const SpectatorScreen: React.FC<Props> = ({ gameState, onLeave }) => {
                                              </div>
                                              <div>
                                                  <div className="font-bold text-xl leading-none mb-1 truncate max-w-[120px]">{p.name}</div>
+                                                 {/* SHOW SUBMITTED STATUS FOR ROUND 2 */}
+                                                 {gameState.round === GameRound.ROUND_2 && p.submittedRound2 && (
+                                                     <span className="text-xs text-green-400 font-bold flex items-center gap-1 animate-in zoom-in">
+                                                         <CheckCircle size={12} fill="currentColor" className="text-green-900" /> SUBMITTED
+                                                     </span>
+                                                 )}
                                                  {activePlayerId === p.id && <span className="text-xs text-blue-400 font-black animate-pulse uppercase tracking-tighter">● Answering</span>}
                                              </div>
                                          </div>

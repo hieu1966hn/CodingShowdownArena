@@ -77,6 +77,11 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
     </div>
   );
 
+  // Helper to find the viewing player
+  const viewingPlayer = gameState.viewingPlayerId 
+    ? gameState.players.find(p => p.id === gameState.viewingPlayerId) 
+    : null;
+
   return (
     <div className="min-h-screen bg-cyber-dark text-white p-6 pb-24">
       <header className="flex justify-between items-center mb-6">
@@ -189,19 +194,36 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                            </div>
                        </div>
                        
+                       {/* Viewing Player Code Section */}
+                       {viewingPlayer && (
+                           <div className="mb-6 animate-in fade-in slide-in-from-top-4 duration-300">
+                               <div className="bg-black border-2 border-yellow-500 rounded-lg overflow-hidden">
+                                   <div className="bg-yellow-900/40 p-2 border-b border-yellow-500/50 flex justify-between items-center px-4">
+                                       <div className="font-bold text-yellow-500 flex items-center gap-2">
+                                           <Code size={16} /> Code submission by: <span className="text-white text-lg">{viewingPlayer.name}</span>
+                                       </div>
+                                       <button onClick={() => actions.setViewingPlayer(null)} className="text-gray-400 hover:text-white"><X size={18}/></button>
+                                   </div>
+                                   <div className="p-4 bg-slate-900/50 overflow-x-auto">
+                                       <pre className="text-green-400 font-mono text-lg whitespace-pre-wrap">{viewingPlayer.round2Code || "// No code submitted"}</pre>
+                                   </div>
+                               </div>
+                           </div>
+                       )}
+
                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
                            {gameState.players.map(p => (
-                               <div key={p.id} className={`p-3 rounded-lg border-2 ${p.submittedRound2 ? 'border-green-500 bg-green-900/20' : 'border-gray-700 bg-gray-800/50'}`}>
+                               <div key={p.id} className={`p-3 rounded-lg border-2 transition-all ${p.submittedRound2 ? 'border-green-500 bg-green-900/20' : 'border-gray-700 bg-gray-800/50'} ${gameState.viewingPlayerId === p.id ? 'ring-2 ring-yellow-400 scale-105' : ''}`}>
                                    <div className="flex justify-between items-center mb-2">
                                        <span className="font-bold truncate max-w-[80px]">{p.name}</span>
                                        {p.submittedRound2 ? <CheckCircle size={16} className="text-green-500"/> : <RefreshCw size={16} className="text-gray-600 animate-spin"/>}
                                    </div>
                                    {p.submittedRound2 && (
                                        <button 
-                                            onClick={() => actions.setViewingPlayer(p.id)}
-                                            className={`w-full py-1 text-[10px] font-bold rounded ${gameState.viewingPlayerId === p.id ? 'bg-cyber-primary text-black' : 'bg-cyber-primary/20 text-cyber-primary hover:bg-cyber-primary/40'}`}
+                                            onClick={() => actions.setViewingPlayer(p.id === gameState.viewingPlayerId ? null : p.id)}
+                                            className={`w-full py-1 text-[10px] font-bold rounded transition-colors ${gameState.viewingPlayerId === p.id ? 'bg-yellow-500 text-black' : 'bg-cyber-primary/20 text-cyber-primary hover:bg-cyber-primary/40'}`}
                                        >
-                                           {gameState.viewingPlayerId === p.id ? 'VIEWING...' : 'VIEW CODE'}
+                                           {gameState.viewingPlayerId === p.id ? 'CLOSE CODE' : 'VIEW CODE'}
                                        </button>
                                    )}
                                </div>
