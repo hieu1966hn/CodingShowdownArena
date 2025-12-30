@@ -321,31 +321,35 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
               )}
 
               {/* ACTIVE QUESTION MONITOR */}
-              <div className="bg-slate-900 border border-cyber-primary rounded-xl p-6 shadow-xl relative overflow-hidden">
+              <div className="bg-slate-900 border border-cyber-primary rounded-xl p-6 shadow-xl relative overflow-hidden min-h-[300px]">
                   
                   {/* STEAL MODE OVERLAY FOR TEACHER */}
                   {gameState.round3Phase === 'STEAL_WINDOW' && (
-                      <div className="absolute top-0 right-0 w-1/3 h-full bg-slate-900/95 border-l border-red-500 p-4 z-20 flex flex-col">
-                           <div className="flex justify-between items-center mb-4 border-b border-gray-700 pb-2">
-                               <h3 className="font-bold text-red-500 flex items-center gap-2"><Zap size={20}/> STEAL QUEUE</h3>
-                               <button onClick={() => actions.clearBuzzers()} className="text-xs text-gray-400 hover:text-white">Clear All</button>
+                      <div className="absolute top-0 right-0 w-1/2 h-full bg-slate-900/95 border-l-4 border-red-600 p-6 z-20 flex flex-col shadow-[-10px_0_30px_rgba(0,0,0,0.5)]">
+                           <div className="flex justify-between items-center mb-4 border-b border-gray-700 pb-3">
+                               <h3 className="text-xl font-black text-red-500 flex items-center gap-2 uppercase tracking-wider animate-pulse"><Zap size={24}/> STEAL QUEUE</h3>
+                               <button onClick={() => actions.clearBuzzers()} className="px-3 py-1 bg-gray-800 hover:bg-red-900 text-gray-300 hover:text-white rounded text-xs font-bold transition-colors">Clear All</button>
                            </div>
                            
                            {gameState.activeStealPlayerId ? (
-                               <div className="flex-1 flex flex-col items-center justify-center animate-in zoom-in">
-                                   <div className="text-gray-400 text-sm mb-2">Currently Stealing:</div>
-                                   <div className="text-2xl font-black text-white mb-6 text-center">{gameState.players.find(p => p.id === gameState.activeStealPlayerId)?.name}</div>
+                               <div className="flex-1 flex flex-col justify-center animate-in slide-in-from-right duration-300">
+                                   <div className="text-center mb-6">
+                                       <div className="text-gray-400 text-sm font-bold uppercase tracking-widest mb-2">Currently Stealing</div>
+                                       <div className="text-4xl font-black text-white bg-red-900/30 py-4 rounded-xl border border-red-500/50 shadow-[0_0_20px_rgba(239,68,68,0.2)]">
+                                           {gameState.players.find(p => p.id === gameState.activeStealPlayerId)?.name}
+                                       </div>
+                                   </div>
                                    
-                                   <div className="grid grid-cols-2 gap-3 w-full">
+                                   <div className="grid grid-cols-2 gap-4">
                                        <button 
                                           onClick={() => {
                                               const pts = gameState.activeQuestion?.points || 0;
                                               playSound('CORRECT');
                                               actions.resolveSteal(gameState.activeStealPlayerId, true, pts);
                                           }}
-                                          className="p-4 bg-green-600 hover:bg-green-500 rounded-xl flex flex-col items-center gap-2 font-bold text-xs"
+                                          className="py-6 bg-green-600 hover:bg-green-500 rounded-xl flex flex-col items-center justify-center gap-2 font-black text-lg shadow-lg hover:scale-105 transition-all group"
                                        >
-                                           <ThumbsUp size={24}/> CORRECT
+                                           <ThumbsUp size={32} className="group-hover:animate-bounce"/> CORRECT
                                        </button>
                                        <button 
                                           onClick={() => {
@@ -353,29 +357,38 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                                               playSound('WRONG');
                                               actions.resolveSteal(gameState.activeStealPlayerId, false, pts);
                                           }}
-                                          className="p-4 bg-red-600 hover:bg-red-500 rounded-xl flex flex-col items-center gap-2 font-bold text-xs"
+                                          className="py-6 bg-red-600 hover:bg-red-500 rounded-xl flex flex-col items-center justify-center gap-2 font-black text-lg shadow-lg hover:scale-105 transition-all group"
                                        >
-                                           <ThumbsDown size={24}/> WRONG
+                                           <ThumbsDown size={32} className="group-hover:animate-bounce"/> WRONG
                                        </button>
                                    </div>
                                </div>
                            ) : (
-                               <div className="flex-1 overflow-y-auto space-y-2">
-                                    {gameState.players.filter(p => p.buzzedAt).sort((a,b) => (a.buzzedAt || 0) - (b.buzzedAt || 0)).map((p, idx) => (
-                                        <button 
-                                            key={p.id}
-                                            onClick={() => actions.activateSteal(p.id)}
-                                            className="w-full p-3 bg-slate-800 hover:bg-slate-700 border border-gray-600 rounded-lg flex justify-between items-center group transition-all"
-                                        >
-                                            <div className="flex items-center gap-3">
-                                                <span className="bg-red-900 text-red-200 text-xs font-mono px-1.5 rounded">{idx + 1}</span>
-                                                <span className="font-bold">{p.name}</span>
-                                            </div>
-                                            <Hand size={16} className="text-gray-500 group-hover:text-white"/>
-                                        </button>
-                                    ))}
-                                    {gameState.players.filter(p => p.buzzedAt).length === 0 && (
-                                        <div className="text-center text-gray-500 italic mt-10">Waiting for buzzers...</div>
+                               <div className="flex-1 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
+                                    {gameState.players.filter(p => p.buzzedAt).length > 0 ? (
+                                        gameState.players.filter(p => p.buzzedAt).sort((a,b) => (a.buzzedAt || 0) - (b.buzzedAt || 0)).map((p, idx) => (
+                                            <button 
+                                                key={p.id}
+                                                onClick={() => actions.activateSteal(p.id)}
+                                                className="w-full p-4 bg-slate-800 hover:bg-slate-700 border-l-4 border-l-transparent hover:border-l-red-500 rounded-r-lg flex justify-between items-center group transition-all"
+                                            >
+                                                <div className="flex items-center gap-4">
+                                                    <span className={`w-8 h-8 flex items-center justify-center rounded-full font-bold ${idx === 0 ? 'bg-red-500 text-white animate-pulse' : 'bg-gray-700 text-gray-400'}`}>
+                                                        {idx + 1}
+                                                    </span>
+                                                    <span className="font-bold text-lg text-white group-hover:text-red-400 transition-colors">{p.name}</span>
+                                                </div>
+                                                <div className="flex items-center gap-2 text-xs text-gray-500 group-hover:text-white">
+                                                    <span>Accept</span>
+                                                    <Hand size={20} className="transform group-hover:rotate-12 transition-transform"/>
+                                                </div>
+                                            </button>
+                                        ))
+                                    ) : (
+                                        <div className="h-full flex flex-col items-center justify-center text-gray-500 opacity-50">
+                                            <Zap size={48} className="mb-4"/>
+                                            <p className="text-center font-bold italic">Waiting for buzzers...</p>
+                                        </div>
                                     )}
                                </div>
                            )}
