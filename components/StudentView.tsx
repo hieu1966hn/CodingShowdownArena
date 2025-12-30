@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { GameState, GameRound, Player, Difficulty } from '../types';
-import { Code, Send, Bell, Mic, LogOut, CheckCircle } from 'lucide-react';
+import { Code, Send, Bell, Mic, LogOut, CheckCircle, Zap } from 'lucide-react';
 import { SOUND_EFFECTS } from '../config/assets';
 
 interface Props {
@@ -161,7 +160,15 @@ const StudentView: React.FC<Props> = ({ gameState, playerId, onBuzz, onSubmitRou
                      </div>
                  ) : (
                      <>
-                        {gameState.round3TurnPlayerId === me.id ? (
+                        {gameState.activeStealPlayerId === me.id ? (
+                            <div className="text-center animate-in zoom-in">
+                                <div className="bg-red-900/50 p-6 rounded-full inline-block mb-4 animate-pulse border-4 border-red-500">
+                                    <Zap size={64} className="text-yellow-400" fill="currentColor"/>
+                                </div>
+                                <h2 className="text-4xl font-black text-red-500 mb-2 uppercase">YOUR TURN TO STEAL!</h2>
+                                <p className="text-xl">Answer carefully!</p>
+                            </div>
+                        ) : gameState.round3TurnPlayerId === me.id ? (
                             <div className="text-center">
                                 <div className="bg-blue-900/50 p-6 rounded-full inline-block mb-4 animate-pulse">
                                     <Mic size={64} className="text-blue-300" />

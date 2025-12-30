@@ -128,6 +128,9 @@ const SpectatorScreen: React.FC<Props> = ({ gameState, onLeave }) => {
 
     // Viewing Player for Round 2 Code Review
     const viewingPlayer = gameState.viewingPlayerId ? gameState.players.find(p => p.id === gameState.viewingPlayerId) : null;
+    
+    // Determine active stealer
+    const stealingPlayer = gameState.activeStealPlayerId ? gameState.players.find(p => p.id === gameState.activeStealPlayerId) : null;
 
     return (
         <div className="min-h-screen bg-cyber-dark text-white p-6 flex flex-col relative overflow-hidden">
@@ -175,6 +178,15 @@ const SpectatorScreen: React.FC<Props> = ({ gameState, onLeave }) => {
                 ) : (
                     <div className="w-full max-w-7xl grid grid-cols-12 gap-8 h-[80vh]">
                         <div className="col-span-8 bg-slate-900/90 rounded-3xl border-2 border-cyber-primary shadow-2xl p-12 flex flex-col relative overflow-hidden">
+                             {/* STEAL MODE OVERLAY */}
+                             {gameState.round3Phase === 'STEAL_WINDOW' && (
+                                 <div className="absolute top-0 left-0 w-full bg-red-900/90 py-2 z-20 flex justify-center items-center shadow-2xl border-b-4 border-red-500 animate-pulse">
+                                     <h2 className="text-2xl font-black text-white uppercase flex items-center gap-4 tracking-widest">
+                                         <Zap size={32} className="text-yellow-400" fill="currentColor"/> STEAL WINDOW OPEN <Zap size={32} className="text-yellow-400" fill="currentColor"/>
+                                     </h2>
+                                 </div>
+                             )}
+
                              {gameState.timerEndTime && (
                                  <div className="absolute top-8 right-8 flex items-center gap-3">
                                      <Timer size={40} className="text-red-500 animate-pulse" />
@@ -238,14 +250,19 @@ const SpectatorScreen: React.FC<Props> = ({ gameState, onLeave }) => {
                                          </div>
                                      )}
 
-                                     {activePlayerName && (
-                                         <div className="mt-auto p-6 bg-blue-900/20 border border-blue-500/50 rounded-2xl flex items-center gap-5">
+                                     {/* DISPLAY ACTIVE PLAYER (NORMAL OR STEALING) */}
+                                     {(activePlayerName || stealingPlayer) && (
+                                         <div className={`mt-auto p-6 rounded-2xl flex items-center gap-5 border-2 ${stealingPlayer ? 'bg-red-900/40 border-red-500 animate-pulse' : 'bg-blue-900/20 border-blue-500/50'}`}>
                                              <div className="relative">
-                                                 <User size={40} className="text-blue-400" />
-                                                 <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full animate-ping"></div>
+                                                 <User size={40} className={stealingPlayer ? "text-red-400" : "text-blue-400"} />
+                                                 <div className="absolute -top-1 -right-1 w-4 h-4 bg-yellow-500 rounded-full animate-ping"></div>
                                              </div>
                                              <div className="text-3xl">
-                                                 Current Turn: <span className="font-black text-blue-400 text-4xl">{activePlayerName}</span>
+                                                 {stealingPlayer ? (
+                                                     <>STEALING: <span className="font-black text-red-400 text-4xl uppercase">{stealingPlayer.name}</span></>
+                                                 ) : (
+                                                     <>Current Turn: <span className="font-black text-blue-400 text-4xl">{activePlayerName}</span></>
+                                                 )}
                                              </div>
                                          </div>
                                      )}
@@ -278,6 +295,7 @@ const SpectatorScreen: React.FC<Props> = ({ gameState, onLeave }) => {
                                                      </span>
                                                  )}
                                                  {activePlayerId === p.id && <span className="text-xs text-blue-400 font-black animate-pulse uppercase tracking-tighter">● Answering</span>}
+                                                 {gameState.activeStealPlayerId === p.id && <span className="text-xs text-red-500 font-black animate-pulse uppercase tracking-tighter">⚡ STEALING</span>}
                                              </div>
                                          </div>
                                          <div className="text-3xl font-mono font-black text-cyber-primary">{p.score}</div>

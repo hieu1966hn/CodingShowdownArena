@@ -1,3 +1,4 @@
+
 export enum GameRound {
   LOBBY = 'LOBBY',
   ROUND_1 = 'ROUND_1', // Reflex
@@ -55,6 +56,7 @@ export interface GameState {
   usedQuestionIds: string[];
   round1TurnPlayerId: string | null;
   round3TurnPlayerId: string | null;
+  activeStealPlayerId: string | null; // NEW: Track who is currently stealing
   round3Phase: Round3Phase;
   round3SelectionMode: 'RANDOM' | 'SEQUENTIAL';
   showAnswer: boolean;
@@ -72,6 +74,7 @@ export const INITIAL_STATE: GameState = {
   usedQuestionIds: [],
   round1TurnPlayerId: null,
   round3TurnPlayerId: null,
+  activeStealPlayerId: null,
   round3Phase: 'IDLE',
   round3SelectionMode: 'RANDOM',
   showAnswer: false,

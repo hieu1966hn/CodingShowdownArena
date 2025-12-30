@@ -164,7 +164,8 @@ export const useGameSync = () => {
         activeQuestion: null, 
         timerEndTime: null, 
         round3Phase: 'IDLE', 
-        round3TurnPlayerId: null, 
+        round3TurnPlayerId: null,
+        activeStealPlayerId: null, // Reset steal
         round1TurnPlayerId: null,
         showAnswer: false,
         viewingPlayerId: null
@@ -189,12 +190,13 @@ export const useGameSync = () => {
             usedQuestionIds: [...prev.usedQuestionIds, question.id],
             players: updatedPlayers,
             showAnswer: false,
-            viewingPlayerId: null
+            viewingPlayerId: null,
+            activeStealPlayerId: null
         };
     });
   };
 
-  const clearQuestion = () => updateState({ activeQuestion: null, showAnswer: false });
+  const clearQuestion = () => updateState({ activeQuestion: null, showAnswer: false, activeStealPlayerId: null });
 
   const startTimer = (seconds: number) => {
     updateState({ 
@@ -312,10 +314,55 @@ export const useGameSync = () => {
       }));
   };
 
+  // --- NEW STEAL LOGIC ---
+  
+  const activateSteal = (playerId: string) => {
+      // Set the active stealer and pause buzzing for others
+      updateState({
+          activeStealPlayerId: playerId,
+          buzzerLocked: true
+      });
+  };
+
+  const resolveSteal = (stealerId: string, isCorrect: boolean, points: number) => {
+      updateState((prev) => {
+          // Update score for stealer
+          const updatedPlayers = prev.players.map(p => {
+             if (p.id === stealerId) {
+                 const newScore = p.score + (isCorrect ? points : -points);
+                 // If WRONG, remove buzzer so they can't spam, but allow others to buzz
+                 return { ...p, score: Math.max(0, newScore), buzzedAt: isCorrect ? p.buzzedAt : null }; 
+             }
+             return p;
+          });
+
+          if (isCorrect) {
+              // Steal Correct: End the turn
+              return {
+                  players: updatedPlayers,
+                  activeQuestion: null,
+                  timerEndTime: null,
+                  buzzerLocked: true,
+                  round3Phase: 'IDLE',
+                  activeStealPlayerId: null,
+                  round3TurnPlayerId: null
+              };
+          } else {
+              // Steal Wrong: Continue the steal window, unlock buzzers for OTHERS
+              return {
+                  players: updatedPlayers,
+                  activeStealPlayerId: null, // Deselect this player
+                  buzzerLocked: false // Re-open for others
+              };
+          }
+      });
+  };
+
   const setRound3Turn = (playerId: string) => {
       updateState({ 
           round3TurnPlayerId: playerId, 
           round3Phase: 'IDLE',
+          activeStealPlayerId: null,
           message: null,
           buzzerLocked: true,
           timerEndTime: null,
@@ -478,6 +525,8 @@ export const useGameSync = () => {
     joinGame, 
     forceSync,
     toggleShowAnswer,
-    setViewingPlayer
+    setViewingPlayer,
+    activateSteal,
+    resolveSteal
   };
 };

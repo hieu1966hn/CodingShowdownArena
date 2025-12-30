@@ -4,7 +4,7 @@ import { GoogleGenAI } from "@google/genai";
 import { GameState, GameRound, Question, Player, Difficulty, PackStatus, QuestionCategory } from '../types';
 import { ROUND_1_QUESTIONS, ROUND_2_QUESTIONS, ROUND_3_QUESTIONS } from '../data/questions';
 import { SOUND_EFFECTS } from '../config/assets';
-import { Play, Check, X, Sparkles, RefreshCw, PlusCircle, MinusCircle, Code, Eye, Timer, User, Zap, Users, Monitor, Trophy, LogOut, Filter, CheckCircle, Pointer, Shuffle, ListOrdered, ChevronDown, ChevronUp, Database, EyeOff, XCircle, BookOpen, Terminal, Trash2, Clock, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { Play, Check, X, Sparkles, RefreshCw, PlusCircle, MinusCircle, Code, Eye, Timer, User, Zap, Users, Monitor, Trophy, LogOut, Filter, CheckCircle, Pointer, Shuffle, ListOrdered, ChevronDown, ChevronUp, Database, EyeOff, XCircle, BookOpen, Terminal, Trash2, Clock, ThumbsUp, ThumbsDown, Hand } from 'lucide-react';
 
 interface Props {
   gameState: GameState;
@@ -320,7 +320,68 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                   </div>
               )}
 
-              <div className="bg-slate-900 border border-cyber-primary rounded-xl p-6 shadow-xl">
+              {/* ACTIVE QUESTION MONITOR */}
+              <div className="bg-slate-900 border border-cyber-primary rounded-xl p-6 shadow-xl relative overflow-hidden">
+                  
+                  {/* STEAL MODE OVERLAY FOR TEACHER */}
+                  {gameState.round3Phase === 'STEAL_WINDOW' && (
+                      <div className="absolute top-0 right-0 w-1/3 h-full bg-slate-900/95 border-l border-red-500 p-4 z-20 flex flex-col">
+                           <div className="flex justify-between items-center mb-4 border-b border-gray-700 pb-2">
+                               <h3 className="font-bold text-red-500 flex items-center gap-2"><Zap size={20}/> STEAL QUEUE</h3>
+                               <button onClick={() => actions.clearBuzzers()} className="text-xs text-gray-400 hover:text-white">Clear All</button>
+                           </div>
+                           
+                           {gameState.activeStealPlayerId ? (
+                               <div className="flex-1 flex flex-col items-center justify-center animate-in zoom-in">
+                                   <div className="text-gray-400 text-sm mb-2">Currently Stealing:</div>
+                                   <div className="text-2xl font-black text-white mb-6 text-center">{gameState.players.find(p => p.id === gameState.activeStealPlayerId)?.name}</div>
+                                   
+                                   <div className="grid grid-cols-2 gap-3 w-full">
+                                       <button 
+                                          onClick={() => {
+                                              const pts = gameState.activeQuestion?.points || 0;
+                                              playSound('CORRECT');
+                                              actions.resolveSteal(gameState.activeStealPlayerId, true, pts);
+                                          }}
+                                          className="p-4 bg-green-600 hover:bg-green-500 rounded-xl flex flex-col items-center gap-2 font-bold text-xs"
+                                       >
+                                           <ThumbsUp size={24}/> CORRECT
+                                       </button>
+                                       <button 
+                                          onClick={() => {
+                                              const pts = gameState.activeQuestion?.points || 0;
+                                              playSound('WRONG');
+                                              actions.resolveSteal(gameState.activeStealPlayerId, false, pts);
+                                          }}
+                                          className="p-4 bg-red-600 hover:bg-red-500 rounded-xl flex flex-col items-center gap-2 font-bold text-xs"
+                                       >
+                                           <ThumbsDown size={24}/> WRONG
+                                       </button>
+                                   </div>
+                               </div>
+                           ) : (
+                               <div className="flex-1 overflow-y-auto space-y-2">
+                                    {gameState.players.filter(p => p.buzzedAt).sort((a,b) => (a.buzzedAt || 0) - (b.buzzedAt || 0)).map((p, idx) => (
+                                        <button 
+                                            key={p.id}
+                                            onClick={() => actions.activateSteal(p.id)}
+                                            className="w-full p-3 bg-slate-800 hover:bg-slate-700 border border-gray-600 rounded-lg flex justify-between items-center group transition-all"
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <span className="bg-red-900 text-red-200 text-xs font-mono px-1.5 rounded">{idx + 1}</span>
+                                                <span className="font-bold">{p.name}</span>
+                                            </div>
+                                            <Hand size={16} className="text-gray-500 group-hover:text-white"/>
+                                        </button>
+                                    ))}
+                                    {gameState.players.filter(p => p.buzzedAt).length === 0 && (
+                                        <div className="text-center text-gray-500 italic mt-10">Waiting for buzzers...</div>
+                                    )}
+                               </div>
+                           )}
+                      </div>
+                  )}
+
                   <div className="flex items-center justify-between mb-4 border-b border-gray-700 pb-3">
                       <div className="flex items-center gap-2 text-cyber-primary font-bold uppercase tracking-widest text-sm">
                           <Monitor size={18} /> Question Monitor
@@ -340,7 +401,7 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                   </div>
                   {gameState.activeQuestion ? (
                       <div className="animate-in fade-in duration-300">
-                          <div className="text-white text-2xl font-bold mb-3 leading-tight">{gameState.activeQuestion.content}</div>
+                          <div className="text-white text-2xl font-bold mb-3 leading-tight w-2/3">{gameState.activeQuestion.content}</div>
                           <div className="inline-flex items-center gap-2 bg-black/40 px-4 py-2 rounded-lg border border-green-500/30">
                               <span className="text-green-400 font-mono text-sm uppercase font-bold">Đáp án:</span>
                               <span className="text-white font-bold">{gameState.activeQuestion.answer}</span>
