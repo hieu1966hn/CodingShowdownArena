@@ -1,7 +1,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { GameState, GameRound, Player } from '../types';
-import { Trophy, Timer, Code2, AlertCircle, Zap, User, Star, LogOut, Play, Download, Check, CheckCircle } from 'lucide-react';
+import { Trophy, Timer, Code2, AlertCircle, Zap, User, Star, LogOut, Play, Download, Check, CheckCircle, Clock } from 'lucide-react';
 import { SOUND_EFFECTS } from '../config/assets';
 
 interface Props {
@@ -187,14 +187,27 @@ const SpectatorScreen: React.FC<Props> = ({ gameState, onLeave }) => {
                              {/* CODE REVIEW MODE (Priority Display) */}
                              {viewingPlayer ? (
                                  <div className="flex-grow flex flex-col animate-in zoom-in-95 duration-300">
-                                      <div className="flex items-center gap-4 mb-6 border-b border-gray-700 pb-4">
-                                          <div className="w-16 h-16 bg-yellow-600 rounded-full flex items-center justify-center text-3xl font-black text-black">
-                                              {viewingPlayer.name.charAt(0)}
+                                      <div className="flex items-center justify-between gap-4 mb-6 border-b border-gray-700 pb-4">
+                                          <div className="flex items-center gap-4">
+                                              <div className="w-16 h-16 bg-yellow-600 rounded-full flex items-center justify-center text-3xl font-black text-black">
+                                                  {viewingPlayer.name.charAt(0)}
+                                              </div>
+                                              <div>
+                                                  <div className="text-yellow-500 font-bold uppercase tracking-widest text-sm">Code Review</div>
+                                                  <div className="text-4xl font-black">{viewingPlayer.name}'s Submission</div>
+                                              </div>
                                           </div>
-                                          <div>
-                                              <div className="text-yellow-500 font-bold uppercase tracking-widest text-sm">Code Review</div>
-                                              <div className="text-4xl font-black">{viewingPlayer.name}'s Submission</div>
-                                          </div>
+                                          
+                                          {/* TIME TAKEN DISPLAY */}
+                                          {viewingPlayer.round2Time && (
+                                              <div className="flex flex-col items-end">
+                                                   <div className="text-gray-400 text-xs uppercase font-bold mb-1">Time Taken</div>
+                                                   <div className="flex items-center gap-2 bg-slate-800 px-4 py-2 rounded-xl border border-blue-500/30 text-blue-400">
+                                                       <Clock size={24} />
+                                                       <span className="text-3xl font-mono font-bold text-white">{viewingPlayer.round2Time.toFixed(2)}s</span>
+                                                   </div>
+                                              </div>
+                                          )}
                                       </div>
                                       <div className="flex-grow bg-black rounded-xl p-6 border-2 border-yellow-500/50 shadow-inner overflow-auto">
                                           <pre className="text-green-400 font-mono text-3xl whitespace-pre-wrap">{viewingPlayer.round2Code || "// No code submitted"}</pre>
