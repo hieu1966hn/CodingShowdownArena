@@ -4,7 +4,7 @@ import { GoogleGenAI } from "@google/genai";
 import { GameState, GameRound, Question, Player, Difficulty, PackStatus, QuestionCategory } from '../types';
 import { ROUND_1_QUESTIONS, ROUND_2_QUESTIONS, ROUND_3_QUESTIONS } from '../data/questions';
 import { SOUND_EFFECTS } from '../config/assets';
-import { Play, Check, X, Sparkles, RefreshCw, PlusCircle, MinusCircle, Code, Eye, Timer, User, Zap, Users, Monitor, Trophy, LogOut, Filter, CheckCircle, Pointer, Shuffle, ListOrdered, ChevronDown, ChevronUp, Database, EyeOff, XCircle, BookOpen, Terminal, Trash2 } from 'lucide-react';
+import { Play, Check, X, Sparkles, RefreshCw, PlusCircle, MinusCircle, Code, Eye, Timer, User, Zap, Users, Monitor, Trophy, LogOut, Filter, CheckCircle, Pointer, Shuffle, ListOrdered, ChevronDown, ChevronUp, Database, EyeOff, XCircle, BookOpen, Terminal, Trash2, Clock, ThumbsUp, ThumbsDown } from 'lucide-react';
 
 interface Props {
   gameState: GameState;
@@ -196,16 +196,52 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                        
                        {/* Viewing Player Code Section */}
                        {viewingPlayer && (
-                           <div className="mb-6 animate-in fade-in slide-in-from-top-4 duration-300">
+                           <div className="mb-6 animate-in fade-in slide-in-from-top-4 duration-300 relative">
                                <div className="bg-black border-2 border-yellow-500 rounded-lg overflow-hidden">
                                    <div className="bg-yellow-900/40 p-2 border-b border-yellow-500/50 flex justify-between items-center px-4">
-                                       <div className="font-bold text-yellow-500 flex items-center gap-2">
-                                           <Code size={16} /> Code submission by: <span className="text-white text-lg">{viewingPlayer.name}</span>
+                                       <div className="font-bold text-yellow-500 flex items-center gap-4">
+                                           <span className="flex items-center gap-2"><Code size={16} /> Submission by: <span className="text-white text-lg">{viewingPlayer.name}</span></span>
+                                           
+                                           {/* TIME TAKEN DISPLAY */}
+                                           {viewingPlayer.round2Time && (
+                                                <div className="flex items-center gap-2 bg-black/40 px-3 py-1 rounded-full border border-yellow-500/30">
+                                                    <Clock size={14} className="text-blue-400"/>
+                                                    <span className="text-blue-400 font-mono text-sm">
+                                                        Time: <span className="font-bold text-white">{viewingPlayer.round2Time.toFixed(2)}s</span>
+                                                    </span>
+                                                </div>
+                                           )}
                                        </div>
                                        <button onClick={() => actions.setViewingPlayer(null)} className="text-gray-400 hover:text-white"><X size={18}/></button>
                                    </div>
-                                   <div className="p-4 bg-slate-900/50 overflow-x-auto">
+                                   
+                                   <div className="p-4 bg-slate-900/50 overflow-x-auto min-h-[100px]">
                                        <pre className="text-green-400 font-mono text-lg whitespace-pre-wrap">{viewingPlayer.round2Code || "// No code submitted"}</pre>
+                                   </div>
+
+                                   {/* GRADING BUTTONS */}
+                                   <div className="p-3 bg-slate-900 border-t border-gray-700 flex gap-3 justify-end">
+                                       <button 
+                                           onClick={() => {
+                                               actions.setViewingPlayer(null);
+                                               playSound('SCORE_DOWN'); // Sound for wrong/dismiss
+                                           }}
+                                           className="px-6 py-2 bg-red-900/50 border border-red-500 hover:bg-red-900 text-red-200 rounded font-bold flex items-center gap-2 transition-all"
+                                       >
+                                           <ThumbsDown size={18}/> WRONG (Dismiss)
+                                       </button>
+                                       <button 
+                                           onClick={() => {
+                                               // Add points and close
+                                               const points = gameState.activeQuestion?.points || 0;
+                                               actions.updateScore(viewingPlayer.id, points);
+                                               playSound('CORRECT');
+                                               actions.setViewingPlayer(null);
+                                           }}
+                                           className="px-6 py-2 bg-green-600 hover:bg-green-500 text-white rounded font-bold flex items-center gap-2 shadow-lg hover:shadow-green-500/20 transition-all"
+                                       >
+                                           <ThumbsUp size={18}/> CORRECT (+{gameState.activeQuestion?.points}pts)
+                                       </button>
                                    </div>
                                </div>
                            </div>
@@ -213,17 +249,25 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
 
                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
                            {gameState.players.map(p => (
-                               <div key={p.id} className={`p-3 rounded-lg border-2 transition-all ${p.submittedRound2 ? 'border-green-500 bg-green-900/20' : 'border-gray-700 bg-gray-800/50'} ${gameState.viewingPlayerId === p.id ? 'ring-2 ring-yellow-400 scale-105' : ''}`}>
-                                   <div className="flex justify-between items-center mb-2">
+                               <div key={p.id} className={`p-3 rounded-lg border-2 transition-all flex flex-col gap-2 ${p.submittedRound2 ? 'border-green-500 bg-green-900/20' : 'border-gray-700 bg-gray-800/50'} ${gameState.viewingPlayerId === p.id ? 'ring-2 ring-yellow-400 scale-105' : ''}`}>
+                                   <div className="flex justify-between items-center">
                                        <span className="font-bold truncate max-w-[80px]">{p.name}</span>
                                        {p.submittedRound2 ? <CheckCircle size={16} className="text-green-500"/> : <RefreshCw size={16} className="text-gray-600 animate-spin"/>}
                                    </div>
+                                   
+                                   {/* TIME DISPLAY ON CARD */}
+                                   {p.submittedRound2 && p.round2Time && (
+                                       <div className="text-xs bg-black/40 rounded px-2 py-1 text-center font-mono text-blue-300 border border-blue-900/50">
+                                           ⏱ {p.round2Time.toFixed(2)}s
+                                       </div>
+                                   )}
+
                                    {p.submittedRound2 && (
                                        <button 
                                             onClick={() => actions.setViewingPlayer(p.id === gameState.viewingPlayerId ? null : p.id)}
                                             className={`w-full py-1 text-[10px] font-bold rounded transition-colors ${gameState.viewingPlayerId === p.id ? 'bg-yellow-500 text-black' : 'bg-cyber-primary/20 text-cyber-primary hover:bg-cyber-primary/40'}`}
                                        >
-                                           {gameState.viewingPlayerId === p.id ? 'CLOSE CODE' : 'VIEW CODE'}
+                                           {gameState.viewingPlayerId === p.id ? 'CLOSE' : 'VIEW CODE'}
                                        </button>
                                    )}
                                </div>
