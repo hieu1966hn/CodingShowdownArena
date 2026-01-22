@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { GameState, GameRound, Player, Difficulty } from '../types';
 import { Code, Send, Bell, Mic, LogOut, CheckCircle, Zap } from 'lucide-react';
@@ -10,9 +11,10 @@ interface Props {
   onSubmitRound2: (code: string) => void;
   onSetRound3Pack?: (pack: any[]) => void;
   onLeave: () => void;
+  onSubmitQuizAnswer?: (answer: string) => void;
 }
 
-const StudentView: React.FC<Props> = ({ gameState, playerId, onBuzz, onSubmitRound2, onSetRound3Pack, onLeave }) => {
+const StudentView: React.FC<Props> = ({ gameState, playerId, onBuzz, onSubmitRound2, onSetRound3Pack, onLeave, onSubmitQuizAnswer }) => {
   const me = gameState.players.find(p => p.id === playerId);
   const [codeAnswer, setCodeAnswer] = useState('');
   const [packSelection, setPackSelection] = useState<Difficulty[]>(['EASY', 'MEDIUM', 'HARD']);
@@ -160,22 +162,76 @@ const StudentView: React.FC<Props> = ({ gameState, playerId, onBuzz, onSubmitRou
                      </div>
                  ) : (
                      <>
+                        {/* STEAL MODE UI */}
                         {gameState.activeStealPlayerId === me.id ? (
-                            <div className="text-center animate-in zoom-in">
+                            <div className="text-center w-full">
                                 <div className="bg-red-900/50 p-6 rounded-full inline-block mb-4 animate-pulse border-4 border-red-500">
                                     <Zap size={64} className="text-yellow-400" fill="currentColor"/>
                                 </div>
-                                <h2 className="text-4xl font-black text-red-500 mb-2 uppercase">YOUR TURN TO STEAL!</h2>
-                                <p className="text-xl">Answer carefully!</p>
+                                <h2 className="text-4xl font-black text-red-500 mb-6 uppercase">YOUR TURN TO STEAL!</h2>
+                                
+                                {/* If Quiz Mode and Stealing, show disabled options (Steal is Verbal/Manual grading) */}
+                                {gameState.round3Mode === 'QUIZ' && gameState.activeQuestion?.options ? (
+                                    <div className="grid grid-cols-2 gap-4">
+                                        {gameState.activeQuestion.options.map((opt, idx) => (
+                                            <button
+                                                key={idx}
+                                                disabled={true} 
+                                                className="p-4 bg-gray-800 rounded border border-gray-600 text-left opacity-50 cursor-not-allowed"
+                                            >
+                                                <span className="font-bold mr-2 text-gray-400">{String.fromCharCode(65+idx)}.</span>
+                                                {opt}
+                                            </button>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <p className="text-xl">Answer carefully!</p>
+                                )}
                             </div>
                         ) : gameState.round3TurnPlayerId === me.id ? (
-                            <div className="text-center">
-                                <div className="bg-blue-900/50 p-6 rounded-full inline-block mb-4 animate-pulse">
-                                    <Mic size={64} className="text-blue-300" />
-                                </div>
-                                <h2 className="text-3xl font-bold text-blue-400 mb-2">YOUR TURN!</h2>
-                                <p className="text-xl">Answer the question verbally.</p>
-                                <div className="mt-6 flex justify-center gap-2">
+                            /* MAIN TURN UI */
+                            <div className="text-center w-full">
+                                {gameState.round3Mode === 'QUIZ' && gameState.activeQuestion?.options ? (
+                                    <>
+                                        <div className="mb-4">
+                                            <h2 className="text-2xl font-bold text-purple-400 mb-2">Quiz Time!</h2>
+                                            <p className="text-gray-400">Select the correct answer on screen.</p>
+                                        </div>
+                                        {me.round3QuizAnswer ? (
+                                            <div className="p-6 bg-blue-900/30 border border-blue-500 rounded-xl">
+                                                <div className="text-blue-300 font-bold mb-2">You selected:</div>
+                                                <div className="text-2xl font-black">{me.round3QuizAnswer}</div>
+                                                <div className="mt-4 text-sm text-gray-400 animate-pulse">Waiting for result...</div>
+                                            </div>
+                                        ) : (
+                                            <div className="grid grid-cols-1 gap-4">
+                                                {gameState.activeQuestion.options.map((opt, idx) => (
+                                                    <button
+                                                        key={idx}
+                                                        onClick={() => onSubmitQuizAnswer && onSubmitQuizAnswer(opt)}
+                                                        className="p-6 bg-slate-800 hover:bg-purple-900 border border-gray-600 hover:border-purple-500 rounded-xl text-left transition-all active:scale-95 flex items-center gap-4"
+                                                    >
+                                                        <div className="w-8 h-8 rounded-full bg-black/40 flex items-center justify-center font-bold text-sm border border-white/20">
+                                                            {String.fromCharCode(65+idx)}
+                                                        </div>
+                                                        <span className="font-bold text-lg">{opt}</span>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </>
+                                ) : (
+                                    /* ORAL MODE */
+                                    <>
+                                        <div className="bg-blue-900/50 p-6 rounded-full inline-block mb-4 animate-pulse">
+                                            <Mic size={64} className="text-blue-300" />
+                                        </div>
+                                        <h2 className="text-3xl font-bold text-blue-400 mb-2">YOUR TURN!</h2>
+                                        <p className="text-xl">Answer the question verbally.</p>
+                                    </>
+                                )}
+                                
+                                <div className="mt-8 flex justify-center gap-2">
                                     {me.round3Pack.map((item, idx) => (
                                         <div key={idx} className={`w-3 h-3 rounded-full ${item.status === 'PENDING' ? 'bg-gray-600' : item.status === 'CORRECT' ? 'bg-green-500' : 'bg-red-500'}`}></div>
                                     ))}
@@ -185,6 +241,7 @@ const StudentView: React.FC<Props> = ({ gameState, playerId, onBuzz, onSubmitRou
                                 )}
                             </div>
                         ) : (
+                            /* IDLE / WAITING / BUZZER UI */
                             <>
                                 {gameState.round3Phase === 'STEAL_WINDOW' ? (
                                     <button 

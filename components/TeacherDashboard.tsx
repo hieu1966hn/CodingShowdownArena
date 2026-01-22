@@ -4,7 +4,7 @@ import { GoogleGenAI } from "@google/genai";
 import { GameState, GameRound, Question, Player, Difficulty, PackStatus, QuestionCategory } from '../types';
 import { ROUND_1_QUESTIONS, ROUND_2_QUESTIONS, ROUND_3_QUESTIONS } from '../data/questions';
 import { SOUND_EFFECTS } from '../config/assets';
-import { Play, Check, X, Sparkles, RefreshCw, PlusCircle, MinusCircle, Code, Eye, Timer, User, Zap, Users, Monitor, Trophy, LogOut, Filter, CheckCircle, Pointer, Shuffle, ListOrdered, ChevronDown, ChevronUp, Database, EyeOff, XCircle, BookOpen, Terminal, Trash2, Clock, ThumbsUp, ThumbsDown, Hand } from 'lucide-react';
+import { Play, Check, X, Sparkles, RefreshCw, PlusCircle, MinusCircle, Code, Eye, Timer, User, Zap, Users, Monitor, Trophy, LogOut, Filter, CheckCircle, Pointer, Shuffle, ListOrdered, ChevronDown, ChevronUp, Database, EyeOff, XCircle, BookOpen, Terminal, Trash2, Clock, ThumbsUp, ThumbsDown, Hand, MessageSquare, LayoutGrid } from 'lucide-react';
 
 interface Props {
   gameState: GameState;
@@ -281,8 +281,27 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
       {/* ROUND 3 VIEW */}
       {gameState.round === GameRound.ROUND_3 && (
           <div className="space-y-8">
-              <div className="flex justify-between items-center">
-                  <h2 className="text-xl font-bold flex items-center gap-2"><Sparkles className="text-cyber-secondary"/> Round 3: Tactical Finish</h2>
+              <div className="flex justify-between items-center bg-slate-800 p-4 rounded-xl border border-gray-700">
+                  <div className="flex items-center gap-6">
+                      <h2 className="text-xl font-bold flex items-center gap-2"><Sparkles className="text-cyber-secondary"/> Round 3: Tactical Finish</h2>
+                      
+                      {/* MODE SWITCHER */}
+                      <div className="flex bg-gray-900 rounded-lg p-1 border border-gray-700">
+                          <button 
+                            onClick={() => actions.setRound3Mode('ORAL')}
+                            className={`px-4 py-2 rounded-md font-bold text-sm flex items-center gap-2 transition-all ${gameState.round3Mode === 'ORAL' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}
+                          >
+                              <MessageSquare size={16}/> Vấn Đáp
+                          </button>
+                          <button 
+                            onClick={() => actions.setRound3Mode('QUIZ')}
+                            className={`px-4 py-2 rounded-md font-bold text-sm flex items-center gap-2 transition-all ${gameState.round3Mode === 'QUIZ' ? 'bg-purple-600 text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}
+                          >
+                              <LayoutGrid size={16}/> Trắc Nghiệm
+                          </button>
+                      </div>
+                  </div>
+
                   <div className="flex items-center gap-3">
                       <span className="text-xs text-gray-500">Used: {gameState.usedQuestionIds.filter(id => id.startsWith('r3')).length} / {ROUND_3_QUESTIONS.length}</span>
                       <button 
@@ -401,13 +420,27 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                       </div>
                       {gameState.activeQuestion && (
                           <div className="flex gap-2">
-                              <button 
-                                  onClick={() => actions.toggleShowAnswer()} 
-                                  className={`px-4 py-2 rounded-lg flex items-center gap-2 font-bold transition-all shadow-md ${gameState.showAnswer ? 'bg-green-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}
-                              >
-                                  {gameState.showAnswer ? <EyeOff size={18}/> : <Eye size={18}/>}
-                                  {gameState.showAnswer ? "Hide Answer" : "Show Answer"}
-                              </button>
+                              {gameState.round3Mode === 'QUIZ' ? (
+                                  <button 
+                                    onClick={() => {
+                                        if(!gameState.showAnswer) playSound('CORRECT');
+                                        actions.autoGradeQuiz();
+                                    }} 
+                                    className={`px-4 py-2 rounded-lg flex items-center gap-2 font-bold transition-all shadow-md ${gameState.showAnswer ? 'bg-gray-600 cursor-not-allowed' : 'bg-green-600 hover:bg-green-500 text-white animate-pulse'}`}
+                                    disabled={gameState.showAnswer}
+                                  >
+                                      <CheckCircle size={18}/> Check Answer & Auto-Grade
+                                  </button>
+                              ) : (
+                                  <button 
+                                      onClick={() => actions.toggleShowAnswer()} 
+                                      className={`px-4 py-2 rounded-lg flex items-center gap-2 font-bold transition-all shadow-md ${gameState.showAnswer ? 'bg-green-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}
+                                  >
+                                      {gameState.showAnswer ? <EyeOff size={18}/> : <Eye size={18}/>}
+                                      {gameState.showAnswer ? "Hide Answer" : "Show Answer"}
+                                  </button>
+                              )}
+                              
                               <button onClick={() => actions.clearQuestion()} className="p-2 bg-gray-800 text-red-400 hover:bg-red-900 rounded-lg"><XCircle size={20}/></button>
                           </div>
                       )}
@@ -415,7 +448,20 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                   {gameState.activeQuestion ? (
                       <div className="animate-in fade-in duration-300">
                           <div className="text-white text-2xl font-bold mb-3 leading-tight w-2/3">{gameState.activeQuestion.content}</div>
-                          <div className="inline-flex items-center gap-2 bg-black/40 px-4 py-2 rounded-lg border border-green-500/30">
+                          
+                          {/* Options Grid for Teacher View in Quiz Mode */}
+                          {gameState.round3Mode === 'QUIZ' && gameState.activeQuestion.options && (
+                              <div className="grid grid-cols-2 gap-4 mt-4 w-3/4">
+                                  {gameState.activeQuestion.options.map((opt, idx) => (
+                                      <div key={idx} className={`p-3 rounded border ${gameState.showAnswer && opt === gameState.activeQuestion?.answer ? 'bg-green-900 border-green-500' : 'bg-slate-800 border-gray-600'}`}>
+                                          <span className="font-bold mr-2 text-gray-400">{String.fromCharCode(65+idx)}.</span>
+                                          {opt}
+                                      </div>
+                                  ))}
+                              </div>
+                          )}
+
+                          <div className="inline-flex items-center gap-2 bg-black/40 px-4 py-2 rounded-lg border border-green-500/30 mt-4">
                               <span className="text-green-400 font-mono text-sm uppercase font-bold">Đáp án:</span>
                               <span className="text-white font-bold">{gameState.activeQuestion.answer}</span>
                           </div>
@@ -431,7 +477,15 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                            <div className="flex justify-between items-center mb-5">
                                <div className="flex items-center gap-3">
                                    <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center font-bold text-cyber-primary">{p.name.charAt(0)}</div>
-                                   <h3 className="text-xl font-bold">{p.name}</h3>
+                                   <div className="flex flex-col">
+                                       <h3 className="text-xl font-bold">{p.name}</h3>
+                                       {/* Show student selection status in Quiz Mode */}
+                                       {gameState.round3Mode === 'QUIZ' && gameState.round3TurnPlayerId === p.id && (
+                                           <div className="text-xs font-mono">
+                                               Status: {p.round3QuizAnswer ? <span className="text-green-400">ANSWERED</span> : <span className="text-yellow-400 animate-pulse">THINKING...</span>}
+                                           </div>
+                                       )}
+                                   </div>
                                </div>
                                {gameState.round3TurnPlayerId === p.id ? (
                                    <span className="text-cyber-primary font-black animate-pulse flex items-center gap-2"><Zap size={18}/> CURRENT TURN</span>
@@ -450,24 +504,31 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                                            <span className={`text-xs font-bold px-3 py-1 rounded-full ${item.difficulty === 'EASY' ? 'bg-green-900/40 text-green-400' : item.difficulty === 'MEDIUM' ? 'bg-yellow-900/40 text-yellow-400' : 'bg-red-900/40 text-red-400'}`}>{item.difficulty}</span>
                                            <button onClick={() => actions.revealRound3Question(item.difficulty)} className="p-1.5 text-cyber-primary hover:bg-slate-700 rounded-lg transition-colors" title="Hiện câu hỏi"><Eye size={20}/></button>
                                        </div>
-                                       <div className="grid grid-cols-2 gap-2">
-                                            <button 
-                                                onClick={() => {
-                                                    playSound('CORRECT');
-                                                    let delta = (item.status === 'PENDING') ? points : (item.status === 'WRONG' ? points - penalty : 0);
-                                                    actions.gradeRound3Question(p.id, idx, 'CORRECT', delta);
-                                                }}
-                                                className={`py-3 rounded-lg text-xs font-bold border transition-all ${item.status === 'CORRECT' ? 'bg-green-600 border-white text-white scale-105 shadow-lg' : 'bg-slate-800 border-gray-600 text-gray-500'}`}
-                                            >CORRECT</button>
-                                            <button 
-                                                onClick={() => {
-                                                    playSound('WRONG');
-                                                    let delta = (item.status === 'PENDING') ? penalty : (item.status === 'CORRECT' ? penalty - points : 0);
-                                                    actions.gradeRound3Question(p.id, idx, 'WRONG', delta);
-                                                }}
-                                                className={`py-3 rounded-lg text-xs font-bold border transition-all ${item.status === 'WRONG' ? 'bg-red-600 border-white text-white scale-105 shadow-lg' : 'bg-slate-800 border-gray-600 text-gray-500'}`}
-                                            >WRONG</button>
-                                       </div>
+                                       
+                                       {/* Manual Grading Buttons only visible in ORAL mode or if forced */}
+                                       {gameState.round3Mode === 'ORAL' && (
+                                           <div className="grid grid-cols-2 gap-2">
+                                                <button 
+                                                    onClick={() => {
+                                                        playSound('CORRECT');
+                                                        let delta = (item.status === 'PENDING') ? points : (item.status === 'WRONG' ? points - penalty : 0);
+                                                        actions.gradeRound3Question(p.id, idx, 'CORRECT', delta);
+                                                    }}
+                                                    className={`py-3 rounded-lg text-xs font-bold border transition-all ${item.status === 'CORRECT' ? 'bg-green-600 border-white text-white scale-105 shadow-lg' : 'bg-slate-800 border-gray-600 text-gray-500'}`}
+                                                >CORRECT</button>
+                                                <button 
+                                                    onClick={() => {
+                                                        playSound('WRONG');
+                                                        let delta = (item.status === 'PENDING') ? penalty : (item.status === 'CORRECT' ? penalty - points : 0);
+                                                        actions.gradeRound3Question(p.id, idx, 'WRONG', delta);
+                                                    }}
+                                                    className={`py-3 rounded-lg text-xs font-bold border transition-all ${item.status === 'WRONG' ? 'bg-red-600 border-white text-white scale-105 shadow-lg' : 'bg-slate-800 border-gray-600 text-gray-500'}`}
+                                                >WRONG</button>
+                                           </div>
+                                       )}
+                                       {gameState.round3Mode === 'QUIZ' && (
+                                           <div className="text-center py-2 text-xs text-gray-500 italic">Auto-graded via "Check Answer"</div>
+                                       )}
                                    </div>
                                );})}
                            </div>

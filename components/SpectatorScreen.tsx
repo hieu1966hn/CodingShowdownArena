@@ -125,6 +125,7 @@ const SpectatorScreen: React.FC<Props> = ({ gameState, onLeave }) => {
     const isRound1 = gameState.round === GameRound.ROUND_1;
     const activePlayerId = isRound3 ? gameState.round3TurnPlayerId : (isRound1 ? gameState.round1TurnPlayerId : null);
     const activePlayerName = activePlayerId ? gameState.players.find(p => p.id === activePlayerId)?.name : null;
+    const activePlayer = activePlayerId ? gameState.players.find(p => p.id === activePlayerId) : null;
 
     // Viewing Player for Round 2 Code Review
     const viewingPlayer = gameState.viewingPlayerId ? gameState.players.find(p => p.id === gameState.viewingPlayerId) : null;
@@ -235,13 +236,36 @@ const SpectatorScreen: React.FC<Props> = ({ gameState, onLeave }) => {
                                      <h2 className="text-6xl font-bold leading-tight mb-8 drop-shadow-lg whitespace-pre-wrap">
                                          {gameState.activeQuestion.content}
                                      </h2>
+                                     
+                                     {/* QUIZ OPTIONS DISPLAY */}
+                                     {gameState.round3Mode === 'QUIZ' && gameState.activeQuestion.options && (
+                                         <div className="grid grid-cols-2 gap-6 mb-8">
+                                             {gameState.activeQuestion.options.map((opt, idx) => {
+                                                 const isCorrect = gameState.showAnswer && opt === gameState.activeQuestion?.answer;
+                                                 const isSelected = false; // Spectator doesn't select, but we could highlight if we knew specific player choice (future)
+                                                 // Determine opacity/style based on reveal
+                                                 const opacityClass = gameState.showAnswer && !isCorrect ? 'opacity-30' : 'opacity-100';
+                                                 const bgClass = isCorrect ? 'bg-green-600 border-green-400 scale-105' : 'bg-slate-800 border-gray-600';
+                                                 
+                                                 return (
+                                                     <div key={idx} className={`p-6 rounded-2xl border-2 flex items-center gap-4 transition-all duration-500 ${bgClass} ${opacityClass}`}>
+                                                         <div className="w-12 h-12 rounded-full bg-black/40 flex items-center justify-center font-black text-2xl border border-white/20">
+                                                             {String.fromCharCode(65+idx)}
+                                                         </div>
+                                                         <div className="text-2xl font-bold">{opt}</div>
+                                                     </div>
+                                                 );
+                                             })}
+                                         </div>
+                                     )}
+
                                      {gameState.activeQuestion.codeSnippet && (
                                          <pre className="bg-black/60 p-8 rounded-2xl border border-gray-700 text-green-400 font-mono text-3xl overflow-x-auto shadow-inner whitespace-pre-wrap mb-4">
                                              {gameState.activeQuestion.codeSnippet}
                                          </pre>
                                      )}
                                      
-                                     {gameState.showAnswer && gameState.activeQuestion.answer && (
+                                     {gameState.showAnswer && gameState.activeQuestion.answer && gameState.round3Mode !== 'QUIZ' && (
                                          <div className="mt-4 bg-green-900/40 border-2 border-green-500 p-8 rounded-2xl animate-in slide-in-from-top-4 duration-500">
                                              <div className="text-green-400 text-sm font-black uppercase mb-3 flex items-center gap-2 tracking-tighter">
                                                  <Check size={20}/> Correct Answer
@@ -257,11 +281,18 @@ const SpectatorScreen: React.FC<Props> = ({ gameState, onLeave }) => {
                                                  <User size={40} className={stealingPlayer ? "text-red-400" : "text-blue-400"} />
                                                  <div className="absolute -top-1 -right-1 w-4 h-4 bg-yellow-500 rounded-full animate-ping"></div>
                                              </div>
-                                             <div className="text-3xl">
+                                             <div className="text-3xl flex-1 flex justify-between items-center">
                                                  {stealingPlayer ? (
                                                      <>STEALING: <span className="font-black text-red-400 text-4xl uppercase">{stealingPlayer.name}</span></>
                                                  ) : (
                                                      <>Current Turn: <span className="font-black text-blue-400 text-4xl">{activePlayerName}</span></>
+                                                 )}
+                                                 
+                                                 {/* Show "ANSWERED" status if in Quiz Mode */}
+                                                 {gameState.round3Mode === 'QUIZ' && activePlayer && activePlayer.round3QuizAnswer && !gameState.showAnswer && (
+                                                     <div className="bg-yellow-500 text-black px-4 py-1 rounded-full text-sm font-black animate-bounce">
+                                                         ANSWER SUBMITTED!
+                                                     </div>
                                                  )}
                                              </div>
                                          </div>

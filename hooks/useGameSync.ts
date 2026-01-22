@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { doc, onSnapshot, setDoc, updateDoc, getDoc, arrayUnion } from "firebase/firestore";
 import { signInWithPopup, signOut, onAuthStateChanged, User, signInAnonymously } from "firebase/auth";
 import { db, auth, googleProvider } from "../lib/firebase";
-import { GameState, INITIAL_STATE, GameRound, Player, Question, Difficulty, PackStatus, Round3Item } from "../types";
+import { GameState, INITIAL_STATE, GameRound, Player, Question, Difficulty, PackStatus, Round3Item, Round3Mode } from "../types";
 import { ROUND_3_QUESTIONS } from "../data/questions";
 
 export const useGameSync = () => {
@@ -148,7 +148,8 @@ export const useGameSync = () => {
         { difficulty: 'MEDIUM', status: 'PENDING' },
         { difficulty: 'HARD', status: 'PENDING' }
       ],
-      round3PackLocked: false
+      round3PackLocked: false,
+      round3QuizAnswer: null
     };
 
     await updateDoc(doc(db, "rooms", roomId), {
@@ -168,7 +169,8 @@ export const useGameSync = () => {
         activeStealPlayerId: null, // Reset steal
         round1TurnPlayerId: null,
         showAnswer: false,
-        viewingPlayerId: null
+        viewingPlayerId: null,
+        round3Mode: 'ORAL' // Reset mode to ORAL default, teacher can change later
     });
   };
 
@@ -180,7 +182,10 @@ export const useGameSync = () => {
             submittedRound2: false,
             round2Code: null, 
             round2Time: null
-        })) : prev.players;
+        })) : prev.players.map(p => ({
+            ...p,
+            round3QuizAnswer: null // Reset quiz answer for new question
+        }));
 
         return { 
             activeQuestion: question, 
@@ -370,6 +375,65 @@ export const useGameSync = () => {
       });
   };
 
+  const setRound3Mode = (mode: Round3Mode) => {
+      updateState({ round3Mode: mode });
+  };
+
+  const submitQuizAnswer = (playerId: string, answer: string) => {
+      updateState((prev) => ({
+          players: prev.players.map(p => p.id === playerId ? { ...p, round3QuizAnswer: answer } : p)
+      }));
+  };
+
+  const autoGradeQuiz = () => {
+      updateState((prev) => {
+          if (!prev.activeQuestion || !prev.round3TurnPlayerId) return { showAnswer: true };
+
+          const currentPlayer = prev.players.find(p => p.id === prev.round3TurnPlayerId);
+          if (!currentPlayer) return { showAnswer: true };
+
+          const isCorrect = currentPlayer.round3QuizAnswer === prev.activeQuestion.answer;
+          const difficulty = prev.activeQuestion.difficulty || 'EASY';
+          const points = difficulty === 'EASY' ? 20 : difficulty === 'MEDIUM' ? 30 : 40;
+          const penalty = difficulty === 'EASY' ? -10 : difficulty === 'MEDIUM' ? -15 : -20;
+          
+          // Find which pack item corresponds to difficulty (simplified assumption: first PENDING item of that difficulty)
+          // In reality, we should track which item index was clicked. 
+          // For now, we update the first matching PENDING item.
+          const packIndex = currentPlayer.round3Pack.findIndex(item => item.difficulty === difficulty && item.status === 'PENDING');
+          
+          let updatedPlayers = prev.players;
+
+          if (packIndex !== -1) {
+             const scoreDelta = isCorrect ? points : penalty;
+             updatedPlayers = prev.players.map(p => {
+                  if (p.id !== prev.round3TurnPlayerId) return p;
+                  const newPack = [...p.round3Pack];
+                  newPack[packIndex] = { ...newPack[packIndex], status: isCorrect ? 'CORRECT' : 'WRONG' };
+                  return { ...p, round3Pack: newPack, score: Math.max(0, p.score + scoreDelta) };
+              });
+          }
+
+          if (isCorrect) {
+              return {
+                  players: updatedPlayers,
+                  showAnswer: true,
+                  buzzerLocked: true, // No stealing needed
+                  round3Phase: 'IDLE' // End turn
+              };
+          } else {
+              // WRONG ANSWER -> ENABLE STEAL
+              return {
+                  players: updatedPlayers,
+                  showAnswer: true,
+                  round3Phase: 'STEAL_WINDOW', // Auto switch to Steal
+                  buzzerLocked: false, // Unlock buzzers
+                  timerEndTime: Date.now() + 15000 // Auto start 15s steal timer
+              };
+          }
+      });
+  };
+
   const setRound3SelectionMode = (mode: 'RANDOM' | 'SEQUENTIAL') => {
       updateState({ round3SelectionMode: mode });
   };
@@ -390,11 +454,20 @@ export const useGameSync = () => {
         }
 
         if (selectedQ) {
+            // Ensure options are shuffled if they exist
+            const finalQ = { ...selectedQ };
+            if (finalQ.options) {
+                // Simple shuffle
+                finalQ.options = [...finalQ.options].sort(() => Math.random() - 0.5);
+            }
+
             return {
-                activeQuestion: selectedQ,
+                activeQuestion: finalQ,
                 buzzerLocked: true,
                 message: null,
-                usedQuestionIds: [...prev.usedQuestionIds, selectedQ.id]
+                usedQuestionIds: [...prev.usedQuestionIds, selectedQ.id],
+                players: prev.players.map(p => ({ ...p, round3QuizAnswer: null })), // Reset quiz answers
+                showAnswer: false
             };
         } else {
             return {
@@ -469,7 +542,8 @@ export const useGameSync = () => {
                     { difficulty: 'EASY', status: 'PENDING' },
                     { difficulty: 'MEDIUM', status: 'PENDING' },
                     { difficulty: 'HARD', status: 'PENDING' }
-                ]
+                ],
+                round3QuizAnswer: null
             })),
             usedQuestionIds: [] 
         });
@@ -479,7 +553,16 @@ export const useGameSync = () => {
   const forceSync = () => { };
 
   const toggleShowAnswer = () => {
-      updateState((prev) => ({ showAnswer: !prev.showAnswer }));
+      updateState((prev) => {
+        // If in QUIZ mode and answer is being revealed, trigger auto-grade logic
+        if (prev.round3Mode === 'QUIZ' && !prev.showAnswer && prev.activeQuestion) {
+             // Logic needs to be handled via autoGradeQuiz if we want the "automatic" behavior
+             // But toggleShowAnswer is simple toggle. 
+             // Let's modify TeacherDashboard to call autoGradeQuiz instead of toggleShowAnswer in Quiz Mode.
+             return { showAnswer: !prev.showAnswer };
+        }
+        return { showAnswer: !prev.showAnswer };
+      });
   };
 
   const setViewingPlayer = (playerId: string | null) => {
@@ -527,6 +610,9 @@ export const useGameSync = () => {
     toggleShowAnswer,
     setViewingPlayer,
     activateSteal,
-    resolveSteal
+    resolveSteal,
+    setRound3Mode,
+    submitQuizAnswer,
+    autoGradeQuiz
   };
 };

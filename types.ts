@@ -27,6 +27,7 @@ export interface Player {
   // Round 3 Specifics
   round3Pack: Round3Item[]; 
   round3PackLocked?: boolean; // Has the student locked in their choices?
+  round3QuizAnswer?: string | null; // Selected answer (content string)
 }
 
 // Round 2 Categories - Đã thêm DEBUG và LIST để khớp với dữ liệu câu hỏi
@@ -36,6 +37,7 @@ export interface Question {
   id: string;
   content: string;
   answer?: string;
+  options?: string[]; // NEW: For Multiple Choice (Round 3 Quiz Mode)
   codeSnippet?: string; // For Round 2
   difficulty?: Difficulty;
   category?: QuestionCategory; // Phân loại cho Vòng 2
@@ -43,6 +45,7 @@ export interface Question {
 }
 
 export type Round3Phase = 'IDLE' | 'MAIN_ANSWER' | 'STEAL_WINDOW';
+export type Round3Mode = 'ORAL' | 'QUIZ'; // NEW: Mode selection
 
 export interface GameState {
   roomId?: string;
@@ -56,8 +59,9 @@ export interface GameState {
   usedQuestionIds: string[];
   round1TurnPlayerId: string | null;
   round3TurnPlayerId: string | null;
-  activeStealPlayerId: string | null; // NEW: Track who is currently stealing
+  activeStealPlayerId: string | null; // Track who is currently stealing
   round3Phase: Round3Phase;
+  round3Mode: Round3Mode; // NEW: Track current mode
   round3SelectionMode: 'RANDOM' | 'SEQUENTIAL';
   showAnswer: boolean;
   viewingPlayerId: string | null;
@@ -76,6 +80,7 @@ export const INITIAL_STATE: GameState = {
   round3TurnPlayerId: null,
   activeStealPlayerId: null,
   round3Phase: 'IDLE',
+  round3Mode: 'ORAL', // Default to Oral
   round3SelectionMode: 'RANDOM',
   showAnswer: false,
   viewingPlayerId: null

@@ -225,6 +225,7 @@ const App: React.FC = () => {
         onSubmitRound2={(code) => gameService.submitRound2(studentId, code)}
         onSetRound3Pack={(pack) => gameService.setRound3Pack(studentId, pack)}
         onLeave={handleBackToLobby}
+        onSubmitQuizAnswer={(answer) => gameService.submitQuizAnswer(studentId, answer)}
       />
     );
   }
