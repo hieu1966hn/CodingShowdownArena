@@ -8,11 +8,12 @@ export enum GameRound {
 }
 
 export type Difficulty = 'EASY' | 'MEDIUM' | 'HARD';
-export type PackStatus = 'PENDING' | 'CORRECT' | 'WRONG';
+export type PackStatus = 'PENDING' | 'CORRECT' | 'WRONG' | 'SKIP';
 
 export interface Round3Item {
     difficulty: Difficulty;
     status: PackStatus;
+    questionMode?: 'ORAL' | 'QUIZ'; // Track which mode was used for this specific question
 }
 
 export interface Player {

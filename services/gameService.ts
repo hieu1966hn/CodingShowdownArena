@@ -1,13 +1,13 @@
-
 import { useEffect, useState } from "react";
-import { doc, onSnapshot, setDoc, updateDoc, getDoc, arrayUnion } from "firebase/firestore";
-import { signInWithPopup, signOut, onAuthStateChanged, User } from "firebase/auth";
+import firebase from "firebase/compat/app";
+import "firebase/compat/firestore";
+import "firebase/compat/auth";
 import { db, auth, googleProvider } from "../firebase";
 import { GameState, INITIAL_STATE, GameRound, Player, Question, Difficulty, PackStatus, Round3Item } from "../types";
 import { ROUND_3_QUESTIONS } from "../constants";
 
 export const useGameSync = () => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<firebase.User | null>(null);
   const [roomId, setRoomId] = useState<string | null>(null);
   const [gameState, setGameState] = useState<GameState>(INITIAL_STATE);
   const [authLoading, setAuthLoading] = useState(true);
@@ -16,7 +16,7 @@ export const useGameSync = () => {
 
   // --- Auth Listener ---
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (u) => {
+    const unsub = auth.onAuthStateChanged((u) => {
         setUser(u);
         setAuthLoading(false);
     });
@@ -27,8 +27,8 @@ export const useGameSync = () => {
   useEffect(() => {
     if (!roomId) return;
 
-    const unsub = onSnapshot(doc(db, "rooms", roomId), (docSnap) => {
-        if (docSnap.exists()) {
+    const unsub = db.collection("rooms").doc(roomId).onSnapshot((docSnap) => {
+        if (docSnap.exists) {
             setGameState(docSnap.data() as GameState);
             setRoomError(null);
         } else {
@@ -46,7 +46,7 @@ export const useGameSync = () => {
   const login = async () => {
       setLoginError(null);
       try {
-          await signInWithPopup(auth, googleProvider);
+          await auth.signInWithPopup(googleProvider);
       } catch (e: any) {
           console.error("Login failed", e);
           if (e.code === 'auth/unauthorized-domain') {
@@ -60,7 +60,7 @@ export const useGameSync = () => {
   };
   
   const logout = async () => {
-      await signOut(auth);
+      await auth.signOut();
       setRoomId(null);
       setGameState(INITIAL_STATE);
   };
@@ -71,17 +71,17 @@ export const useGameSync = () => {
       const code = classCode.trim().toUpperCase();
       try {
           // Check if room exists first to avoid accidental wipes
-          const ref = doc(db, "rooms", code);
-          const snap = await getDoc(ref);
+          const ref = db.collection("rooms").doc(code);
+          const snap = await ref.get();
           
-          if (snap.exists()) {
+          if (snap.exists) {
               // Resume existing room
               console.log("Room exists, resuming...");
               setRoomId(code);
           } else {
               // Create new room
               const newState = { ...INITIAL_STATE, roomId: code };
-              await setDoc(ref, newState);
+              await ref.set(newState);
               setRoomId(code);
           }
           return true;
@@ -94,9 +94,9 @@ export const useGameSync = () => {
   const joinRoom = async (classCode: string) => {
       if (!classCode) return false;
       const code = classCode.trim().toUpperCase();
-      const ref = doc(db, "rooms", code);
-      const snap = await getDoc(ref);
-      if (snap.exists()) {
+      const ref = db.collection("rooms").doc(code);
+      const snap = await ref.get();
+      if (snap.exists) {
           setRoomId(code);
           return true;
       } else {
@@ -112,7 +112,7 @@ export const useGameSync = () => {
       
       const changes = typeof updater === 'function' ? updater(gameState) : updater;
       try {
-          await updateDoc(doc(db, "rooms", roomId), changes);
+          await db.collection("rooms").doc(roomId).update(changes);
       } catch (e) {
           console.error("Update State Error", e);
       }
@@ -143,8 +143,8 @@ export const useGameSync = () => {
     };
 
     // Use arrayUnion to safely add to list
-    await updateDoc(doc(db, "rooms", roomId), {
-        players: arrayUnion(newPlayer)
+    await db.collection("rooms").doc(roomId).update({
+        players: firebase.firestore.FieldValue.arrayUnion(newPlayer)
     });
     return newPlayer.id;
   };
@@ -334,7 +334,7 @@ export const useGameSync = () => {
         const archiveId = `${roomId}_${new Date().toISOString().replace(/[:.]/g, '-')}`;
         try {
             // Save a snapshot of the current state to the 'history' collection
-            await setDoc(doc(db, "history", archiveId), {
+            await db.collection("history").doc(archiveId).set({
                 ...gameState,
                 archivedAt: new Date(),
                 roomId: roomId
@@ -348,7 +348,7 @@ export const useGameSync = () => {
 
   const resetGame = () => {
       if (roomId) {
-        setDoc(doc(db, "rooms", roomId), { ...INITIAL_STATE, roomId });
+        db.collection("rooms").doc(roomId).set({ ...INITIAL_STATE, roomId });
       }
   };
 

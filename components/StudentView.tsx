@@ -104,7 +104,8 @@ const StudentView: React.FC<Props> = ({ gameState, playerId, onBuzz, onSubmitRou
             <div className="w-full max-w-2xl space-y-4">
                 <div className="bg-slate-800 p-4 rounded border border-cyber-primary">
                     <h3 className="font-bold text-lg mb-2">Debug/Arrange this:</h3>
-                    <pre className="text-green-400 text-sm overflow-x-auto whitespace-pre-wrap">
+                    {/* Updated to PRE tag for formatting */}
+                    <pre className="text-green-400 text-sm overflow-x-auto whitespace-pre-wrap font-mono bg-black/50 p-2 rounded">
                         {gameState.activeQuestion.codeSnippet}
                     </pre>
                 </div>

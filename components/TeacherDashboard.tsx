@@ -4,7 +4,7 @@ import { GoogleGenAI } from "@google/genai";
 import { GameState, GameRound, Question, Player, Difficulty, PackStatus, QuestionCategory } from '../types';
 import { ROUND_1_QUESTIONS, ROUND_2_QUESTIONS, ROUND_3_QUESTIONS } from '../data/questions';
 import { SOUND_EFFECTS } from '../config/assets';
-import { Play, Check, X, Sparkles, RefreshCw, PlusCircle, MinusCircle, Code, Eye, Timer, User, Zap, Users, Monitor, Trophy, LogOut, Filter, CheckCircle, Pointer, Shuffle, ListOrdered, ChevronDown, ChevronUp, Database, EyeOff, XCircle, BookOpen, Terminal, Trash2, Clock, ThumbsUp, ThumbsDown, Hand, MessageSquare, LayoutGrid } from 'lucide-react';
+import { Play, Check, X, Sparkles, RefreshCw, PlusCircle, MinusCircle, Code, Eye, Timer, User, Zap, Users, Monitor, Trophy, LogOut, Filter, CheckCircle, Pointer, Shuffle, ListOrdered, ChevronDown, ChevronUp, Database, EyeOff, XCircle, BookOpen, Terminal, Trash2, Clock, ThumbsUp, ThumbsDown, Hand, MessageSquare, LayoutGrid, SkipForward } from 'lucide-react';
 
 interface Props {
   gameState: GameState;
@@ -126,11 +126,41 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                    );})}
                </div>
                {gameState.activeQuestion && (
-                   <div className="fixed bottom-0 left-0 w-full bg-gray-900 p-4 border-t border-gray-700 flex justify-center gap-4 z-50 shadow-2xl">
-                       <button onClick={() => actions.startTimer(5)} className="px-6 py-3 bg-blue-600 rounded font-bold shadow-lg hover:bg-blue-500">Start 5s Timer</button>
-                       <button onClick={() => actions.toggleShowAnswer()} className={`px-6 py-3 rounded font-bold border ${gameState.showAnswer ? 'bg-green-600 border-green-400' : 'bg-gray-700 border-gray-600'}`}>
-                           {gameState.showAnswer ? "Hide Answer" : "Show Answer"}
-                       </button>
+                   <div className="fixed bottom-0 left-0 w-full bg-gray-900 p-4 border-t border-gray-700 flex justify-between gap-4 z-50 shadow-2xl items-center">
+                       <div className="flex gap-2">
+                           <button onClick={() => actions.startTimer(5)} className="px-6 py-3 bg-blue-600 rounded font-bold shadow-lg hover:bg-blue-500">Start 5s Timer</button>
+                           <button onClick={() => actions.toggleShowAnswer()} className={`px-6 py-3 rounded font-bold border ${gameState.showAnswer ? 'bg-green-600 border-green-400' : 'bg-gray-700 border-gray-600'}`}>
+                               {gameState.showAnswer ? "Hide Answer" : "Show Answer"}
+                           </button>
+                       </div>
+                       
+                       {/* Grading Buttons for Active Student */}
+                       {gameState.round1TurnPlayerId && (
+                           <div className="flex gap-4 items-center bg-gray-800 px-4 py-2 rounded-lg border border-yellow-600">
+                               <span className="text-yellow-500 font-bold uppercase text-sm">
+                                   {gameState.players.find(p => p.id === gameState.round1TurnPlayerId)?.name}
+                               </span>
+                               <button 
+                                   onClick={() => {
+                                       playSound('CORRECT');
+                                       actions.updateScore(gameState.round1TurnPlayerId, gameState.activeQuestion?.points || 10);
+                                   }}
+                                   className="px-4 py-2 bg-green-600 hover:bg-green-500 rounded font-bold flex items-center gap-2"
+                               >
+                                   <ThumbsUp size={16}/> Correct (+{gameState.activeQuestion?.points || 10})
+                               </button>
+                               <button 
+                                   onClick={() => {
+                                       playSound('WRONG');
+                                       // Wrong answer gives 0 points
+                                   }}
+                                   className="px-4 py-2 bg-red-600 hover:bg-red-500 rounded font-bold flex items-center gap-2"
+                               >
+                                   <ThumbsDown size={16}/> Wrong (0)
+                               </button>
+                           </div>
+                       )}
+
                        <button onClick={() => actions.clearQuestion()} className="px-6 py-3 bg-gray-600 rounded font-bold">Clear Question</button>
                    </div>
                )}
@@ -175,7 +205,10 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                               <span className="text-[10px] text-gray-500 font-mono">{q.points}pts</span>
                           </div>
                           <div className="font-bold text-sm mb-2 h-10 overflow-hidden line-clamp-2">{q.content}</div>
-                          <pre className="text-[10px] bg-black/40 p-2 rounded text-green-500 font-mono truncate">{q.codeSnippet}</pre>
+                          {/* Use Pre tag for code formatting */}
+                          <pre className="text-[10px] bg-black/60 p-2 rounded text-green-500 font-mono truncate border border-gray-700 whitespace-pre-wrap">
+                            {q.codeSnippet}
+                          </pre>
                       </button>
                   );})}
               </div>
@@ -193,6 +226,13 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                                <button onClick={() => actions.clearQuestion()} className="px-4 py-2 bg-red-900 rounded font-bold"><X size={18}/></button>
                            </div>
                        </div>
+                       
+                       {/* Active Code Display */}
+                       {gameState.activeQuestion.codeSnippet && (
+                           <div className="bg-black/80 p-4 rounded-lg border border-gray-600 mb-6 font-mono text-green-400 whitespace-pre-wrap">
+                               {gameState.activeQuestion.codeSnippet}
+                           </div>
+                       )}
                        
                        {/* Viewing Player Code Section */}
                        {viewingPlayer && (
@@ -347,7 +387,10 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                       <div className="absolute top-0 right-0 w-1/2 h-full bg-slate-900/95 border-l-4 border-red-600 p-6 z-20 flex flex-col shadow-[-10px_0_30px_rgba(0,0,0,0.5)]">
                            <div className="flex justify-between items-center mb-4 border-b border-gray-700 pb-3">
                                <h3 className="text-xl font-black text-red-500 flex items-center gap-2 uppercase tracking-wider animate-pulse"><Zap size={24}/> STEAL QUEUE</h3>
-                               <button onClick={() => actions.clearBuzzers()} className="px-3 py-1 bg-gray-800 hover:bg-red-900 text-gray-300 hover:text-white rounded text-xs font-bold transition-colors">Clear All</button>
+                               <div className="flex gap-2">
+                                   <button onClick={() => actions.clearBuzzers()} className="px-3 py-1 bg-gray-800 hover:bg-red-900 text-gray-300 hover:text-white rounded text-xs font-bold transition-colors">Clear All</button>
+                                   <button onClick={() => actions.cancelStealPhase()} className="px-3 py-1 bg-red-900 hover:bg-red-800 text-white rounded text-xs font-bold transition-colors border border-red-500 flex items-center gap-1"><X size={14}/> CLOSE</button>
+                               </div>
                            </div>
                            
                            {gameState.activeStealPlayerId ? (
@@ -420,6 +463,18 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                       </div>
                       {gameState.activeQuestion && (
                           <div className="flex gap-2">
+                              {/* QUICK MODE TOGGLE FOR ACTIVE QUESTION */}
+                              <div className="flex mr-2 bg-black/40 rounded p-1 border border-gray-700">
+                                   <button 
+                                      onClick={() => actions.setRound3Mode('ORAL')}
+                                      className={`px-3 py-1 rounded text-xs font-bold ${gameState.round3Mode === 'ORAL' ? 'bg-blue-600 text-white' : 'text-gray-500 hover:text-white'}`}
+                                   >ORAL</button>
+                                   <button 
+                                      onClick={() => actions.setRound3Mode('QUIZ')}
+                                      className={`px-3 py-1 rounded text-xs font-bold ${gameState.round3Mode === 'QUIZ' ? 'bg-purple-600 text-white' : 'text-gray-500 hover:text-white'}`}
+                                   >QUIZ</button>
+                              </div>
+
                               {gameState.round3Mode === 'QUIZ' ? (
                                   <button 
                                     onClick={() => {
@@ -498,36 +553,64 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                                {p.round3Pack.map((item, idx) => {
                                    const points = item.difficulty === 'EASY' ? 20 : item.difficulty === 'MEDIUM' ? 30 : 40;
                                    const penalty = item.difficulty === 'EASY' ? -10 : item.difficulty === 'MEDIUM' ? -15 : -20;
+                                   
+                                   let statusIcon = null;
+                                   if (item.status === 'CORRECT') statusIcon = <CheckCircle size={14}/>;
+                                   else if (item.status === 'WRONG') statusIcon = <XCircle size={14}/>;
+                                   else if (item.status === 'SKIP') statusIcon = <SkipForward size={14}/>;
+
                                    return (
-                                   <div key={idx} className="bg-black/30 p-4 rounded-xl border border-gray-700 flex flex-col gap-4">
+                                   <div key={idx} className="bg-black/30 p-4 rounded-xl border border-gray-700 flex flex-col gap-4 relative overflow-hidden">
                                        <div className="flex justify-between items-center">
                                            <span className={`text-xs font-bold px-3 py-1 rounded-full ${item.difficulty === 'EASY' ? 'bg-green-900/40 text-green-400' : item.difficulty === 'MEDIUM' ? 'bg-yellow-900/40 text-yellow-400' : 'bg-red-900/40 text-red-400'}`}>{item.difficulty}</span>
-                                           <button onClick={() => actions.revealRound3Question(item.difficulty)} className="p-1.5 text-cyber-primary hover:bg-slate-700 rounded-lg transition-colors" title="Hiện câu hỏi"><Eye size={20}/></button>
+                                           
+                                           {/* STATUS BADGE for History */}
+                                           {item.status !== 'PENDING' && (
+                                               <div className={`absolute top-0 right-0 px-3 py-1 text-[10px] font-bold flex items-center gap-1
+                                                   ${item.status === 'CORRECT' ? 'bg-green-600 text-white' : 
+                                                     item.status === 'WRONG' ? 'bg-red-600 text-white' : 'bg-gray-600 text-gray-300'}`}>
+                                                   {item.status} {statusIcon}
+                                               </div>
+                                           )}
+                                           
+                                           {item.status === 'PENDING' && (
+                                              <button onClick={() => actions.revealRound3Question(item.difficulty)} className="p-1.5 text-cyber-primary hover:bg-slate-700 rounded-lg transition-colors" title="Hiện câu hỏi"><Eye size={20}/></button>
+                                           )}
                                        </div>
                                        
-                                       {/* Manual Grading Buttons only visible in ORAL mode or if forced */}
-                                       {gameState.round3Mode === 'ORAL' && (
-                                           <div className="grid grid-cols-2 gap-2">
+                                       {/* Mode Indicator History */}
+                                       {item.questionMode && (
+                                            <div className="text-[10px] text-gray-500 font-mono mt-1">
+                                                MODE: {item.questionMode}
+                                            </div>
+                                       )}
+
+                                       {/* Manual Grading Buttons */}
+                                       {gameState.activeQuestion && gameState.round3TurnPlayerId === p.id && item.status === 'PENDING' && (
+                                           <div className="grid grid-cols-3 gap-1 mt-2">
                                                 <button 
                                                     onClick={() => {
                                                         playSound('CORRECT');
-                                                        let delta = (item.status === 'PENDING') ? points : (item.status === 'WRONG' ? points - penalty : 0);
+                                                        let delta = points;
                                                         actions.gradeRound3Question(p.id, idx, 'CORRECT', delta);
                                                     }}
-                                                    className={`py-3 rounded-lg text-xs font-bold border transition-all ${item.status === 'CORRECT' ? 'bg-green-600 border-white text-white scale-105 shadow-lg' : 'bg-slate-800 border-gray-600 text-gray-500'}`}
+                                                    className="py-2 bg-green-900/50 hover:bg-green-600 border border-green-700 text-green-200 hover:text-white rounded text-[10px] font-bold"
                                                 >CORRECT</button>
                                                 <button 
                                                     onClick={() => {
                                                         playSound('WRONG');
-                                                        let delta = (item.status === 'PENDING') ? penalty : (item.status === 'CORRECT' ? penalty - points : 0);
+                                                        let delta = penalty;
                                                         actions.gradeRound3Question(p.id, idx, 'WRONG', delta);
                                                     }}
-                                                    className={`py-3 rounded-lg text-xs font-bold border transition-all ${item.status === 'WRONG' ? 'bg-red-600 border-white text-white scale-105 shadow-lg' : 'bg-slate-800 border-gray-600 text-gray-500'}`}
+                                                    className="py-2 bg-red-900/50 hover:bg-red-600 border border-red-700 text-red-200 hover:text-white rounded text-[10px] font-bold"
                                                 >WRONG</button>
+                                                <button 
+                                                    onClick={() => {
+                                                        actions.gradeRound3Question(p.id, idx, 'SKIP', 0);
+                                                    }}
+                                                    className="py-2 bg-gray-700 hover:bg-gray-600 border border-gray-600 text-gray-300 hover:text-white rounded text-[10px] font-bold"
+                                                >SKIP</button>
                                            </div>
-                                       )}
-                                       {gameState.round3Mode === 'QUIZ' && (
-                                           <div className="text-center py-2 text-xs text-gray-500 italic">Auto-graded via "Check Answer"</div>
                                        )}
                                    </div>
                                );})}

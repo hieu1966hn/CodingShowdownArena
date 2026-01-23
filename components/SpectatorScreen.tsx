@@ -188,10 +188,11 @@ const SpectatorScreen: React.FC<Props> = ({ gameState, onLeave }) => {
                                  </div>
                              )}
 
+                             {/* TIMER: Moved logic inside conditional classes to shift it down during Steal Window */}
                              {gameState.timerEndTime && (
-                                 <div className="absolute top-8 right-8 flex items-center gap-3">
-                                     <Timer size={40} className="text-red-500 animate-pulse" />
-                                     <span className="text-6xl font-mono font-black text-red-500">
+                                 <div className={`absolute right-8 flex items-center gap-3 transition-all duration-500 ${gameState.round3Phase === 'STEAL_WINDOW' ? 'top-24 scale-125 z-30' : 'top-8 z-10'}`}>
+                                     <Timer size={40} className={`${gameState.round3Phase === 'STEAL_WINDOW' ? 'text-yellow-400' : 'text-red-500'} animate-pulse`} />
+                                     <span className={`text-6xl font-mono font-black ${gameState.round3Phase === 'STEAL_WINDOW' ? 'text-yellow-400 drop-shadow-md' : 'text-red-500'}`}>
                                         {Math.max(0, Math.ceil((gameState.timerEndTime - Date.now()) / 1000))}
                                      </span>
                                  </div>

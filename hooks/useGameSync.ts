@@ -1,13 +1,13 @@
-
 import { useEffect, useState } from "react";
-import { doc, onSnapshot, setDoc, updateDoc, getDoc, arrayUnion } from "firebase/firestore";
-import { signInWithPopup, signOut, onAuthStateChanged, User, signInAnonymously } from "firebase/auth";
+import firebase from "firebase/compat/app";
+import "firebase/compat/firestore";
+import "firebase/compat/auth";
 import { db, auth, googleProvider } from "../lib/firebase";
 import { GameState, INITIAL_STATE, GameRound, Player, Question, Difficulty, PackStatus, Round3Item, Round3Mode } from "../types";
 import { ROUND_3_QUESTIONS } from "../data/questions";
 
 export const useGameSync = () => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<firebase.User | null>(null);
   const [roomId, setRoomId] = useState<string | null>(null);
   const [gameState, setGameState] = useState<GameState>(INITIAL_STATE);
   const [authLoading, setAuthLoading] = useState(true);
@@ -16,7 +16,7 @@ export const useGameSync = () => {
 
   // --- Auth Listener ---
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (u) => {
+    const unsub = auth.onAuthStateChanged((u) => {
         setUser(u);
         setAuthLoading(false);
     });
@@ -27,8 +27,8 @@ export const useGameSync = () => {
   useEffect(() => {
     if (!roomId) return;
 
-    const unsub = onSnapshot(doc(db, "rooms", roomId), (docSnap) => {
-        if (docSnap.exists()) {
+    const unsub = db.collection("rooms").doc(roomId).onSnapshot((docSnap) => {
+        if (docSnap.exists) {
             setGameState(docSnap.data() as GameState);
             setRoomError(null);
         } else {
@@ -46,7 +46,7 @@ export const useGameSync = () => {
   const login = async () => {
       setLoginError(null);
       try {
-          await signInWithPopup(auth, googleProvider);
+          await auth.signInWithPopup(googleProvider);
       } catch (e: any) {
           console.error("Login failed", e);
           if (e.code === 'auth/unauthorized-domain') {
@@ -62,7 +62,7 @@ export const useGameSync = () => {
   const loginAnonymous = async () => {
       setLoginError(null);
       try {
-          await signInAnonymously(auth);
+          await auth.signInAnonymously();
       } catch (e: any) {
           console.error("Anonymous login failed", e);
           if (e.code === 'auth/admin-restricted-operation') {
@@ -74,7 +74,7 @@ export const useGameSync = () => {
   };
   
   const logout = async () => {
-      await signOut(auth);
+      await auth.signOut();
       setRoomId(null);
       setGameState(INITIAL_STATE);
   };
@@ -84,15 +84,15 @@ export const useGameSync = () => {
       if (!classCode) return false;
       const code = classCode.trim().toUpperCase();
       try {
-          const ref = doc(db, "rooms", code);
-          const snap = await getDoc(ref);
+          const ref = db.collection("rooms").doc(code);
+          const snap = await ref.get();
           
-          if (snap.exists()) {
+          if (snap.exists) {
               console.log("Room exists, resuming...");
               setRoomId(code);
           } else {
               const newState = { ...INITIAL_STATE, roomId: code };
-              await setDoc(ref, newState);
+              await ref.set(newState);
               setRoomId(code);
           }
           return true;
@@ -105,9 +105,9 @@ export const useGameSync = () => {
   const joinRoom = async (classCode: string) => {
       if (!classCode) return false;
       const code = classCode.trim().toUpperCase();
-      const ref = doc(db, "rooms", code);
-      const snap = await getDoc(ref);
-      if (snap.exists()) {
+      const ref = db.collection("rooms").doc(code);
+      const snap = await ref.get();
+      if (snap.exists) {
           setRoomId(code);
           return true;
       } else {
@@ -122,7 +122,7 @@ export const useGameSync = () => {
       
       const changes = typeof updater === 'function' ? updater(gameState) : updater;
       try {
-          await updateDoc(doc(db, "rooms", roomId), changes);
+          await db.collection("rooms").doc(roomId).update(changes);
       } catch (e) {
           console.error("Update State Error", e);
       }
@@ -152,8 +152,8 @@ export const useGameSync = () => {
       round3QuizAnswer: null
     };
 
-    await updateDoc(doc(db, "rooms", roomId), {
-        players: arrayUnion(newPlayer)
+    await db.collection("rooms").doc(roomId).update({
+        players: firebase.firestore.FieldValue.arrayUnion(newPlayer)
     });
     return newPlayer.id;
   };
@@ -306,7 +306,12 @@ export const useGameSync = () => {
               if (p.id !== playerId) return p;
               
               const newPack = [...p.round3Pack];
-              newPack[packIndex] = { ...newPack[packIndex], status: newStatus };
+              // Store which mode was used for this question
+              newPack[packIndex] = { 
+                  ...newPack[packIndex], 
+                  status: newStatus,
+                  questionMode: prev.round3Mode // Capture current mode
+              };
               
               const newScore = p.score + scoreDelta;
 
@@ -326,6 +331,15 @@ export const useGameSync = () => {
       updateState({
           activeStealPlayerId: playerId,
           buzzerLocked: true
+      });
+  };
+
+  const cancelStealPhase = () => {
+      updateState({
+          round3Phase: 'IDLE',
+          activeStealPlayerId: null,
+          buzzerLocked: true,
+          timerEndTime: null
       });
   };
 
@@ -398,8 +412,6 @@ export const useGameSync = () => {
           const penalty = difficulty === 'EASY' ? -10 : difficulty === 'MEDIUM' ? -15 : -20;
           
           // Find which pack item corresponds to difficulty (simplified assumption: first PENDING item of that difficulty)
-          // In reality, we should track which item index was clicked. 
-          // For now, we update the first matching PENDING item.
           const packIndex = currentPlayer.round3Pack.findIndex(item => item.difficulty === difficulty && item.status === 'PENDING');
           
           let updatedPlayers = prev.players;
@@ -409,7 +421,11 @@ export const useGameSync = () => {
              updatedPlayers = prev.players.map(p => {
                   if (p.id !== prev.round3TurnPlayerId) return p;
                   const newPack = [...p.round3Pack];
-                  newPack[packIndex] = { ...newPack[packIndex], status: isCorrect ? 'CORRECT' : 'WRONG' };
+                  newPack[packIndex] = { 
+                      ...newPack[packIndex], 
+                      status: isCorrect ? 'CORRECT' : 'WRONG',
+                      questionMode: prev.round3Mode 
+                  };
                   return { ...p, round3Pack: newPack, score: Math.max(0, p.score + scoreDelta) };
               });
           }
@@ -515,7 +531,7 @@ export const useGameSync = () => {
     if (roomId) {
         const archiveId = `${roomId}_${new Date().toISOString().replace(/[:.]/g, '-')}`;
         try {
-            await setDoc(doc(db, "history", archiveId), {
+            await db.collection("history").doc(archiveId).set({
                 ...gameState,
                 archivedAt: new Date(),
                 roomId: roomId
@@ -530,7 +546,7 @@ export const useGameSync = () => {
   const resetGame = () => {
       if (roomId) {
         // Khôi phục usedQuestionIds về rỗng khi reset game
-        setDoc(doc(db, "rooms", roomId), { 
+        db.collection("rooms").doc(roomId).set({ 
             ...INITIAL_STATE, 
             roomId,
             players: gameState.players.map(p => ({
@@ -611,6 +627,7 @@ export const useGameSync = () => {
     setViewingPlayer,
     activateSteal,
     resolveSteal,
+    cancelStealPhase,
     setRound3Mode,
     submitQuizAnswer,
     autoGradeQuiz
