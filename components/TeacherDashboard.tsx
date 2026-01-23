@@ -120,8 +120,21 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                          className={`p-4 rounded text-left border relative transition-all ${gameState.activeQuestion?.id === q.id ? 'border-cyber-primary bg-slate-800' : isUsed ? 'border-gray-800 bg-gray-900 opacity-50 grayscale' : 'border-gray-600 bg-gray-800'}`}
                        >
                            {isUsed && <span className="absolute top-2 right-2 text-[10px] font-black bg-gray-700 text-gray-300 px-1 rounded">USED</span>}
-                           <div className="font-bold mb-1">{q.content}</div>
-                           <div className="text-xs text-green-400">{q.answer}</div>
+                           
+                           {/* DIFFICULTY BADGE FOR TEACHER */}
+                           <div className="flex items-center mb-1">
+                               <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded mr-2 ${
+                                   q.difficulty === 'EASY' ? 'bg-green-900 text-green-300 border border-green-700' :
+                                   q.difficulty === 'MEDIUM' ? 'bg-yellow-900 text-yellow-300 border border-yellow-700' :
+                                   'bg-red-900 text-red-300 border border-red-700'
+                               }`}>
+                                   {q.difficulty || 'EASY'}
+                               </span>
+                               <span className="text-[10px] text-gray-500">{q.points}pts</span>
+                           </div>
+
+                           <div className="font-bold mb-1 line-clamp-2">{q.content}</div>
+                           <div className="text-xs text-green-400 font-mono truncate">{q.answer}</div>
                        </button>
                    );})}
                </div>
