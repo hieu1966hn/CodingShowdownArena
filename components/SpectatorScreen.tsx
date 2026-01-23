@@ -170,47 +170,10 @@ const SpectatorScreen: React.FC<Props> = ({ gameState, onLeave }) => {
                     <div className="text-center w-full relative">
                         <Fireworks />
                         <h2 className="text-8xl font-black text-transparent bg-clip-text bg-gradient-to-b from-yellow-200 to-yellow-600 mb-12 drop-shadow-2xl">PODIUM</h2>
-                        
-                        <div className="flex justify-center items-end gap-4 md:gap-8 h-[500px] w-full px-10 pb-10">
-                            {/* 2nd Place */}
-                            {sortedPlayers[1] && (
-                                <div className="flex flex-col items-center w-1/3 max-w-[200px] animate-in slide-in-from-bottom duration-1000 delay-200">
-                                    <div className="mb-4 text-center">
-                                        <User size={48} className="mx-auto text-gray-400 mb-2"/>
-                                        <div className="text-2xl font-bold truncate w-full">{sortedPlayers[1].name}</div>
-                                        <div className="text-xl text-gray-400 font-mono">{sortedPlayers[1].score} pts</div>
-                                    </div>
-                                    <div className="h-64 w-full bg-slate-600 rounded-t-lg border-t-4 border-gray-400 flex items-start justify-center pt-4 text-6xl font-black text-gray-300 shadow-[0_0_20px_rgba(148,163,184,0.3)] relative">
-                                        2
-                                    </div>
-                                </div>
-                            )}
-                            {/* 1st Place - Taller, brighter */}
-                            {sortedPlayers[0] && (
-                                <div className="flex flex-col items-center w-1/3 max-w-[240px] z-20 animate-in slide-in-from-bottom duration-1000">
-                                     <div className="mb-4 text-center">
-                                        <Trophy size={64} className="mx-auto text-yellow-400 mb-2 animate-bounce"/>
-                                        <div className="text-4xl font-bold text-yellow-300 truncate w-full">{sortedPlayers[0].name}</div>
-                                        <div className="text-3xl text-yellow-200 font-mono font-black">{sortedPlayers[0].score} pts</div>
-                                    </div>
-                                    <div className="h-96 w-full bg-gradient-to-b from-yellow-500 to-yellow-700 rounded-t-lg border-t-8 border-yellow-300 flex items-start justify-center pt-6 text-8xl font-black text-white shadow-[0_0_50px_rgba(234,179,8,0.6)] relative">
-                                        1
-                                    </div>
-                                </div>
-                            )}
-                            {/* 3rd Place */}
-                            {sortedPlayers[2] && (
-                                 <div className="flex flex-col items-center w-1/3 max-w-[200px] animate-in slide-in-from-bottom duration-1000 delay-400">
-                                    <div className="mb-4 text-center">
-                                        <User size={48} className="mx-auto text-amber-700 mb-2"/>
-                                        <div className="text-2xl font-bold truncate w-full">{sortedPlayers[2].name}</div>
-                                         <div className="text-xl text-gray-400 font-mono">{sortedPlayers[2].score} pts</div>
-                                    </div>
-                                    <div className="h-48 w-full bg-amber-800 rounded-t-lg border-t-4 border-amber-600 flex items-start justify-center pt-4 text-6xl font-black text-amber-300 shadow-[0_0_20px_rgba(180,83,9,0.3)] relative">
-                                        3
-                                    </div>
-                                </div>
-                            )}
+                        <div className="flex justify-center items-end gap-8 h-96">
+                             {sortedPlayers[1] && <div className="flex flex-col items-center w-64 animate-in slide-in-from-bottom duration-1000 delay-200"><div className="mb-4 text-center"><div className="text-3xl font-bold">{sortedPlayers[1].name}</div></div><div className="h-48 w-full bg-slate-600 rounded-t-lg border-t-4 border-gray-400 flex items-center justify-center text-6xl font-black">2</div></div>}
+                             {sortedPlayers[0] && <div className="flex flex-col items-center w-80 z-20 animate-in slide-in-from-bottom duration-1000"><div className="mb-4 text-center"><div className="text-5xl font-bold text-yellow-300">{sortedPlayers[0].name}</div></div><div className="h-64 w-full bg-yellow-600 rounded-t-lg border-t-4 border-yellow-300 flex items-center justify-center text-8xl font-black">1</div></div>}
+                             {sortedPlayers[2] && <div className="flex flex-col items-center w-64 animate-in slide-in-from-bottom duration-1000 delay-400"><div className="mb-4 text-center"><div className="text-3xl font-bold">{sortedPlayers[2].name}</div></div><div className="h-32 w-full bg-amber-900 rounded-t-lg border-t-4 border-amber-700 flex items-center justify-center text-6xl font-black">3</div></div>}
                         </div>
                     </div>
                 ) : (
