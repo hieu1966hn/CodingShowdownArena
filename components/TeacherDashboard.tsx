@@ -17,7 +17,8 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
   const [aiLoading, setAiLoading] = useState(false);
   const [showR3Bank, setShowR3Bank] = useState(false);
   const [r2Category, setR2Category] = useState<QuestionCategory | 'ALL'>('ALL');
-  
+  const [r1Filter, setR1Filter] = useState<Difficulty | 'ALL'>('ALL');
+
   const playSound = (type: keyof typeof SOUND_EFFECTS) => {
     try {
         const audio = new Audio(SOUND_EFFECTS[type]);
@@ -102,6 +103,7 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                    <h2 className="text-xl font-bold flex items-center gap-2"><Sparkles className="text-yellow-400"/> Round 1: Reflex Quiz</h2>
                    <span className="text-xs text-gray-500">Used: {gameState.usedQuestionIds.filter(id => id.startsWith('r1')).length} / {ROUND_1_QUESTIONS.length}</span>
                </div>
+               
                <div className="bg-gray-800 p-4 rounded-lg border border-gray-700 mb-4">
                     <h3 className="text-gray-300 font-bold mb-3">Select Student for Turn:</h3>
                     <div className="flex flex-wrap gap-2">
@@ -110,8 +112,32 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                         ))}
                     </div>
                </div>
+
+               {/* DIFFICULTY FILTER */}
+               <div className="flex items-center gap-2 mb-2 bg-slate-900/50 p-2 rounded-lg border border-gray-700">
+                   <span className="text-sm font-bold text-gray-400 flex items-center gap-2 mr-2"><Filter size={16}/> Filter:</span>
+                   <button 
+                       onClick={() => setR1Filter('ALL')}
+                       className={`px-3 py-1 rounded text-xs font-bold transition-colors ${r1Filter === 'ALL' ? 'bg-gray-200 text-black' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}
+                   >ALL</button>
+                   <button 
+                       onClick={() => setR1Filter('EASY')}
+                       className={`px-3 py-1 rounded text-xs font-bold transition-colors ${r1Filter === 'EASY' ? 'bg-green-600 text-white' : 'bg-green-900/30 text-green-500 border border-green-900 hover:bg-green-900/50'}`}
+                   >EASY</button>
+                   <button 
+                       onClick={() => setR1Filter('MEDIUM')}
+                       className={`px-3 py-1 rounded text-xs font-bold transition-colors ${r1Filter === 'MEDIUM' ? 'bg-yellow-600 text-white' : 'bg-yellow-900/30 text-yellow-500 border border-yellow-900 hover:bg-yellow-900/50'}`}
+                   >MEDIUM</button>
+                   <button 
+                       onClick={() => setR1Filter('HARD')}
+                       className={`px-3 py-1 rounded text-xs font-bold transition-colors ${r1Filter === 'HARD' ? 'bg-red-600 text-white' : 'bg-red-900/30 text-red-500 border border-red-900 hover:bg-red-900/50'}`}
+                   >HARD</button>
+               </div>
+
                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
-                   {ROUND_1_QUESTIONS.map(q => {
+                   {ROUND_1_QUESTIONS
+                       .filter(q => r1Filter === 'ALL' || q.difficulty === r1Filter)
+                       .map(q => {
                        const isUsed = gameState.usedQuestionIds.includes(q.id);
                        return (
                        <button 
