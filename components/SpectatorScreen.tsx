@@ -121,6 +121,9 @@ const SpectatorScreen: React.FC<Props> = ({ gameState, onLeave }) => {
 
     const sortedPlayers = [...gameState.players].sort((a, b) => b.score - a.score);
     const leader = sortedPlayers[0];
+    const top3 = sortedPlayers.slice(0, 3);
+    const restOfPlayers = sortedPlayers.slice(3);
+
     const isRound3 = gameState.round === GameRound.ROUND_3;
     const isRound1 = gameState.round === GameRound.ROUND_1;
     const activePlayerId = isRound3 ? gameState.round3TurnPlayerId : (isRound1 ? gameState.round1TurnPlayerId : null);
@@ -167,70 +170,99 @@ const SpectatorScreen: React.FC<Props> = ({ gameState, onLeave }) => {
 
             <div className="flex-grow flex items-center justify-center z-10 relative">
                 {gameState.round === GameRound.GAME_OVER ? (
-                    <div className="fixed inset-0 flex flex-col items-center justify-end z-50 bg-slate-900">
-                        <Fireworks />
-                        <div className="absolute top-24 text-center z-20">
-                             <h2 className="text-9xl font-black text-transparent bg-clip-text bg-gradient-to-b from-yellow-300 to-yellow-600 drop-shadow-2xl tracking-tighter uppercase mb-4 animate-bounce-short">
-                                 VICTORY
-                             </h2>
-                             <div className="text-2xl text-yellow-100/50 font-mono tracking-[1.5em] uppercase">Podium</div>
-                        </div>
-                        
-                        <div className="flex justify-center items-end gap-4 w-full h-full px-8 pb-0">
-                             {/* 2nd Place */}
-                             <div className="flex-1 max-w-[300px] flex flex-col items-center justify-end h-full animate-in slide-in-from-bottom duration-1000 delay-100">
-                                 {sortedPlayers[1] ? (
-                                     <>
-                                         <div className="mb-4 text-center">
-                                             <div className="w-16 h-16 bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-2 border-4 border-slate-500 shadow-xl">
-                                                 <span className="text-2xl font-black text-slate-300">2</span>
-                                             </div>
-                                             <div className="text-2xl font-bold text-slate-200 truncate max-w-[200px]">{sortedPlayers[1].name}</div>
-                                             <div className="text-xl font-mono text-slate-400">{sortedPlayers[1].score} pts</div>
-                                         </div>
-                                         <div className="w-full h-[45vh] bg-gradient-to-t from-slate-800 to-slate-600 rounded-t-lg border-t-8 border-slate-400 shadow-[0_0_40px_rgba(100,116,139,0.3)] relative group flex items-center justify-center">
-                                             <div className="text-8xl font-black text-slate-500/20">2</div>
-                                         </div>
-                                     </>
-                                 ) : <div className="w-full h-[45vh] bg-slate-900/20 rounded-t-lg border-t-2 border-slate-800/50"></div>}
+                    <div className="fixed inset-0 z-50 bg-slate-900 flex flex-col overflow-hidden">
+                         <Fireworks />
+                         
+                         {/* Header Section */}
+                         <div className="pt-8 pb-4 text-center z-20 shrink-0">
+                              <h2 className="text-6xl md:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-b from-yellow-300 to-yellow-600 drop-shadow-2xl tracking-tighter uppercase mb-2 animate-bounce-short">
+                                  VICTORY
+                              </h2>
+                              <div className="text-xl md:text-2xl text-yellow-100/50 font-mono tracking-[1em] uppercase">Podium</div>
+                         </div>
+            
+                         {/* Content Area */}
+                         <div className="flex-grow flex w-full max-w-[95%] mx-auto pb-0 gap-8 h-full">
+                             
+                             {/* PODIUM SECTION - Adjust width based on player count */}
+                             <div className={`flex items-end justify-center gap-2 md:gap-4 h-full pb-0 transition-all duration-500 ${restOfPlayers.length > 0 ? 'w-2/3' : 'w-full'}`}>
+                                  
+                                  {/* Rank 2 */}
+                                  <div className="flex-1 max-w-[250px] flex flex-col justify-end h-full animate-in slide-in-from-bottom duration-1000 delay-200">
+                                      {top3[1] && (
+                                          <div className="flex flex-col items-center w-full h-full justify-end">
+                                              <div className="mb-2 text-center">
+                                                  <div className="w-12 h-12 md:w-16 md:h-16 bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-2 border-4 border-slate-500 shadow-xl">
+                                                      <span className="text-xl md:text-2xl font-black text-slate-300">2</span>
+                                                  </div>
+                                                  <div className="text-lg md:text-2xl font-bold text-slate-200 truncate max-w-[150px]">{top3[1].name}</div>
+                                                  <div className="text-md md:text-xl font-mono text-slate-400">{top3[1].score} pts</div>
+                                              </div>
+                                              <div className="w-full h-[45%] bg-gradient-to-t from-slate-800 to-slate-600 rounded-t-lg border-t-4 md:border-t-8 border-slate-400 shadow-[0_0_40px_rgba(100,116,139,0.3)] relative group flex items-center justify-center">
+                                                  <div className="text-6xl md:text-8xl font-black text-slate-500/20">2</div>
+                                              </div>
+                                          </div>
+                                      )}
+                                  </div>
+            
+                                  {/* Rank 1 */}
+                                  <div className="flex-1 max-w-[320px] flex flex-col justify-end h-full z-10 animate-in slide-in-from-bottom duration-1000">
+                                       {top3[0] && (
+                                          <div className="flex flex-col items-center w-full h-full justify-end">
+                                               <div className="mb-4 text-center transform hover:scale-105 transition-transform duration-300">
+                                                   <Trophy className="w-20 h-20 md:w-32 md:h-32 text-yellow-400 mx-auto mb-2 drop-shadow-[0_0_20px_rgba(250,204,21,0.6)] animate-bounce" />
+                                                   <div className="text-2xl md:text-5xl font-black text-yellow-300 truncate max-w-[300px] drop-shadow-lg leading-tight p-1">{top3[0].name}</div>
+                                                   <div className="text-xl md:text-4xl font-mono font-black text-white bg-yellow-600/60 px-6 py-1 rounded-full border border-yellow-400/50 inline-block mt-2 backdrop-blur-sm">{top3[0].score} pts</div>
+                                               </div>
+                                               <div className="w-full h-[60%] bg-gradient-to-t from-yellow-700 to-yellow-500 rounded-t-lg border-t-4 md:border-t-8 border-yellow-300 shadow-[0_0_80px_rgba(234,179,8,0.5)] relative overflow-hidden group flex items-center justify-center">
+                                                   <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                                   <div className="absolute bottom-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-20"></div>
+                                                   <div className="text-8xl md:text-[10rem] font-black text-yellow-900/20">1</div>
+                                               </div>
+                                          </div>
+                                       )}
+                                  </div>
+            
+                                  {/* Rank 3 */}
+                                  <div className="flex-1 max-w-[250px] flex flex-col justify-end h-full animate-in slide-in-from-bottom duration-1000 delay-300">
+                                      {top3[2] && (
+                                          <div className="flex flex-col items-center w-full h-full justify-end">
+                                              <div className="mb-2 text-center">
+                                                  <div className="w-12 h-12 md:w-16 md:h-16 bg-amber-900 rounded-full flex items-center justify-center mx-auto mb-2 border-4 border-amber-700 shadow-xl">
+                                                      <span className="text-xl md:text-2xl font-black text-amber-500">3</span>
+                                                  </div>
+                                                  <div className="text-lg md:text-2xl font-bold text-amber-200 truncate max-w-[150px]">{top3[2].name}</div>
+                                                  <div className="text-md md:text-xl font-mono text-amber-400">{top3[2].score} pts</div>
+                                              </div>
+                                              <div className="w-full h-[35%] bg-gradient-to-t from-amber-900 to-amber-700 rounded-t-lg border-t-4 md:border-t-8 border-amber-600 shadow-[0_0_40px_rgba(180,83,9,0.3)] relative group flex items-center justify-center">
+                                                  <div className="text-6xl md:text-8xl font-black text-amber-950/20">3</div>
+                                              </div>
+                                          </div>
+                                      )}
+                                  </div>
+            
                              </div>
-
-                             {/* 1st Place */}
-                             <div className="flex-1 max-w-[400px] flex flex-col items-center justify-end h-full z-10 animate-in slide-in-from-bottom duration-1000">
-                                 {sortedPlayers[0] ? (
-                                     <>
-                                         <div className="mb-6 text-center transform hover:scale-110 transition-transform duration-300">
-                                             <Trophy size={120} className="text-yellow-400 mx-auto mb-4 drop-shadow-[0_0_20px_rgba(250,204,21,0.6)] animate-bounce" />
-                                             <div className="text-5xl font-black text-yellow-300 truncate max-w-[350px] drop-shadow-lg">{sortedPlayers[0].name}</div>
-                                             <div className="text-4xl font-mono font-black text-white bg-yellow-600/60 px-8 py-2 rounded-full border border-yellow-400/50 inline-block mt-4 backdrop-blur-sm">{sortedPlayers[0].score} pts</div>
+            
+                             {/* SIDEBAR FOR RANK 4+ (Only shows if > 3 players) */}
+                             {restOfPlayers.length > 0 && (
+                                 <div className="w-1/3 h-full pb-8 pl-4 flex flex-col justify-end animate-in slide-in-from-right duration-700 delay-500">
+                                     <div className="bg-slate-800/80 rounded-2xl border border-gray-700 p-6 shadow-2xl backdrop-blur-sm max-h-[70vh] flex flex-col">
+                                         <h3 className="text-xl font-bold text-gray-400 mb-4 uppercase tracking-widest border-b border-gray-600 pb-2">Class Ranking</h3>
+                                         <div className="overflow-y-auto pr-2 space-y-3 custom-scrollbar flex-grow">
+                                             {restOfPlayers.map((p, idx) => (
+                                                 <div key={p.id} className="flex items-center justify-between p-3 bg-slate-900/50 rounded-lg border border-slate-700 hover:bg-slate-700/50 transition-colors">
+                                                     <div className="flex items-center gap-3">
+                                                         <div className="w-8 h-8 rounded bg-gray-700 flex items-center justify-center font-mono font-bold text-gray-400">#{idx + 4}</div>
+                                                         <span className="font-bold text-white truncate max-w-[140px]">{p.name}</span>
+                                                     </div>
+                                                     <span className="font-mono text-cyber-primary font-bold">{p.score}</span>
+                                                 </div>
+                                             ))}
                                          </div>
-                                         <div className="w-full h-[60vh] bg-gradient-to-t from-yellow-700 to-yellow-500 rounded-t-lg border-t-8 border-yellow-300 shadow-[0_0_80px_rgba(234,179,8,0.5)] relative overflow-hidden group flex items-center justify-center">
-                                             <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                                             <div className="absolute bottom-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-20"></div>
-                                             <div className="text-[12rem] font-black text-yellow-900/20">1</div>
-                                         </div>
-                                     </>
-                                 ) : null}
-                             </div>
-
-                             {/* 3rd Place */}
-                             <div className="flex-1 max-w-[300px] flex flex-col items-center justify-end h-full animate-in slide-in-from-bottom duration-1000 delay-200">
-                                 {sortedPlayers[2] ? (
-                                     <>
-                                         <div className="mb-4 text-center">
-                                             <div className="w-16 h-16 bg-amber-900 rounded-full flex items-center justify-center mx-auto mb-2 border-4 border-amber-700 shadow-xl">
-                                                 <span className="text-2xl font-black text-amber-500">3</span>
-                                             </div>
-                                             <div className="text-2xl font-bold text-amber-200 truncate max-w-[200px]">{sortedPlayers[2].name}</div>
-                                             <div className="text-xl font-mono text-amber-400">{sortedPlayers[2].score} pts</div>
-                                         </div>
-                                         <div className="w-full h-[35vh] bg-gradient-to-t from-amber-900 to-amber-700 rounded-t-lg border-t-8 border-amber-600 shadow-[0_0_40px_rgba(180,83,9,0.3)] relative group flex items-center justify-center">
-                                             <div className="text-8xl font-black text-amber-950/20">3</div>
-                                         </div>
-                                     </>
-                                 ) : <div className="w-full h-[35vh] bg-amber-950/20 rounded-t-lg border-t-2 border-amber-900/50"></div>}
-                             </div>
-                        </div>
+                                     </div>
+                                 </div>
+                             )}
+                         </div>
                     </div>
                 ) : (
                     <div className="w-full max-w-7xl grid grid-cols-12 gap-8 h-[80vh]">
