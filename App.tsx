@@ -219,10 +219,19 @@ const App: React.FC = () => {
             setTempName(user.displayName || "Student");
         }
         const finalName = tempName.trim() || user.displayName || "Student";
-        const id = await gameService.joinGame(finalName);
-        if (id) {
-            setStudentId(id);
-            setRole('STUDENT');
+        try {
+            const id = await gameService.joinGame(finalName);
+            if (id) {
+                setStudentId(id);
+                setRole('STUDENT');
+            }
+        } catch (e: any) {
+            if (e.message === 'GAME_LOCKED') {
+                alert("❌ PHÒNG CHƠI ĐÃ KHÓA!\nGiáo viên đã bắt đầu trò chơi. Bạn không thể tham gia lúc này.");
+            } else {
+                console.error("Join Failed:", e);
+                alert("Lỗi khi tham gia phòng: " + e.message);
+            }
         }
     };
 

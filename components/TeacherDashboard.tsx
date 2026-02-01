@@ -4,7 +4,7 @@ import { GoogleGenAI } from "@google/genai";
 import { GameState, GameRound, Question, Player, Difficulty, PackStatus, QuestionCategory } from '../types';
 import { ROUND_1_QUESTIONS, ROUND_2_QUESTIONS, ROUND_3_QUESTIONS } from '../data/questions';
 import { SOUND_EFFECTS } from '../config/assets';
-import { Play, Check, X, Sparkles, RefreshCw, PlusCircle, MinusCircle, Code, Eye, Timer, User, Zap, Users, Monitor, Trophy, LogOut, Filter, CheckCircle, Pointer, Shuffle, ListOrdered, ChevronDown, ChevronUp, Database, EyeOff, XCircle, BookOpen, Terminal, Trash2, Clock, ThumbsUp, ThumbsDown, Hand, MessageSquare, LayoutGrid, SkipForward } from 'lucide-react';
+import { Play, Check, X, Sparkles, RefreshCw, PlusCircle, MinusCircle, Code, Eye, Timer, User, Zap, Users, Monitor, Trophy, LogOut, Filter, CheckCircle, Pointer, Shuffle, ListOrdered, ChevronDown, ChevronUp, Database, EyeOff, XCircle, BookOpen, Terminal, Trash2, Clock, ThumbsUp, ThumbsDown, Hand, MessageSquare, LayoutGrid, SkipForward, UserX } from 'lucide-react';
 
 interface Props {
     gameState: GameState;
@@ -62,7 +62,22 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
             <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                 {gameState.players.map(p => (
                     <div key={p.id} className={`p-2 rounded border flex justify-between items-center transition-colors ${p.buzzedAt ? 'bg-yellow-900/50 border-yellow-500 animate-pulse' : 'border-gray-600 bg-gray-700/50'}`}>
-                        <span className="truncate w-20 font-bold">{p.name}</span>
+                        <div className="flex items-center gap-2 overflow-hidden">
+                            {gameState.round === GameRound.LOBBY && (
+                                <button
+                                    onClick={() => {
+                                        if (window.confirm(`Bạn có chắc muốn mời học viên "${p.name}" ra khỏi phòng?`)) {
+                                            actions.kickPlayer(p.id);
+                                        }
+                                    }}
+                                    className="text-red-500 hover:text-red-300 hover:bg-red-900/40 rounded p-1 transition-colors"
+                                    title="Mời ra khỏi phòng"
+                                >
+                                    <UserX size={14} />
+                                </button>
+                            )}
+                            <span className="truncate w-24 font-bold" title={p.name}>{p.name}</span>
+                        </div>
                         <div className="flex items-center gap-1">
                             <button onClick={() => { playSound('SCORE_DOWN'); actions.updateScore(p.id, -10); }} className="text-red-400 p-1"><MinusCircle size={16} /></button>
                             <span className="w-8 text-center font-mono font-bold">{p.score}</span>

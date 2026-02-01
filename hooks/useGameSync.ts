@@ -138,6 +138,11 @@ export const useGameSync = () => {
             return user.uid;
         }
 
+        // Only allow new joins if in LOBBY
+        if (gameState.round !== GameRound.LOBBY) {
+            throw new Error("GAME_LOCKED");
+        }
+
         const newPlayer: Player = {
             id: user.uid,
             name: name || user.displayName || "Anonymous",
@@ -156,6 +161,16 @@ export const useGameSync = () => {
             players: firebase.firestore.FieldValue.arrayUnion(newPlayer)
         });
         return newPlayer.id;
+    };
+
+    const kickPlayer = async (playerId: string) => {
+        if (!roomId) return;
+        const playerToRemove = gameState.players.find(p => p.id === playerId);
+        if (playerToRemove) {
+            await db.collection("rooms").doc(roomId).update({
+                players: firebase.firestore.FieldValue.arrayRemove(playerToRemove)
+            });
+        }
     };
 
     const setRound = (round: GameRound) => {
@@ -653,6 +668,7 @@ export const useGameSync = () => {
         setRound3Mode,
         submitQuizAnswer,
         autoGradeQuiz,
-        startStealPhase
+        startStealPhase,
+        kickPlayer
     };
 };
