@@ -11,9 +11,9 @@ export type Difficulty = 'EASY' | 'MEDIUM' | 'HARD';
 export type PackStatus = 'PENDING' | 'CORRECT' | 'WRONG' | 'SKIP';
 
 export interface Round3Item {
-    difficulty: Difficulty;
-    status: PackStatus;
-    questionMode?: 'ORAL' | 'QUIZ'; // Track which mode was used for this specific question
+  difficulty: Difficulty;
+  status: PackStatus;
+  questionMode?: 'ORAL' | 'QUIZ'; // Track which mode was used for this specific question
 }
 
 export interface Player {
@@ -26,7 +26,7 @@ export interface Player {
   round2Time?: number | null; // Time taken
   round2Code?: string | null; // The code submitted by the student
   // Round 3 Specifics
-  round3Pack: Round3Item[]; 
+  round3Pack: Round3Item[];
   round3PackLocked?: boolean; // Has the student locked in their choices?
   round3QuizAnswer?: string | null; // Selected answer (content string)
 }
@@ -45,7 +45,7 @@ export interface Question {
   points: number;
 }
 
-export type Round3Phase = 'IDLE' | 'MAIN_ANSWER' | 'STEAL_WINDOW';
+export type Round3Phase = 'IDLE' | 'MAIN_ANSWER' | 'STEAL_WINDOW' | 'SHOW_WRONG_DELAY';
 export type Round3Mode = 'ORAL' | 'QUIZ'; // NEW: Mode selection
 
 export interface GameState {
