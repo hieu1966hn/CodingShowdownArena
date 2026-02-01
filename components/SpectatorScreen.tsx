@@ -332,8 +332,9 @@ const SpectatorScreen: React.FC<Props> = ({ gameState, onLeave }) => {
                                         <div className="grid grid-cols-2 gap-6 mb-8">
                                             {gameState.activeQuestion.options.map((opt, idx) => {
                                                 const isCorrect = gameState.showAnswer && opt === gameState.activeQuestion?.answer;
-                                                // Check if this option was selected by the *current active player*
-                                                const isSelected = activePlayer?.round3QuizAnswer === opt;
+                                                // Check if this option was selected by the *current active player* (Turn Player)
+                                                // FIX: During STEAL_WINDOW, hide the previous player's wrong selection to clear the board
+                                                const isSelected = activePlayer?.round3QuizAnswer === opt && gameState.round3Phase !== 'STEAL_WINDOW';
 
                                                 // Determine opacity/style based on reveal
                                                 // If showing ans: dim everything except Correct and Key Wrong selection
@@ -352,8 +353,8 @@ const SpectatorScreen: React.FC<Props> = ({ gameState, onLeave }) => {
                                                     }
                                                 } else {
                                                     // Live answering styling
-                                                    // Check if in DELAY or STEAL phase -> Show WRONG (Red) but not CORRECT (Green) yet
-                                                    if ((gameState.round3Phase === 'SHOW_WRONG_DELAY' || gameState.round3Phase === 'STEAL_WINDOW') && isSelected) {
+                                                    // Check if in DELAY -> Show WRONG (Red)
+                                                    if (gameState.round3Phase === 'SHOW_WRONG_DELAY' && isSelected) {
                                                         bgClass = 'bg-red-600 border-red-400 scale-105 shadow-[0_0_30px_rgba(239,68,68,0.5)]';
                                                     } else if (isSelected) {
                                                         bgClass = 'bg-blue-900 border-blue-400 scale-105 shadow-[0_0_20px_rgba(96,165,250,0.5)] ring-2 ring-blue-500';

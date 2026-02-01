@@ -422,21 +422,25 @@ export const useGameSync = () => {
             // Find which pack item corresponds to difficulty (simplified assumption: first PENDING item of that difficulty)
             const packIndex = currentPlayer.round3Pack.findIndex(item => item.difficulty === difficulty && item.status === 'PENDING');
 
-            let updatedPlayers = prev.players;
+            const scoreDelta = isCorrect ? points : penalty;
 
-            if (packIndex !== -1) {
-                const scoreDelta = isCorrect ? points : penalty;
-                updatedPlayers = prev.players.map(p => {
-                    if (p.id !== prev.round3TurnPlayerId) return p;
-                    const newPack = [...p.round3Pack];
+            // Allow score update even if packIndex is -1 (Extra questions)
+            const updatedPlayers = prev.players.map(p => {
+                if (p.id !== prev.round3TurnPlayerId) return p;
+
+                let newPack = [...p.round3Pack];
+                // Only update pack status if we found a pending slot
+                if (packIndex !== -1) {
                     newPack[packIndex] = {
                         ...newPack[packIndex],
                         status: isCorrect ? 'CORRECT' : 'WRONG',
                         questionMode: prev.round3Mode
                     };
-                    return { ...p, round3Pack: newPack, score: Math.max(0, p.score + scoreDelta) };
-                });
-            }
+                }
+
+                const newScore = p.score + scoreDelta;
+                return { ...p, round3Pack: newPack, score: Math.max(0, newScore) };
+            });
 
             if (isCorrect) {
                 return {
