@@ -39,12 +39,14 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
         }
     };
 
+    const isReadOnly = gameState.round === GameRound.GAME_OVER;
+
     const RoundControl = () => (
         <div className="grid grid-cols-4 gap-4 mb-8">
-            <button onClick={() => actions.setRound(GameRound.LOBBY)} className={`p-3 rounded font-bold transition-all hover:scale-105 ${gameState.round === GameRound.LOBBY ? 'bg-cyber-primary text-black' : 'bg-gray-700'}`}>LOBBY</button>
-            <button onClick={() => actions.setRound(GameRound.ROUND_1)} className={`p-3 rounded font-bold transition-all hover:scale-105 ${gameState.round === GameRound.ROUND_1 ? 'bg-cyber-primary text-black' : 'bg-gray-700'}`}>R1: REFLEX</button>
-            <button onClick={() => actions.setRound(GameRound.ROUND_2)} className={`p-3 rounded font-bold transition-all hover:scale-105 ${gameState.round === GameRound.ROUND_2 ? 'bg-cyber-primary text-black' : 'bg-gray-700'}`}>R2: OBSTACLE</button>
-            <button onClick={() => actions.setRound(GameRound.ROUND_3)} className={`p-3 rounded font-bold transition-all hover:scale-105 ${gameState.round === GameRound.ROUND_3 ? 'bg-cyber-primary text-black' : 'bg-gray-700'}`}>R3: FINISH</button>
+            <button disabled={isReadOnly} onClick={() => actions.setRound(GameRound.LOBBY)} className={`p-3 rounded font-bold transition-all hover:scale-105 disabled:opacity-50 disabled:grayscale ${gameState.round === GameRound.LOBBY ? 'bg-cyber-primary text-black' : 'bg-gray-700'}`}>LOBBY</button>
+            <button disabled={isReadOnly} onClick={() => actions.setRound(GameRound.ROUND_1)} className={`p-3 rounded font-bold transition-all hover:scale-105 disabled:opacity-50 disabled:grayscale ${gameState.round === GameRound.ROUND_1 ? 'bg-cyber-primary text-black' : 'bg-gray-700'}`}>R1: REFLEX</button>
+            <button disabled={isReadOnly} onClick={() => actions.setRound(GameRound.ROUND_2)} className={`p-3 rounded font-bold transition-all hover:scale-105 disabled:opacity-50 disabled:grayscale ${gameState.round === GameRound.ROUND_2 ? 'bg-cyber-primary text-black' : 'bg-gray-700'}`}>R2: OBSTACLE</button>
+            <button disabled={isReadOnly} onClick={() => actions.setRound(GameRound.ROUND_3)} className={`p-3 rounded font-bold transition-all hover:scale-105 disabled:opacity-50 disabled:grayscale ${gameState.round === GameRound.ROUND_3 ? 'bg-cyber-primary text-black' : 'bg-gray-700'}`}>R3: FINISH</button>
         </div>
     );
 
@@ -59,11 +61,12 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                     <Trash2 size={12} /> Reset Session
                 </button>
             </div>
+            {isReadOnly && <div className="bg-red-900/30 border border-red-500 text-red-200 p-2 mb-4 rounded text-center font-bold text-sm uppercase tracking-widest">⚠️ SESSION ENDED - READ ONLY MODE</div>}
             <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                 {gameState.players.map(p => (
                     <div key={p.id} className={`p-2 rounded border flex justify-between items-center transition-colors ${p.buzzedAt ? 'bg-yellow-900/50 border-yellow-500 animate-pulse' : 'border-gray-600 bg-gray-700/50'}`}>
                         <div className="flex items-center gap-2 overflow-hidden">
-                            {gameState.round === GameRound.LOBBY && (
+                            {gameState.round === GameRound.LOBBY && !isReadOnly && (
                                 <button
                                     onClick={() => {
                                         if (window.confirm(`Bạn có chắc muốn mời học viên "${p.name}" ra khỏi phòng?`)) {
@@ -79,16 +82,20 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                             <span className="truncate w-24 font-bold" title={p.name}>{p.name}</span>
                         </div>
                         <div className="flex items-center gap-1">
-                            <button onClick={() => { playSound('SCORE_DOWN'); actions.updateScore(p.id, -10); }} className="text-red-400 p-1"><MinusCircle size={16} /></button>
+                            {!isReadOnly && <button onClick={() => { playSound('SCORE_DOWN'); actions.updateScore(p.id, -10); }} className="text-red-400 p-1"><MinusCircle size={16} /></button>}
                             <span className="w-8 text-center font-mono font-bold">{p.score}</span>
-                            <button onClick={() => { playSound('SCORE_UP'); actions.updateScore(p.id, 10); }} className="text-green-400 p-1"><PlusCircle size={16} /></button>
+                            {!isReadOnly && <button onClick={() => { playSound('SCORE_UP'); actions.updateScore(p.id, 10); }} className="text-green-400 p-1"><PlusCircle size={16} /></button>}
                         </div>
                     </div>
                 ))}
             </div>
             <div className="flex gap-2 mt-4">
-                <button onClick={() => actions.clearBuzzers()} className="px-3 py-1 bg-gray-600 rounded text-sm">Reset Buzzers</button>
-                <button onClick={() => actions.stopTimer()} className="px-3 py-1 bg-red-900 rounded text-sm">Stop Timer</button>
+                {!isReadOnly && (
+                    <>
+                        <button onClick={() => actions.clearBuzzers()} className="px-3 py-1 bg-gray-600 rounded text-sm">Reset Buzzers</button>
+                        <button onClick={() => actions.stopTimer()} className="px-3 py-1 bg-red-900 rounded text-sm">Stop Timer</button>
+                    </>
+                )}
             </div>
         </div>
     );
@@ -722,6 +729,40 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
 
                     <div className="pt-12 text-center">
                         <button onClick={() => { playSound('VICTORY'); actions.endGame(); }} className="px-12 py-6 bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-full font-black text-2xl hover:scale-105 transition-all shadow-[0_0_40px_rgba(234,179,8,0.3)]">🏆 KẾT THÚC & VINH DANH</button>
+                    </div>
+                </div>
+            )}
+
+            {/* GAME OVER VIEW */}
+            {gameState.round === GameRound.GAME_OVER && (
+                <div className="flex flex-col items-center justify-center min-h-[50vh] animate-in zoom-in duration-500">
+                    <Trophy size={100} className="text-yellow-400 mb-6 drop-shadow-[0_0_30px_rgba(250,204,21,0.5)] animate-bounce" />
+                    <h2 className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-yellow-600 mb-8 uppercase tracking-tighter">
+                        Competition Finished
+                    </h2>
+                    <div className="bg-gray-800 p-8 rounded-2xl border border-yellow-500/30 shadow-2xl max-w-2xl w-full">
+                        <h3 className="text-2xl font-bold mb-6 text-center text-white border-b border-gray-700 pb-4">FINAL LEADERBOARD</h3>
+                        <div className="space-y-4">
+                            {gameState.players
+                                .sort((a, b) => b.score - a.score)
+                                .slice(0, 5)
+                                .map((p, index) => (
+                                    <div key={p.id} className={`flex items-center justify-between p-4 rounded-xl border ${index === 0 ? 'bg-yellow-900/20 border-yellow-500' : index === 1 ? 'bg-slate-700 border-gray-400' : index === 2 ? 'bg-orange-900/20 border-orange-500' : 'bg-gray-800 border-gray-700'}`}>
+                                        <div className="flex items-center gap-4">
+                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-xl 
+                                                ${index === 0 ? 'bg-yellow-500 text-black shadow-[0_0_15px_rgba(234,179,8,0.8)]' :
+                                                    index === 1 ? 'bg-gray-400 text-black' :
+                                                        index === 2 ? 'bg-orange-500 text-black' : 'bg-gray-700 text-gray-400'}`}>
+                                                {index + 1}
+                                            </div>
+                                            <span className={`text-xl font-bold ${index === 0 ? 'text-yellow-400' : 'text-white'}`}>{p.name}</span>
+                                        </div>
+                                        <div className="font-mono font-black text-2xl text-white">
+                                            {p.score} <span className="text-sm text-gray-500">pts</span>
+                                        </div>
+                                    </div>
+                                ))}
+                        </div>
                     </div>
                 </div>
             )}

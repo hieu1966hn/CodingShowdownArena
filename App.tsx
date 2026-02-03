@@ -228,6 +228,8 @@ const App: React.FC = () => {
         } catch (e: any) {
             if (e.message === 'GAME_LOCKED') {
                 alert("❌ PHÒNG CHƠI ĐÃ KHÓA!\nGiáo viên đã bắt đầu trò chơi. Bạn không thể tham gia lúc này.");
+            } else if (e.message === 'GAME_OVER') {
+                alert("❌ CUỘC THI ĐÃ KẾT THÚC!\nVui lòng chọn chế độ 'LAUNCH DISPLAY' để xem tổng kết.");
             } else {
                 console.error("Join Failed:", e);
                 alert("Lỗi khi tham gia phòng: " + e.message);

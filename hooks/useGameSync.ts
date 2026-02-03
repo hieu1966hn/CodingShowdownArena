@@ -138,6 +138,10 @@ export const useGameSync = () => {
             return user.uid;
         }
 
+        if (gameState.round === GameRound.GAME_OVER) {
+            throw new Error("GAME_OVER");
+        }
+
         // Only allow new joins if in LOBBY
         if (gameState.round !== GameRound.LOBBY) {
             throw new Error("GAME_LOCKED");
