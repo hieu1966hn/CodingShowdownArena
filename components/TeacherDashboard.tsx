@@ -330,13 +330,30 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                             .filter(q => (r2Category === 'ALL' || q.category === r2Category))
                             .map(q => {
                                 const isUsed = gameState.usedQuestionIds.includes(q.id);
+                                const isInCurrentSet = gameState.round2Questions.includes(q.id);
                                 return (
                                     <button
                                         key={q.id}
-                                        onClick={() => actions.setQuestion(q)}
-                                        className={`p-4 rounded text-left border relative transition-all ${gameState.activeQuestion?.id === q.id ? 'border-cyber-primary bg-slate-800 shadow-[0_0_15px_rgba(6,182,212,0.3)] scale-105 z-10' : isUsed ? 'border-gray-800 bg-gray-900 opacity-40 grayscale' : 'border-gray-600 bg-gray-800 hover:border-cyber-primary'}`}
+                                        onClick={() => {
+                                            // If 5 questions initialized, replace current question
+                                            if (gameState.round2Questions.length > 0) {
+                                                actions.replaceRound2Question(q);
+                                            } else {
+                                                // Otherwise, just set as active question (old behavior)
+                                                actions.setQuestion(q);
+                                            }
+                                        }}
+                                        className={`p-4 rounded text-left border relative transition-all ${gameState.activeQuestion?.id === q.id
+                                                ? 'border-cyber-primary bg-slate-800 shadow-[0_0_15px_rgba(6,182,212,0.3)] scale-105 z-10'
+                                                : isInCurrentSet
+                                                    ? 'border-yellow-500 bg-yellow-900/20'
+                                                    : isUsed
+                                                        ? 'border-gray-800 bg-gray-900 opacity-40 grayscale'
+                                                        : 'border-gray-600 bg-gray-800 hover:border-cyber-primary'
+                                            }`}
                                     >
                                         {isUsed && <span className="absolute top-2 right-2 text-[10px] font-black bg-gray-700 text-gray-300 px-1 rounded">USED</span>}
+                                        {isInCurrentSet && !isUsed && <span className="absolute top-2 right-2 text-[10px] font-black bg-yellow-600 text-black px-1 rounded">IN SET</span>}
                                         <div className="flex justify-between mb-2">
                                             <span className="text-[10px] bg-cyber-primary/20 text-cyber-primary px-2 py-0.5 rounded uppercase font-black">{q.category}</span>
                                             <span className="text-[10px] text-gray-500 font-mono">{q.points}pts</span>

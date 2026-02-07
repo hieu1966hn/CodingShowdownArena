@@ -823,6 +823,28 @@ export const useGameSync = () => {
         });
     };
 
+    const replaceRound2Question = (newQuestion: Question) => {
+        updateState((prev) => {
+            const currentIndex = prev.round2CurrentQuestion;
+            const newQuestions = [...prev.round2Questions];
+            const oldQuestionId = newQuestions[currentIndex];
+
+            // Replace the question ID at current index
+            newQuestions[currentIndex] = newQuestion.id;
+
+            // Update usedQuestionIds: remove old, add new
+            const updatedUsedIds = prev.usedQuestionIds.filter(id => id !== oldQuestionId);
+            updatedUsedIds.push(newQuestion.id);
+
+            return {
+                round2Questions: newQuestions,
+                activeQuestion: newQuestion,
+                usedQuestionIds: updatedUsedIds
+            };
+        });
+    };
+
+
     return {
         user,
         authLoading,
@@ -874,6 +896,7 @@ export const useGameSync = () => {
         gradeRound2,
         gradeRound2Question,
         initRound2Questions,
-        nextRound2Question
+        nextRound2Question,
+        replaceRound2Question
     };
 };
