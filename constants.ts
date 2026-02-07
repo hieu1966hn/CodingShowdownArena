@@ -1,6 +1,6 @@
 
 
-import { Question } from "./types";
+import { Question } from "./gameTypes";
 
 // ============================================================================
 // DATA STORAGE NOTE:
@@ -17,7 +17,7 @@ export const ROUND_1_QUESTIONS: Question[] = [
     { id: 'r1-3', content: 'Hàm nào dùng để tính độ dài của danh sách?', answer: 'len()', points: 10 },
     { id: 'r1-4', content: 'Để chuyển chuỗi thành số nguyên, dùng hàm gì?', answer: 'int()', points: 10 },
     { id: 'r1-5', content: 'True và False thuộc kiểu dữ liệu nào?', answer: 'Boolean (bool)', points: 10 },
-    
+
     // --- Tính toán ---
     { id: 'r1-6', content: '5 // 2 bằng bao nhiêu?', answer: '2', points: 10 },
     { id: 'r1-7', content: '5 % 2 bằng bao nhiêu?', answer: '1', points: 10 },

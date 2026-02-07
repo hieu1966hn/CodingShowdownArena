@@ -1,5 +1,5 @@
 
-import { Question } from "../types";
+import { Question } from "../gameTypes";
 
 // VÒNG 1: KHỞI ĐỘNG (REFLEX) - 80 CÂU
 export const ROUND_1_QUESTIONS: Question[] = [

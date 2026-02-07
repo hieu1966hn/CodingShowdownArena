@@ -3,7 +3,7 @@ import firebase from "firebase/compat/app";
 import "firebase/compat/firestore";
 import "firebase/compat/auth";
 import { db, auth, googleProvider } from "../lib/firebase";
-import { GameState, INITIAL_STATE, GameRound, Player, Question, Difficulty, PackStatus, Round3Item, Round3Mode } from "../types";
+import { GameState, GameRound, Player, Question, Difficulty, PackStatus, Round3Item, Round3Mode, INITIAL_STATE } from "../gameTypes";
 import { ROUND_3_QUESTIONS } from "../data/questions";
 
 export const useGameSync = () => {

@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { GameState, GameRound, Player, Difficulty } from '../types';
+import { GameState, GameRound, Player, Difficulty } from '../gameTypes';
 import { Code, Send, Bell, Mic, LogOut, CheckCircle, Zap, Trash2, Volume2 } from 'lucide-react';
 import CodeDisplay from './ui/CodeDisplay';
 import { SOUND_EFFECTS } from '../config/assets';
