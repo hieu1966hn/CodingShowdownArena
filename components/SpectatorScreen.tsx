@@ -321,7 +321,11 @@ const SpectatorScreen: React.FC<Props> = ({ gameState, onLeave }) => {
                                     <div className="text-2xl text-cyber-secondary font-black mb-6 uppercase tracking-widest flex items-center gap-2">
                                         <Code2 size={28} />
                                         {gameState.activeQuestion.category || gameState.activeQuestion.difficulty || "CHALLENGE"}
-                                        <span className="bg-slate-700 text-white px-3 py-1 rounded text-sm ml-2">{gameState.activeQuestion.points} PTS</span>
+                                        <span className="bg-slate-700 text-white px-3 py-1 rounded text-sm ml-2">
+                                            {gameState.round === GameRound.ROUND_1
+                                                ? (gameState.players.length >= 10 ? '30' : '15')
+                                                : gameState.activeQuestion.points} PTS
+                                        </span>
                                     </div>
                                     <h2 className="text-6xl font-bold leading-tight mb-8 drop-shadow-lg whitespace-pre-wrap">
                                         {gameState.activeQuestion.content}
