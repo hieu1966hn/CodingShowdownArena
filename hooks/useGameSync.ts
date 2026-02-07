@@ -268,7 +268,29 @@ export const useGameSync = () => {
         updateState((prev) => {
             // Logic Hardening: Only allow filling 'buzzedAt' if explicitly unlocked
             if (!prev.buzzerLocked && prev.activeQuestion) {
-                // Double check if anyone else has buzzed in the optimistic state
+                // If STEAL WINDOW, allow multiple buzzers & pause timer
+                if (prev.round3Phase === 'STEAL_WINDOW') {
+                    // Check if user already buzzed
+                    const userAlreadyBuzzed = prev.players.find(p => p.id === playerId)?.buzzedAt;
+                    if (userAlreadyBuzzed) return {}; // Prevent spamming by same user
+
+                    const updates: Partial<GameState> = {
+                        players: prev.players.map(p => p.id === playerId ? { ...p, buzzedAt: Date.now() } : p),
+                        message: `${prev.players.find(p => p.id === playerId)?.name} WANTS TO STEAL!`
+                    };
+
+                    // PAUSE TIMER ON FIRST BUZZ? Or every buzz?
+                    // We only pause if timer is currently running.
+                    if (prev.timerEndTime) {
+                        const remaining = Math.max(0, prev.timerEndTime - Date.now());
+                        updates.timerEndTime = null;
+                        updates.stealTimerPausedRemaining = remaining;
+                    }
+
+                    return updates;
+                }
+
+                // Initial Round 3 Buzz (Main Answer) - Single buzzer only
                 const alreadyBuzzed = prev.players.some(p => p.buzzedAt !== null && p.buzzedAt !== undefined);
                 if (alreadyBuzzed) return {};
 
@@ -407,10 +429,23 @@ export const useGameSync = () => {
     // --- NEW STEAL LOGIC ---
 
     const activateSteal = (playerId: string) => {
-        // Set the active stealer and pause buzzing for others
-        updateState({
-            activeStealPlayerId: playerId,
-            buzzerLocked: true
+        updateState((prev) => {
+            // Resume Timer if it was paused
+            let newEndTime = prev.timerEndTime;
+            if (prev.stealTimerPausedRemaining !== null && prev.stealTimerPausedRemaining !== undefined) {
+                newEndTime = Date.now() + prev.stealTimerPausedRemaining;
+            } else if (!prev.timerEndTime) {
+                // Fallback if somehow no time stored? Give 10s? No, keep it null if not relevant.
+                // But logic above assumes paused.
+                newEndTime = Date.now() + 10000; // 10s Default fallback
+            }
+
+            return {
+                activeStealPlayerId: playerId,
+                buzzerLocked: true, // Lock others out
+                timerEndTime: newEndTime,
+                stealTimerPausedRemaining: null // Clear paused state
+            };
         });
     };
 

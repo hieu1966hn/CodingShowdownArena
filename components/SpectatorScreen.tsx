@@ -127,7 +127,10 @@ const SpectatorScreen: React.FC<Props> = ({ gameState, onLeave }) => {
 
     const isRound3 = gameState.round === GameRound.ROUND_3;
     const isRound1 = gameState.round === GameRound.ROUND_1;
-    const activePlayerId = isRound3 ? gameState.round3TurnPlayerId : (isRound1 ? gameState.round1TurnPlayerId : null);
+    // Prioritize stealer if active, otherwise use turn player
+    const activePlayerId = isRound3
+        ? (gameState.activeStealPlayerId || gameState.round3TurnPlayerId)
+        : (isRound1 ? gameState.round1TurnPlayerId : null);
     const activePlayerName = activePlayerId ? gameState.players.find(p => p.id === activePlayerId)?.name : null;
     const activePlayer = activePlayerId ? gameState.players.find(p => p.id === activePlayerId) : null;
 

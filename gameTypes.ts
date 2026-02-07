@@ -68,6 +68,7 @@ export interface GameState {
   round3SelectionMode: 'RANDOM' | 'SEQUENTIAL';
   showAnswer: boolean;
   viewingPlayerId: string | null;
+  stealTimerPausedRemaining?: number | null; // NEW: When buzz happens, we pause timer and store remaining ms
 }
 
 export const INITIAL_STATE: GameState = {
@@ -86,5 +87,6 @@ export const INITIAL_STATE: GameState = {
   round3Mode: 'ORAL', // Default to Oral
   round3SelectionMode: 'RANDOM',
   showAnswer: false,
-  viewingPlayerId: null
+  viewingPlayerId: null,
+  stealTimerPausedRemaining: null
 };
