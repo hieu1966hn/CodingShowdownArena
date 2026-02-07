@@ -175,30 +175,10 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                         </div>
                     </div>
 
-                    {/* DIFFICULTY FILTER */}
-                    <div className="flex items-center gap-2 mb-2 bg-slate-900/50 p-2 rounded-lg border border-gray-700">
-                        <span className="text-sm font-bold text-gray-400 flex items-center gap-2 mr-2"><Filter size={16} /> Filter:</span>
-                        <button
-                            onClick={() => setR1Filter('ALL')}
-                            className={`px-3 py-1 rounded text-xs font-bold transition-colors ${r1Filter === 'ALL' ? 'bg-gray-200 text-black' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}
-                        >ALL</button>
-                        <button
-                            onClick={() => setR1Filter('EASY')}
-                            className={`px-3 py-1 rounded text-xs font-bold transition-colors ${r1Filter === 'EASY' ? 'bg-green-600 text-white' : 'bg-green-900/30 text-green-500 border border-green-900 hover:bg-green-900/50'}`}
-                        >EASY</button>
-                        <button
-                            onClick={() => setR1Filter('MEDIUM')}
-                            className={`px-3 py-1 rounded text-xs font-bold transition-colors ${r1Filter === 'MEDIUM' ? 'bg-yellow-600 text-white' : 'bg-yellow-900/30 text-yellow-500 border border-yellow-900 hover:bg-yellow-900/50'}`}
-                        >MEDIUM</button>
-                        <button
-                            onClick={() => setR1Filter('HARD')}
-                            className={`px-3 py-1 rounded text-xs font-bold transition-colors ${r1Filter === 'HARD' ? 'bg-red-600 text-white' : 'bg-red-900/30 text-red-500 border border-red-900 hover:bg-red-900/50'}`}
-                        >HARD</button>
-                    </div>
+                    {/* DIFFICULTY FILTER REMOVED FOR ROUND 1 - ALL QUESTIONS EQUAL */}
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
                         {ROUND_1_QUESTIONS
-                            .filter(q => r1Filter === 'ALL' || q.difficulty === r1Filter)
                             .map(q => {
                                 const isUsed = gameState.usedQuestionIds.includes(q.id);
                                 return (
@@ -209,16 +189,13 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                                     >
                                         {isUsed && <span className="absolute top-2 right-2 text-[10px] font-black bg-gray-700 text-gray-300 px-1 rounded">USED</span>}
 
-                                        {/* DIFFICULTY BADGE FOR TEACHER */}
+                                        {/* UNIFIED BADGE FOR ROUND 1 */}
                                         <div className="flex items-center mb-1">
-                                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded mr-2 ${q.difficulty === 'EASY' ? 'bg-green-900 text-green-300 border border-green-700' :
-                                                q.difficulty === 'MEDIUM' ? 'bg-yellow-900 text-yellow-300 border border-yellow-700' :
-                                                    'bg-red-900 text-red-300 border border-red-700'
-                                                }`}>
-                                                {q.difficulty || 'EASY'}
+                                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded mr-2 bg-blue-900 text-blue-300 border border-blue-700">
+                                                REFLEX
                                             </span>
                                             <span className="text-[10px] text-gray-500">
-                                                {gameState.players.length >= 10 ? '30' : '15'}pts (Dynamic)
+                                                {gameState.players.length >= 10 ? '30' : '15'}pts
                                             </span>
                                         </div>
 
