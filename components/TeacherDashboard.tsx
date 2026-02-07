@@ -18,6 +18,7 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
     const [showR3Bank, setShowR3Bank] = useState(false);
     const [r2Category, setR2Category] = useState<QuestionCategory | 'ALL'>('ALL');
     const [r1Filter, setR1Filter] = useState<Difficulty | 'ALL'>('ALL');
+    const [isGraded, setIsGraded] = useState(false); // NEW: Track if current Q has been graded
 
     const playSound = (type: keyof typeof SOUND_EFFECTS) => {
         try {
@@ -29,6 +30,11 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
             console.error("Audio error:", e);
         }
     };
+
+    // Reset graded status when question changes
+    useEffect(() => {
+        setIsGraded(false);
+    }, [gameState.activeQuestion?.id]);
 
     const getDynamicTimerDuration = (difficulty?: Difficulty) => {
         switch (difficulty) {
@@ -244,7 +250,10 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                                         {gameState.players.find(p => p.id === gameState.round1TurnPlayerId)?.name}
                                     </span>
                                     <button
+                                        disabled={isGraded}
                                         onClick={() => {
+                                            if (isGraded) return;
+                                            setIsGraded(true);
                                             playSound('CORRECT');
                                             // Dynamic Point Calculation
                                             // If players >= 10: 30pts (needs 5 correct to reach 150)
@@ -254,7 +263,7 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
 
                                             actions.updateScore(gameState.round1TurnPlayerId, points);
                                         }}
-                                        className="px-4 py-2 bg-green-600 hover:bg-green-500 rounded font-bold flex items-center gap-2"
+                                        className={`px-4 py-2 rounded font-bold flex items-center gap-2 ${isGraded ? 'bg-gray-600 cursor-not-allowed opacity-50' : 'bg-green-600 hover:bg-green-500'}`}
                                     >
                                         <ThumbsUp size={16} /> Correct (+{gameState.players.length >= 10 ? 30 : 15})
                                     </button>
