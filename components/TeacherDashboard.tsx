@@ -217,7 +217,9 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                                                 }`}>
                                                 {q.difficulty || 'EASY'}
                                             </span>
-                                            <span className="text-[10px] text-gray-500">{q.points}pts</span>
+                                            <span className="text-[10px] text-gray-500">
+                                                {gameState.players.length >= 10 ? '30' : '15'}pts (Dynamic)
+                                            </span>
                                         </div>
 
                                         <div className="font-bold mb-1 line-clamp-2">{q.content}</div>
