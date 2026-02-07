@@ -515,6 +515,9 @@ export const useGameSync = () => {
             });
 
             if (isCorrect) {
+                // Clear buzzers for next turn
+                setTimeout(() => clearBuzzers(), 100);
+
                 // Steal Correct: End the turn
                 return {
                     players: updatedPlayers,
@@ -611,6 +614,9 @@ export const useGameSync = () => {
             });
 
             if (isCorrect) {
+                // Clear buzzers for next turn
+                setTimeout(() => clearBuzzers(), 100);
+
                 return {
                     players: updatedPlayers,
                     showAnswer: true,

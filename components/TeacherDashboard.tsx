@@ -344,12 +344,12 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                                             }
                                         }}
                                         className={`p-4 rounded text-left border relative transition-all ${gameState.activeQuestion?.id === q.id
-                                                ? 'border-cyber-primary bg-slate-800 shadow-[0_0_15px_rgba(6,182,212,0.3)] scale-105 z-10'
-                                                : isInCurrentSet
-                                                    ? 'border-yellow-500 bg-yellow-900/20'
-                                                    : isUsed
-                                                        ? 'border-gray-800 bg-gray-900 opacity-40 grayscale'
-                                                        : 'border-gray-600 bg-gray-800 hover:border-cyber-primary'
+                                            ? 'border-cyber-primary bg-slate-800 shadow-[0_0_15px_rgba(6,182,212,0.3)] scale-105 z-10'
+                                            : isInCurrentSet
+                                                ? 'border-yellow-500 bg-yellow-900/20'
+                                                : isUsed
+                                                    ? 'border-gray-800 bg-gray-900 opacity-40 grayscale'
+                                                    : 'border-gray-600 bg-gray-800 hover:border-cyber-primary'
                                             }`}
                                     >
                                         {isUsed && <span className="absolute top-2 right-2 text-[10px] font-black bg-gray-700 text-gray-300 px-1 rounded">USED</span>}
@@ -785,6 +785,7 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                                                                 playSound('CORRECT');
                                                                 let delta = points;
                                                                 actions.gradeRound3Question(p.id, idx, 'CORRECT', delta);
+                                                                setTimeout(() => actions.clearBuzzers(), 100);
                                                             }}
                                                             className="py-2 bg-green-900/50 hover:bg-green-600 border border-green-700 text-green-200 hover:text-white rounded text-[10px] font-bold"
                                                         >CORRECT</button>
@@ -793,12 +794,14 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                                                                 playSound('WRONG');
                                                                 let delta = penalty;
                                                                 actions.gradeRound3Question(p.id, idx, 'WRONG', delta);
+                                                                setTimeout(() => actions.clearBuzzers(), 100);
                                                             }}
                                                             className="py-2 bg-red-900/50 hover:bg-red-600 border border-red-700 text-red-200 hover:text-white rounded text-[10px] font-bold"
                                                         >WRONG</button>
                                                         <button
                                                             onClick={() => {
                                                                 actions.gradeRound3Question(p.id, idx, 'SKIP', 0);
+                                                                setTimeout(() => actions.clearBuzzers(), 100);
                                                             }}
                                                             className="py-2 bg-gray-700 hover:bg-gray-600 border border-gray-600 text-gray-300 hover:text-white rounded text-[10px] font-bold"
                                                         >SKIP</button>
