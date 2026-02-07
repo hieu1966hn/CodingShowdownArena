@@ -126,6 +126,7 @@ const StudentView: React.FC<Props> = ({ gameState, playerId, onBuzz, onSubmitRou
                                 placeholder="Type your fixed code here..."
                                 value={codeAnswer}
                                 onChange={(e) => setCodeAnswer(e.target.value)}
+                                disabled={!gameState.timerEndTime}
                             />
                             <button
                                 onClick={() => {
@@ -133,9 +134,13 @@ const StudentView: React.FC<Props> = ({ gameState, playerId, onBuzz, onSubmitRou
                                     setCodeAnswer('');
                                     playSound('SUBMIT');
                                 }}
-                                className="w-full bg-cyber-primary hover:bg-cyan-600 text-black font-bold py-4 rounded-lg flex items-center justify-center gap-2 transition-colors"
+                                disabled={!gameState.timerEndTime || !codeAnswer.trim()}
+                                className={`w-full font-bold py-4 rounded-lg flex items-center justify-center gap-2 transition-colors ${!gameState.timerEndTime || !codeAnswer.trim()
+                                    ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                                    : 'bg-cyber-primary hover:bg-cyan-600 text-black'
+                                    }`}
                             >
-                                <Send size={20} /> SUBMIT CODE
+                                <Send size={20} /> {!gameState.timerEndTime ? 'WAITING FOR TIMER...' : 'SUBMIT CODE'}
                             </button>
                         </div>
                     ) : (
@@ -218,11 +223,20 @@ const StudentView: React.FC<Props> = ({ gameState, playerId, onBuzz, onSubmitRou
                                                     </div>
                                                 ) : (
                                                     <div className="grid grid-cols-1 gap-4">
+                                                        {!gameState.timerEndTime && (
+                                                            <div className="text-center text-yellow-400 font-bold mb-2 animate-pulse">
+                                                                ⏳ Waiting for timer to start...
+                                                            </div>
+                                                        )}
                                                         {gameState.activeQuestion.options.map((opt, idx) => (
                                                             <button
                                                                 key={idx}
-                                                                onClick={() => onSubmitQuizAnswer && onSubmitQuizAnswer(opt)}
-                                                                className="p-6 bg-slate-800 hover:bg-purple-900 border border-gray-600 hover:border-purple-500 rounded-xl text-left transition-all active:scale-95 flex items-center gap-4"
+                                                                onClick={() => gameState.timerEndTime && onSubmitQuizAnswer && onSubmitQuizAnswer(opt)}
+                                                                disabled={!gameState.timerEndTime}
+                                                                className={`p-6 border rounded-xl text-left transition-all flex items-center gap-4 ${!gameState.timerEndTime
+                                                                        ? 'bg-gray-800 border-gray-700 text-gray-500 cursor-not-allowed opacity-50'
+                                                                        : 'bg-slate-800 hover:bg-purple-900 border-gray-600 hover:border-purple-500 active:scale-95'
+                                                                    }`}
                                                             >
                                                                 <div className="w-8 h-8 rounded-full bg-black/40 flex items-center justify-center font-bold text-sm border border-white/20">
                                                                     {String.fromCharCode(65 + idx)}
