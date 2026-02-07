@@ -27,6 +27,13 @@ export interface Player {
   round2Code?: string | null; // The code submitted by the student
   round2Correct?: boolean; // NEW: Track if the submission was marked correct
   round2Score?: number; // NEW: Track specific score for R2 (Base + Bonus) to allow recalc
+  round2Submissions?: Array<{
+    questionId: string;
+    code: string;
+    time: number;
+    isCorrect?: boolean;
+    points?: number;
+  }>; // NEW: Track all 5 question submissions
   // Round 3 Specifics
   round3Pack: Round3Item[];
   round3PackLocked?: boolean; // Has the student locked in their choices?
@@ -69,6 +76,8 @@ export interface GameState {
   showAnswer: boolean;
   viewingPlayerId: string | null;
   stealTimerPausedRemaining?: number | null; // NEW: When buzz happens, we pause timer and store remaining ms
+  round2CurrentQuestion: number; // NEW: Track which question (0-4) is currently active in Round 2
+  round2Questions: string[]; // NEW: Array of 5 question IDs for Round 2
 }
 
 export const INITIAL_STATE: GameState = {
@@ -88,5 +97,7 @@ export const INITIAL_STATE: GameState = {
   round3SelectionMode: 'RANDOM',
   showAnswer: false,
   viewingPlayerId: null,
-  stealTimerPausedRemaining: null
+  stealTimerPausedRemaining: null,
+  round2CurrentQuestion: 0,
+  round2Questions: []
 };

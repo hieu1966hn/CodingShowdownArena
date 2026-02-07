@@ -4,7 +4,7 @@ import "firebase/compat/firestore";
 import "firebase/compat/auth";
 import { db, auth, googleProvider } from "../lib/firebase";
 import { GameState, GameRound, Player, Question, Difficulty, PackStatus, Round3Item, Round3Mode, INITIAL_STATE } from "../gameTypes";
-import { ROUND_3_QUESTIONS } from "../data/questions";
+import { ROUND_2_QUESTIONS, ROUND_3_QUESTIONS } from "../data/questions";
 
 export const useGameSync = () => {
     const [user, setUser] = useState<firebase.User | null>(null);
@@ -321,62 +321,106 @@ export const useGameSync = () => {
 
             const now = Date.now();
             const timeTaken = prev.round2StartedAt ? (now - prev.round2StartedAt) / 1000 : 0;
+            const currentQuestionId = prev.round2Questions[prev.round2CurrentQuestion] || 'unknown';
+
             return {
-                players: prev.players.map(p => p.id === playerId ? {
-                    ...p,
-                    submittedRound2: true,
-                    round2Time: timeTaken,
-                } : p)
+                players: prev.players.map(p => {
+                    if (p.id !== playerId) return p;
+
+                    const submissions = p.round2Submissions || [];
+                    // Check if already submitted for this question
+                    const alreadySubmitted = submissions.some(s => s.questionId === currentQuestionId);
+                    if (alreadySubmitted) return p; // Prevent duplicate submission
+
+                    return {
+                        ...p,
+                        round2Submissions: [
+                            ...submissions,
+                            {
+                                questionId: currentQuestionId,
+                                code,
+                                time: timeTaken
+                            }
+                        ]
+                    };
+                })
             };
         });
     };
 
-    const gradeRound2 = (playerId: string, isCorrect: boolean, basePoints: number) => {
+    const gradeRound2Question = (playerId: string, isCorrect: boolean) => {
         updateState((prev) => {
-            // 1. Mark current player status
-            let updatedPlayers = prev.players.map(p =>
-                p.id === playerId ? { ...p, round2Correct: isCorrect } : p
-            );
+            const currentQuestionId = prev.round2Questions[prev.round2CurrentQuestion];
+            if (!currentQuestionId) return {};
 
-            // 2. Identify ALL correct players (including the one just graded)
-            const correctPlayers = updatedPlayers.filter(p => p.round2Correct && p.round2Time !== undefined && p.round2Time !== null);
+            const BASE_POINTS = 30;
+            const SPEED_BONUSES = [6, 4, 2]; // Top 1, 2, 3
 
-            // 3. Sort by Time Ascending (Fastest First)
-            correctPlayers.sort((a, b) => (a.round2Time || 999999) - (b.round2Time || 999999));
+            // 1. Mark the submission as correct/incorrect
+            let updatedPlayers = prev.players.map(p => {
+                if (p.id !== playerId) return p;
 
-            // 4. Recalculate Scores for EVERYONE
-            updatedPlayers = updatedPlayers.map(p => {
-                // If not correct for R2, ensure R2 contribution is 0 (if was previously correct, remove points)
-                if (!p.round2Correct) {
-                    if (p.round2Score) {
-                        // Retract previous R2 score
-                        return { ...p, score: p.score - p.round2Score, round2Score: 0 };
-                    }
-                    return p;
-                }
-
-                // If Correct:
-                // Find Rank
-                const rank = correctPlayers.findIndex(cp => cp.id === p.id);
-                // Bonus Logic: Rank 0 (+30), Rank 1 (+20), Rank 2 (+10)
-                let bonus = 0;
-                if (rank === 0) bonus = 30;
-                else if (rank === 1) bonus = 20;
-                else if (rank === 2) bonus = 10;
-
-                const newR2Score = basePoints + bonus;
-                const oldR2Score = p.round2Score || 0;
-
-                // Update Total Score: Remove old R2 score, Add new R2 score
+                const submissions = p.round2Submissions || [];
                 return {
                     ...p,
-                    score: p.score - oldR2Score + newR2Score,
-                    round2Score: newR2Score
+                    round2Submissions: submissions.map(s =>
+                        s.questionId === currentQuestionId
+                            ? { ...s, isCorrect }
+                            : s
+                    )
+                };
+            });
+
+            // 2. Find all correct submissions for THIS question
+            const correctSubmissions: Array<{ playerId: string; time: number }> = [];
+            updatedPlayers.forEach(p => {
+                const submission = (p.round2Submissions || []).find(
+                    s => s.questionId === currentQuestionId && s.isCorrect
+                );
+                if (submission) {
+                    correctSubmissions.push({ playerId: p.id, time: submission.time });
+                }
+            });
+
+            // 3. Sort by time (fastest first)
+            correctSubmissions.sort((a, b) => a.time - b.time);
+
+            // 4. Award points with speed bonus
+            updatedPlayers = updatedPlayers.map(p => {
+                const submission = (p.round2Submissions || []).find(
+                    s => s.questionId === currentQuestionId
+                );
+                if (!submission || !submission.isCorrect) return p;
+
+                const rank = correctSubmissions.findIndex(cs => cs.playerId === p.id);
+                const bonus = rank < 3 ? SPEED_BONUSES[rank] : 0;
+                const points = BASE_POINTS + bonus;
+
+                // Update submission with points
+                const updatedSubmissions = (p.round2Submissions || []).map(s =>
+                    s.questionId === currentQuestionId
+                        ? { ...s, points }
+                        : s
+                );
+
+                // Calculate total R2 score from all submissions
+                const totalR2Score = updatedSubmissions.reduce((sum, s) => sum + (s.points || 0), 0);
+
+                return {
+                    ...p,
+                    round2Submissions: updatedSubmissions,
+                    score: p.score + points // Add points to total
                 };
             });
 
             return { players: updatedPlayers };
         });
+    };
+
+    // Keep old gradeRound2 for backward compatibility (deprecated)
+    const gradeRound2 = (playerId: string, isCorrect: boolean, basePoints: number) => {
+        // Redirect to new function
+        gradeRound2Question(playerId, isCorrect);
     };
 
     const setRound1Turn = (playerId: string | null) => updateState({ round1TurnPlayerId: playerId, showAnswer: false });
@@ -731,6 +775,54 @@ export const useGameSync = () => {
         updateState((prev) => ({ viewingPlayerId: playerId }));
     };
 
+    // NEW: Round 2 Multi-Question Management
+    const initRound2Questions = () => {
+        updateState((prev) => {
+            // Select 5 random questions from Round 2 pool
+            const availableQuestions = ROUND_2_QUESTIONS.filter(q => !prev.usedQuestionIds.includes(q.id));
+            const shuffled = [...availableQuestions].sort(() => Math.random() - 0.5);
+            const selected = shuffled.slice(0, 5);
+
+            return {
+                round2Questions: selected.map(q => q.id),
+                round2CurrentQuestion: 0,
+                activeQuestion: selected[0] || null,
+                usedQuestionIds: [...prev.usedQuestionIds, ...selected.map(q => q.id)],
+                // Reset all player submissions
+                players: prev.players.map(p => ({
+                    ...p,
+                    round2Submissions: []
+                }))
+            };
+        });
+    };
+
+    const nextRound2Question = () => {
+        updateState((prev) => {
+            const nextIndex = prev.round2CurrentQuestion + 1;
+            if (nextIndex >= 5 || nextIndex >= prev.round2Questions.length) {
+                // All 5 questions done
+                return {
+                    round2CurrentQuestion: nextIndex,
+                    activeQuestion: null,
+                    timerEndTime: null,
+                    message: "Round 2 Complete!"
+                };
+            }
+
+            // Load next question
+            const nextQuestionId = prev.round2Questions[nextIndex];
+            const nextQuestion = ROUND_2_QUESTIONS.find(q => q.id === nextQuestionId);
+
+            return {
+                round2CurrentQuestion: nextIndex,
+                activeQuestion: nextQuestion || null,
+                round2StartedAt: null, // Will be set when timer starts
+                timerEndTime: null
+            };
+        });
+    };
+
     return {
         user,
         authLoading,
@@ -779,6 +871,9 @@ export const useGameSync = () => {
         autoGradeQuiz,
         startStealPhase,
         kickPlayer,
-        gradeRound2
+        gradeRound2,
+        gradeRound2Question,
+        initRound2Questions,
+        nextRound2Question
     };
 };
