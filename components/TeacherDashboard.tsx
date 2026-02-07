@@ -289,8 +289,27 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
             {gameState.round === GameRound.ROUND_2 && (
                 <div className="space-y-6">
                     <div className="flex justify-between items-center">
-                        <h2 className="text-xl font-bold flex items-center gap-2"><Terminal className="text-cyber-primary" /> Round 2: Obstacle - Debugging</h2>
                         <div className="flex items-center gap-4">
+                            <h2 className="text-xl font-bold flex items-center gap-2"><Terminal className="text-cyber-primary" /> Round 2: Obstacle - Debugging</h2>
+                            {/* QUESTION PROGRESS */}
+                            {gameState.round2Questions.length > 0 && (
+                                <div className="bg-cyber-primary/20 border border-cyber-primary px-4 py-2 rounded-lg">
+                                    <span className="text-cyber-primary font-black text-lg">
+                                        Question {gameState.round2CurrentQuestion + 1} / 5
+                                    </span>
+                                </div>
+                            )}
+                        </div>
+                        <div className="flex items-center gap-4">
+                            {/* INIT BUTTON */}
+                            {gameState.round2Questions.length === 0 && (
+                                <button
+                                    onClick={() => actions.initRound2Questions()}
+                                    className="px-4 py-2 bg-green-600 hover:bg-green-500 rounded font-bold flex items-center gap-2"
+                                >
+                                    <Play size={18} /> Initialize 5 Questions
+                                </button>
+                            )}
                             <span className="text-xs text-gray-500">Total: {ROUND_2_QUESTIONS.length} Questions</span>
                             <div className="flex gap-2">
                                 {(['ALL', 'LOGIC', 'SYNTAX', 'ALGO', 'OUTPUT', 'DEBUG', 'LIST'] as const).map(cat => (
@@ -342,6 +361,18 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                                 <div className="flex gap-2">
                                     <button onClick={() => actions.startRound2Timer()} className="px-4 py-2 bg-blue-600 rounded font-bold flex items-center gap-2 hover:bg-blue-500"><Timer size={18} /> Start Round Timer</button>
                                     <button onClick={() => actions.toggleShowAnswer()} className="px-4 py-2 bg-gray-700 rounded font-bold">{gameState.showAnswer ? "Hide Answer" : "Show Answer"}</button>
+                                    {/* NEXT QUESTION BUTTON */}
+                                    {gameState.round2CurrentQuestion < 4 && (
+                                        <button
+                                            onClick={() => {
+                                                actions.nextRound2Question();
+                                                playSound('CORRECT');
+                                            }}
+                                            className="px-4 py-2 bg-green-600 hover:bg-green-500 rounded font-bold flex items-center gap-2"
+                                        >
+                                            <SkipForward size={18} /> Next Question
+                                        </button>
+                                    )}
                                     <button onClick={() => actions.clearQuestion()} className="px-4 py-2 bg-red-900 rounded font-bold"><X size={18} /></button>
                                 </div>
                             </div>
@@ -362,20 +393,30 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                                                 <span className="flex items-center gap-2"><Code size={16} /> Submission by: <span className="text-white text-lg">{viewingPlayer.name}</span></span>
 
                                                 {/* TIME TAKEN DISPLAY */}
-                                                {viewingPlayer.round2Time && (
-                                                    <div className="flex items-center gap-2 bg-black/40 px-3 py-1 rounded-full border border-yellow-500/30">
-                                                        <Clock size={14} className="text-blue-400" />
-                                                        <span className="text-blue-400 font-mono text-sm">
-                                                            Time: <span className="font-bold text-white">{viewingPlayer.round2Time.toFixed(2)}s</span>
-                                                        </span>
-                                                    </div>
-                                                )}
+                                                {(() => {
+                                                    const currentQuestionId = gameState.round2Questions[gameState.round2CurrentQuestion];
+                                                    const submission = viewingPlayer.round2Submissions?.find(s => s.questionId === currentQuestionId);
+                                                    return submission?.time && (
+                                                        <div className="flex items-center gap-2 bg-black/40 px-3 py-1 rounded-full border border-yellow-500/30">
+                                                            <Clock size={14} className="text-blue-400" />
+                                                            <span className="text-blue-400 font-mono text-sm">
+                                                                Time: <span className="font-bold text-white">{submission.time.toFixed(2)}s</span>
+                                                            </span>
+                                                        </div>
+                                                    );
+                                                })()}
                                             </div>
                                             <button onClick={() => actions.setViewingPlayer(null)} className="text-gray-400 hover:text-white"><X size={18} /></button>
                                         </div>
 
                                         <div className="p-4 bg-slate-900/50 overflow-x-auto min-h-[100px]">
-                                            <pre className="text-green-400 font-mono text-lg whitespace-pre-wrap">{viewingPlayer.round2Code || "// No code submitted"}</pre>
+                                            <pre className="text-green-400 font-mono text-lg whitespace-pre-wrap">
+                                                {(() => {
+                                                    const currentQuestionId = gameState.round2Questions[gameState.round2CurrentQuestion];
+                                                    const submission = viewingPlayer.round2Submissions?.find(s => s.questionId === currentQuestionId);
+                                                    return submission?.code || "// No code submitted for this question";
+                                                })()}
+                                            </pre>
                                         </div>
 
                                         {/* GRADING BUTTONS */}
@@ -391,20 +432,15 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                                             </button>
                                             <button
                                                 onClick={() => {
-                                                    // Add points and close
-                                                    // const points = gameState.activeQuestion?.points || 0;
-                                                    // actions.updateScore(viewingPlayer.id, points);
-
-                                                    // NEW: Use gradeRound2 for automatic bonus
-                                                    // Base Points: 120 (as per plan discussion: 120 base + 30 bonus = 150 max)
-                                                    actions.gradeRound2(viewingPlayer.id, true, 120);
+                                                    // NEW: Use gradeRound2Question for per-question grading
+                                                    actions.gradeRound2Question(viewingPlayer.id, true);
 
                                                     playSound('CORRECT');
                                                     actions.setViewingPlayer(null);
                                                 }}
                                                 className="px-6 py-2 bg-green-600 hover:bg-green-500 text-white rounded font-bold flex items-center gap-2 shadow-lg hover:shadow-green-500/20 transition-all"
                                             >
-                                                <ThumbsUp size={18} /> CORRECT (+120pts + Bonus)
+                                                <ThumbsUp size={18} /> CORRECT (+30pts + Bonus)
                                             </button>
                                         </div>
                                     </div>
@@ -412,30 +448,44 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                             )}
 
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
-                                {gameState.players.map(p => (
-                                    <div key={p.id} className={`p-3 rounded-lg border-2 transition-all flex flex-col gap-2 ${p.round2Correct ? 'opacity-40 grayscale border-green-800 bg-green-950/20' : p.submittedRound2 ? 'border-green-500 bg-green-900/20' : 'border-gray-700 bg-gray-800/50'} ${gameState.viewingPlayerId === p.id ? 'ring-2 ring-yellow-400 scale-105 opacity-100 grayscale-0' : ''}`}>
-                                        <div className="flex justify-between items-center">
-                                            <span className="font-bold truncate max-w-[80px]">{p.name}</span>
-                                            {p.round2Correct ? <CheckCircle size={16} className="text-green-600" /> : p.submittedRound2 ? <CheckCircle size={16} className="text-green-500" /> : <RefreshCw size={16} className="text-gray-600 animate-spin" />}
-                                        </div>
+                                {gameState.players.map(p => {
+                                    const currentQuestionId = gameState.round2Questions[gameState.round2CurrentQuestion];
+                                    const submission = p.round2Submissions?.find(s => s.questionId === currentQuestionId);
+                                    const hasSubmitted = !!submission;
+                                    const isCorrect = submission?.isCorrect === true;
 
-                                        {/* TIME DISPLAY ON CARD */}
-                                        {p.submittedRound2 && p.round2Time && (
-                                            <div className="text-xs bg-black/40 rounded px-2 py-1 text-center font-mono text-blue-300 border border-blue-900/50">
-                                                ⏱ {p.round2Time.toFixed(2)}s
+                                    return (
+                                        <div key={p.id} className={`p-3 rounded-lg border-2 transition-all flex flex-col gap-2 ${isCorrect ? 'opacity-40 grayscale border-green-800 bg-green-950/20' : hasSubmitted ? 'border-green-500 bg-green-900/20' : 'border-gray-700 bg-gray-800/50'} ${gameState.viewingPlayerId === p.id ? 'ring-2 ring-yellow-400 scale-105 opacity-100 grayscale-0' : ''}`}>
+                                            <div className="flex justify-between items-center">
+                                                <span className="font-bold truncate max-w-[80px]">{p.name}</span>
+                                                {isCorrect ? <CheckCircle size={16} className="text-green-600" /> : hasSubmitted ? <CheckCircle size={16} className="text-green-500" /> : <RefreshCw size={16} className="text-gray-600 animate-spin" />}
                                             </div>
-                                        )}
 
-                                        {p.submittedRound2 && (
-                                            <button
-                                                onClick={() => actions.setViewingPlayer(p.id === gameState.viewingPlayerId ? null : p.id)}
-                                                className={`w-full py-1 text-[10px] font-bold rounded transition-colors ${gameState.viewingPlayerId === p.id ? 'bg-yellow-500 text-black' : 'bg-cyber-primary/20 text-cyber-primary hover:bg-cyber-primary/40'}`}
-                                            >
-                                                {gameState.viewingPlayerId === p.id ? 'CLOSE' : 'VIEW CODE'}
-                                            </button>
-                                        )}
-                                    </div>
-                                ))}
+                                            {/* TIME DISPLAY ON CARD */}
+                                            {submission?.time && (
+                                                <div className="text-xs bg-black/40 rounded px-2 py-1 text-center font-mono text-blue-300 border border-blue-900/50">
+                                                    ⏱ {submission.time.toFixed(2)}s
+                                                </div>
+                                            )}
+
+                                            {/* POINTS DISPLAY */}
+                                            {submission?.points && (
+                                                <div className="text-xs bg-green-900/40 rounded px-2 py-1 text-center font-bold text-green-400 border border-green-700/50">
+                                                    +{submission.points} pts
+                                                </div>
+                                            )}
+
+                                            {hasSubmitted && (
+                                                <button
+                                                    onClick={() => actions.setViewingPlayer(p.id === gameState.viewingPlayerId ? null : p.id)}
+                                                    className={`w-full py-1 text-[10px] font-bold rounded transition-colors ${gameState.viewingPlayerId === p.id ? 'bg-yellow-500 text-black' : 'bg-cyber-primary/20 text-cyber-primary hover:bg-cyber-primary/40'}`}
+                                                >
+                                                    {gameState.viewingPlayerId === p.id ? 'CLOSE' : 'VIEW CODE'}
+                                                </button>
+                                            )}
+                                        </div>
+                                    );
+                                })}
                             </div>
                         </div>
                     )}
