@@ -505,7 +505,7 @@ export const useGameSync = () => {
     const resolveSteal = (stealerId: string, isCorrect: boolean, points: number) => {
         updateState((prev) => {
             // Update score for stealer
-            const updatedPlayers = prev.players.map(p => {
+            let updatedPlayers = prev.players.map(p => {
                 if (p.id === stealerId) {
                     const newScore = p.score + (isCorrect ? points : -points);
                     // If WRONG, remove buzzer so they can't spam, but allow others to buzz
@@ -515,15 +515,14 @@ export const useGameSync = () => {
             });
 
             if (isCorrect) {
-                // Clear buzzers for next turn
-                setTimeout(() => clearBuzzers(), 100);
+                // Steal Correct: End the turn AND clear all buzzers inline
+                updatedPlayers = updatedPlayers.map(p => ({ ...p, buzzedAt: null }));
 
-                // Steal Correct: End the turn
                 return {
                     players: updatedPlayers,
                     activeQuestion: null,
                     timerEndTime: null,
-                    buzzerLocked: true,
+                    buzzerLocked: false, // Unlock for next turn
                     round3Phase: 'IDLE',
                     activeStealPlayerId: null,
                     round3TurnPlayerId: null
@@ -596,7 +595,7 @@ export const useGameSync = () => {
             }
 
             // Allow score update even if packIndex is -1 (Extra questions)
-            const updatedPlayers = prev.players.map(p => {
+            let updatedPlayers = prev.players.map(p => {
                 if (p.id !== prev.round3TurnPlayerId) return p;
 
                 let newPack = [...p.round3Pack];
@@ -614,13 +613,13 @@ export const useGameSync = () => {
             });
 
             if (isCorrect) {
-                // Clear buzzers for next turn
-                setTimeout(() => clearBuzzers(), 100);
+                // Clear all buzzers inline for next turn
+                updatedPlayers = updatedPlayers.map(p => ({ ...p, buzzedAt: null }));
 
                 return {
                     players: updatedPlayers,
                     showAnswer: true,
-                    buzzerLocked: true, // No stealing needed
+                    buzzerLocked: false, // Unlock for next turn
                     round3Phase: 'IDLE' // End turn
                 };
             } else {
