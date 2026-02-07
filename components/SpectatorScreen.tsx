@@ -374,9 +374,10 @@ const SpectatorScreen: React.FC<Props> = ({ gameState, onLeave }) => {
                                         <div className="grid grid-cols-2 gap-6 mb-8">
                                             {gameState.activeQuestion.options.map((opt, idx) => {
                                                 const isCorrect = gameState.showAnswer && opt === gameState.activeQuestion?.answer;
-                                                // Check if this option was selected by the *current active player* (Turn Player)
-                                                // FIX: During STEAL_WINDOW, hide the previous player's wrong selection to clear the board
-                                                const isSelected = activePlayer?.round3QuizAnswer === opt && gameState.round3Phase !== 'STEAL_WINDOW';
+
+                                                // NEW LOGIC: Only show selected answer when teacher reveals it
+                                                // This hides the selection from spectators (other students)
+                                                const isSelected = gameState.showAnswer && activePlayer?.round3QuizAnswer === opt;
 
                                                 // Determine opacity/style based on reveal
                                                 // If showing ans: dim everything except Correct and Key Wrong selection
@@ -393,23 +394,16 @@ const SpectatorScreen: React.FC<Props> = ({ gameState, onLeave }) => {
                                                         // WRONG SELECTION -> RED
                                                         bgClass = 'bg-red-600 border-red-400 scale-105 shadow-[0_0_30px_rgba(239,68,68,0.5)]';
                                                     }
-                                                } else {
-                                                    // Live answering styling
-                                                    // Check if in DELAY -> Show WRONG (Red)
-                                                    if (gameState.round3Phase === 'SHOW_WRONG_DELAY' && isSelected) {
-                                                        bgClass = 'bg-red-600 border-red-400 scale-105 shadow-[0_0_30px_rgba(239,68,68,0.5)]';
-                                                    } else if (isSelected) {
-                                                        bgClass = 'bg-blue-900 border-blue-400 scale-105 shadow-[0_0_20px_rgba(96,165,250,0.5)] ring-2 ring-blue-500';
-                                                    }
                                                 }
+                                                // REMOVED: Live answering styling (no longer show selection before reveal)
 
                                                 return (
                                                     <div key={idx} className={`p-6 rounded-2xl border-2 flex items-center gap-4 transition-all duration-500 ${bgClass} ${opacityClass}`}>
-                                                        <div className={`w-12 h-12 rounded-full flex items-center justify-center font-black text-2xl border border-white/20 ${isSelected && !gameState.showAnswer ? 'bg-blue-500 text-white' : 'bg-black/40'}`}>
+                                                        <div className={`w-12 h-12 rounded-full flex items-center justify-center font-black text-2xl border border-white/20 bg-black/40`}>
                                                             {String.fromCharCode(65 + idx)}
                                                         </div>
                                                         <div className="text-2xl font-bold">{opt}</div>
-                                                        {isSelected && !gameState.showAnswer && <div className="ml-auto text-xs bg-blue-500 text-white px-2 py-1 rounded animate-pulse">SELECTED</div>}
+                                                        {/* Only show badges when answer is revealed */}
                                                         {isSelected && gameState.showAnswer && !isCorrect && <div className="ml-auto text-xs bg-red-800 text-white px-2 py-1 rounded font-bold">WRONG</div>}
                                                     </div>
                                                 );
