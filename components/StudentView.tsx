@@ -101,38 +101,51 @@ const StudentView: React.FC<Props> = ({ gameState, playerId, onBuzz, onSubmitRou
                     </div>
                 )}
 
-                {isRound2 && gameState.activeQuestion && !me.submittedRound2 && (
-                    <div className="w-full max-w-2xl space-y-4">
-                        <div className="bg-slate-800 p-4 rounded border border-cyber-primary">
-                            {gameState.activeQuestion.codeSnippet && (
-                                <CodeDisplay code={gameState.activeQuestion.codeSnippet} />
-                            )}
-                        </div>
-                        <textarea
-                            className="w-full h-40 bg-black text-green-400 font-mono p-4 rounded border border-gray-600 focus:border-cyber-primary focus:outline-none"
-                            placeholder="Type your fixed code here..."
-                            value={codeAnswer}
-                            onChange={(e) => setCodeAnswer(e.target.value)}
-                        />
-                        <button
-                            onClick={() => {
-                                onSubmitRound2(codeAnswer);
-                                setCodeAnswer('');
-                                playSound('SUBMIT');
-                            }}
-                            className="w-full bg-cyber-primary hover:bg-cyan-600 text-black font-bold py-4 rounded-lg flex items-center justify-center gap-2 transition-colors"
-                        >
-                            <Send size={20} /> SUBMIT CODE
-                        </button>
-                    </div>
-                )}
+                {isRound2 && gameState.activeQuestion && (() => {
+                    const currentQuestionId = gameState.round2Questions[gameState.round2CurrentQuestion];
+                    const hasSubmittedCurrent = me.round2Submissions?.some(s => s.questionId === currentQuestionId);
 
-                {isRound2 && me.submittedRound2 && (
-                    <div className="text-center">
-                        <div className="text-green-500 text-4xl mb-2">✔ Submitted</div>
-                        <p>Wait for results...</p>
-                    </div>
-                )}
+                    return !hasSubmittedCurrent ? (
+                        <div className="w-full max-w-2xl space-y-4">
+                            {/* QUESTION PROGRESS */}
+                            {gameState.round2Questions.length > 0 && (
+                                <div className="bg-cyber-primary/20 border border-cyber-primary px-4 py-2 rounded-lg text-center">
+                                    <span className="text-cyber-primary font-black text-xl">
+                                        Question {gameState.round2CurrentQuestion + 1} / 5
+                                    </span>
+                                </div>
+                            )}
+
+                            <div className="bg-slate-800 p-4 rounded border border-cyber-primary">
+                                {gameState.activeQuestion.codeSnippet && (
+                                    <CodeDisplay code={gameState.activeQuestion.codeSnippet} />
+                                )}
+                            </div>
+                            <textarea
+                                className="w-full h-40 bg-black text-green-400 font-mono p-4 rounded border border-gray-600 focus:border-cyber-primary focus:outline-none"
+                                placeholder="Type your fixed code here..."
+                                value={codeAnswer}
+                                onChange={(e) => setCodeAnswer(e.target.value)}
+                            />
+                            <button
+                                onClick={() => {
+                                    onSubmitRound2(codeAnswer);
+                                    setCodeAnswer('');
+                                    playSound('SUBMIT');
+                                }}
+                                className="w-full bg-cyber-primary hover:bg-cyan-600 text-black font-bold py-4 rounded-lg flex items-center justify-center gap-2 transition-colors"
+                            >
+                                <Send size={20} /> SUBMIT CODE
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="text-center">
+                            <div className="text-green-500 text-4xl mb-2">✔ Submitted</div>
+                            <p className="text-gray-400">Question {gameState.round2CurrentQuestion + 1} submitted!</p>
+                            <p className="text-sm text-gray-500 mt-2">Wait for next question...</p>
+                        </div>
+                    );
+                })()}
 
                 {isRound3 && (
                     <div className="w-full max-w-md">

@@ -305,22 +305,57 @@ const SpectatorScreen: React.FC<Props> = ({ gameState, onLeave }) => {
                                         </div>
 
                                         {/* TIME TAKEN DISPLAY */}
-                                        {viewingPlayer.round2Time && (
-                                            <div className="flex flex-col items-end">
-                                                <div className="text-gray-400 text-xs uppercase font-bold mb-1">Time Taken</div>
-                                                <div className="flex items-center gap-2 bg-slate-800 px-4 py-2 rounded-xl border border-blue-500/30 text-blue-400">
-                                                    <Clock size={24} />
-                                                    <span className="text-3xl font-mono font-bold text-white">{viewingPlayer.round2Time.toFixed(2)}s</span>
+                                        {(() => {
+                                            if (gameState.round === GameRound.ROUND_2) {
+                                                const currentQuestionId = gameState.round2Questions[gameState.round2CurrentQuestion];
+                                                const submission = viewingPlayer.round2Submissions?.find(s => s.questionId === currentQuestionId);
+                                                return submission?.time && (
+                                                    <div className="flex flex-col items-end">
+                                                        <div className="text-gray-400 text-xs uppercase font-bold mb-1">Time Taken</div>
+                                                        <div className="flex items-center gap-2 bg-slate-800 px-4 py-2 rounded-xl border border-blue-500/30 text-blue-400">
+                                                            <Clock size={24} />
+                                                            <span className="text-3xl font-mono font-bold text-white">{submission.time.toFixed(2)}s</span>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            }
+                                            return viewingPlayer.round2Time && (
+                                                <div className="flex flex-col items-end">
+                                                    <div className="text-gray-400 text-xs uppercase font-bold mb-1">Time Taken</div>
+                                                    <div className="flex items-center gap-2 bg-slate-800 px-4 py-2 rounded-xl border border-blue-500/30 text-blue-400">
+                                                        <Clock size={24} />
+                                                        <span className="text-3xl font-mono font-bold text-white">{viewingPlayer.round2Time.toFixed(2)}s</span>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        )}
+                                            );
+                                        })()}
                                     </div>
                                     <div className="flex-grow bg-black rounded-xl p-6 border-2 border-yellow-500/50 shadow-inner overflow-auto">
-                                        <pre className="text-green-400 font-mono text-3xl whitespace-pre-wrap">{viewingPlayer.round2Code || "// No code submitted"}</pre>
+                                        <pre className="text-green-400 font-mono text-3xl whitespace-pre-wrap">
+                                            {(() => {
+                                                if (gameState.round === GameRound.ROUND_2) {
+                                                    const currentQuestionId = gameState.round2Questions[gameState.round2CurrentQuestion];
+                                                    const submission = viewingPlayer.round2Submissions?.find(s => s.questionId === currentQuestionId);
+                                                    return submission?.code || "// No code submitted for this question";
+                                                }
+                                                return viewingPlayer.round2Code || "// No code submitted";
+                                            })()}
+                                        </pre>
                                     </div>
                                 </div>
                             ) : gameState.activeQuestion ? (
                                 <div className="flex-grow flex flex-col justify-center animate-in zoom-in-95 duration-300">
+                                    {/* ROUND 2 QUESTION PROGRESS */}
+                                    {gameState.round === GameRound.ROUND_2 && gameState.round2Questions.length > 0 && (
+                                        <div className="mb-6 text-center">
+                                            <div className="inline-block bg-cyber-primary/20 border-2 border-cyber-primary px-8 py-3 rounded-xl">
+                                                <span className="text-cyber-primary font-black text-3xl tracking-wider">
+                                                    Question {gameState.round2CurrentQuestion + 1} / 5
+                                                </span>
+                                            </div>
+                                        </div>
+                                    )}
+
                                     <div className="text-2xl text-cyber-secondary font-black mb-6 uppercase tracking-widest flex items-center gap-2">
                                         <Code2 size={28} />
                                         {gameState.activeQuestion.category || gameState.activeQuestion.difficulty || "CHALLENGE"}
@@ -442,12 +477,16 @@ const SpectatorScreen: React.FC<Props> = ({ gameState, onLeave }) => {
                                             </div>
                                             <div>
                                                 <div className="font-bold text-xl leading-none mb-1 truncate max-w-[120px]">{p.name}</div>
-                                                {/* SHOW SUBMITTED STATUS FOR ROUND 2 */}
-                                                {gameState.round === GameRound.ROUND_2 && p.submittedRound2 && (
-                                                    <span className="text-xs text-green-400 font-bold flex items-center gap-1 animate-in zoom-in">
-                                                        <CheckCircle size={12} fill="currentColor" className="text-green-900" /> SUBMITTED
-                                                    </span>
-                                                )}
+                                                {/* SHOW SUBMITTED STATUS FOR ROUND 2 - Current Question */}
+                                                {gameState.round === GameRound.ROUND_2 && (() => {
+                                                    const currentQuestionId = gameState.round2Questions[gameState.round2CurrentQuestion];
+                                                    const hasSubmitted = p.round2Submissions?.some(s => s.questionId === currentQuestionId);
+                                                    return hasSubmitted && (
+                                                        <span className="text-xs text-green-400 font-bold flex items-center gap-1 animate-in zoom-in">
+                                                            <CheckCircle size={12} fill="currentColor" className="text-green-900" /> SUBMITTED
+                                                        </span>
+                                                    );
+                                                })()}
                                                 {activePlayerId === p.id && <span className="text-xs text-blue-400 font-black animate-pulse uppercase tracking-tighter">● Answering</span>}
                                                 {gameState.activeStealPlayerId === p.id && <span className="text-xs text-red-500 font-black animate-pulse uppercase tracking-tighter">⚡ STEALING</span>}
                                             </div>
