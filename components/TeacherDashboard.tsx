@@ -161,6 +161,9 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                     <div className="flex justify-between items-center">
                         <h2 className="text-xl font-bold flex items-center gap-2"><Sparkles className="text-yellow-400" /> Round 1: Reflex Quiz</h2>
                         <span className="text-xs text-gray-500">Used: {gameState.usedQuestionIds.filter(id => id.startsWith('r1')).length} / {ROUND_1_QUESTIONS.length}</span>
+                        <span className={`text-xs font-bold px-2 py-1 rounded border ${gameState.players.length >= 10 ? 'bg-green-900/30 text-green-400 border-green-700' : 'bg-blue-900/30 text-blue-400 border-blue-700'}`}>
+                            Val: {gameState.players.length >= 10 ? '30pts' : '15pts'}/q
+                        </span>
                     </div>
 
                     <div className="bg-gray-800 p-4 rounded-lg border border-gray-700 mb-4">
@@ -241,11 +244,17 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                                     <button
                                         onClick={() => {
                                             playSound('CORRECT');
-                                            actions.updateScore(gameState.round1TurnPlayerId, gameState.activeQuestion?.points || 10);
+                                            // Dynamic Point Calculation
+                                            // If players >= 10: 30pts (needs 5 correct to reach 150)
+                                            // If players < 10: 15pts (needs 10 correct to reach 150)
+                                            const playerCount = gameState.players.length;
+                                            const points = playerCount >= 10 ? 30 : 15;
+
+                                            actions.updateScore(gameState.round1TurnPlayerId, points);
                                         }}
                                         className="px-4 py-2 bg-green-600 hover:bg-green-500 rounded font-bold flex items-center gap-2"
                                     >
-                                        <ThumbsUp size={16} /> Correct (+{gameState.activeQuestion?.points || 10})
+                                        <ThumbsUp size={16} /> Correct (+{gameState.players.length >= 10 ? 30 : 15})
                                     </button>
                                     <button
                                         onClick={() => {
@@ -372,14 +381,19 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                                             <button
                                                 onClick={() => {
                                                     // Add points and close
-                                                    const points = gameState.activeQuestion?.points || 0;
-                                                    actions.updateScore(viewingPlayer.id, points);
+                                                    // const points = gameState.activeQuestion?.points || 0;
+                                                    // actions.updateScore(viewingPlayer.id, points);
+
+                                                    // NEW: Use gradeRound2 for automatic bonus
+                                                    // Base Points: 120 (as per plan discussion: 120 base + 30 bonus = 150 max)
+                                                    actions.gradeRound2(viewingPlayer.id, true, 120);
+
                                                     playSound('CORRECT');
                                                     actions.setViewingPlayer(null);
                                                 }}
                                                 className="px-6 py-2 bg-green-600 hover:bg-green-500 text-white rounded font-bold flex items-center gap-2 shadow-lg hover:shadow-green-500/20 transition-all"
                                             >
-                                                <ThumbsUp size={18} /> CORRECT (+{gameState.activeQuestion?.points}pts)
+                                                <ThumbsUp size={18} /> CORRECT (+120pts + Bonus)
                                             </button>
                                         </div>
                                     </div>

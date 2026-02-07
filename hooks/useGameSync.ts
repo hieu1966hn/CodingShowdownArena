@@ -291,6 +291,12 @@ export const useGameSync = () => {
 
     const submitRound2 = (playerId: string, code: string) => {
         updateState((prev) => {
+            // STRICT DEADLINE CHECK
+            if (prev.timerEndTime && Date.now() > prev.timerEndTime) {
+                console.warn(`Player ${playerId} submitted late! Rejected.`);
+                return {};
+            }
+
             const now = Date.now();
             const timeTaken = prev.round2StartedAt ? (now - prev.round2StartedAt) / 1000 : 0;
             return {
@@ -298,9 +304,56 @@ export const useGameSync = () => {
                     ...p,
                     submittedRound2: true,
                     round2Time: timeTaken,
-                    round2Code: code
                 } : p)
             };
+        });
+    };
+
+    const gradeRound2 = (playerId: string, isCorrect: boolean, basePoints: number) => {
+        updateState((prev) => {
+            // 1. Mark current player status
+            let updatedPlayers = prev.players.map(p =>
+                p.id === playerId ? { ...p, round2Correct: isCorrect } : p
+            );
+
+            // 2. Identify ALL correct players (including the one just graded)
+            const correctPlayers = updatedPlayers.filter(p => p.round2Correct && p.round2Time !== undefined && p.round2Time !== null);
+
+            // 3. Sort by Time Ascending (Fastest First)
+            correctPlayers.sort((a, b) => (a.round2Time || 999999) - (b.round2Time || 999999));
+
+            // 4. Recalculate Scores for EVERYONE
+            updatedPlayers = updatedPlayers.map(p => {
+                // If not correct for R2, ensure R2 contribution is 0 (if was previously correct, remove points)
+                if (!p.round2Correct) {
+                    if (p.round2Score) {
+                        // Retract previous R2 score
+                        return { ...p, score: p.score - p.round2Score, round2Score: 0 };
+                    }
+                    return p;
+                }
+
+                // If Correct:
+                // Find Rank
+                const rank = correctPlayers.findIndex(cp => cp.id === p.id);
+                // Bonus Logic: Rank 0 (+30), Rank 1 (+20), Rank 2 (+10)
+                let bonus = 0;
+                if (rank === 0) bonus = 30;
+                else if (rank === 1) bonus = 20;
+                else if (rank === 2) bonus = 10;
+
+                const newR2Score = basePoints + bonus;
+                const oldR2Score = p.round2Score || 0;
+
+                // Update Total Score: Remove old R2 score, Add new R2 score
+                return {
+                    ...p,
+                    score: p.score - oldR2Score + newR2Score,
+                    round2Score: newR2Score
+                };
+            });
+
+            return { players: updatedPlayers };
         });
     };
 
@@ -441,7 +494,24 @@ export const useGameSync = () => {
             // Find which pack item corresponds to difficulty (simplified assumption: first PENDING item of that difficulty)
             const packIndex = currentPlayer.round3Pack.findIndex(item => item.difficulty === difficulty && item.status === 'PENDING');
 
-            const scoreDelta = isCorrect ? points : penalty;
+            // TIMEOUT check: If no answer selected, scoreDelta is 0 (No penalty)
+            let scoreDelta = 0;
+            let status: PackStatus = 'SKIP';
+
+            if (!currentPlayer.round3QuizAnswer) {
+                // Timeout / No Answer
+                scoreDelta = 0;
+                status = 'SKIP';
+            } else {
+                // Answered
+                if (isCorrect) {
+                    scoreDelta = points;
+                    status = 'CORRECT';
+                } else {
+                    scoreDelta = penalty;
+                    status = 'WRONG';
+                }
+            }
 
             // Allow score update even if packIndex is -1 (Extra questions)
             const updatedPlayers = prev.players.map(p => {
@@ -452,7 +522,7 @@ export const useGameSync = () => {
                 if (packIndex !== -1) {
                     newPack[packIndex] = {
                         ...newPack[packIndex],
-                        status: isCorrect ? 'CORRECT' : 'WRONG',
+                        status: status,
                         questionMode: prev.round3Mode
                     };
                 }
@@ -673,6 +743,7 @@ export const useGameSync = () => {
         submitQuizAnswer,
         autoGradeQuiz,
         startStealPhase,
-        kickPlayer
+        kickPlayer,
+        gradeRound2
     };
 };

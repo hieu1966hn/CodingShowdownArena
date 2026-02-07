@@ -23,8 +23,10 @@ export interface Player {
   isOnline: boolean;
   buzzedAt?: number | null; // Timestamp for round 3
   submittedRound2?: boolean;
-  round2Time?: number | null; // Time taken
+  round2Time?: number | null; // Time taken in seconds (float)
   round2Code?: string | null; // The code submitted by the student
+  round2Correct?: boolean; // NEW: Track if the submission was marked correct
+  round2Score?: number; // NEW: Track specific score for R2 (Base + Bonus) to allow recalc
   // Round 3 Specifics
   round3Pack: Round3Item[];
   round3PackLocked?: boolean; // Has the student locked in their choices?
