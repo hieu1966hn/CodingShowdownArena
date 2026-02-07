@@ -413,10 +413,10 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
 
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
                                 {gameState.players.map(p => (
-                                    <div key={p.id} className={`p-3 rounded-lg border-2 transition-all flex flex-col gap-2 ${p.submittedRound2 ? 'border-green-500 bg-green-900/20' : 'border-gray-700 bg-gray-800/50'} ${gameState.viewingPlayerId === p.id ? 'ring-2 ring-yellow-400 scale-105' : ''}`}>
+                                    <div key={p.id} className={`p-3 rounded-lg border-2 transition-all flex flex-col gap-2 ${p.round2Correct ? 'opacity-40 grayscale border-green-800 bg-green-950/20' : p.submittedRound2 ? 'border-green-500 bg-green-900/20' : 'border-gray-700 bg-gray-800/50'} ${gameState.viewingPlayerId === p.id ? 'ring-2 ring-yellow-400 scale-105 opacity-100 grayscale-0' : ''}`}>
                                         <div className="flex justify-between items-center">
                                             <span className="font-bold truncate max-w-[80px]">{p.name}</span>
-                                            {p.submittedRound2 ? <CheckCircle size={16} className="text-green-500" /> : <RefreshCw size={16} className="text-gray-600 animate-spin" />}
+                                            {p.round2Correct ? <CheckCircle size={16} className="text-green-600" /> : p.submittedRound2 ? <CheckCircle size={16} className="text-green-500" /> : <RefreshCw size={16} className="text-gray-600 animate-spin" />}
                                         </div>
 
                                         {/* TIME DISPLAY ON CARD */}
