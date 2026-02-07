@@ -504,15 +504,11 @@ export const useGameSync = () => {
 
     const resolveSteal = (stealerId: string, isCorrect: boolean, points: number) => {
         updateState((prev) => {
-            // Calculate penalty based on difficulty (half of points, rounded)
-            const difficulty = prev.activeQuestion?.difficulty || 'EASY';
-            const penalty = difficulty === 'EASY' ? 10 : difficulty === 'MEDIUM' ? 15 : 20;
-
             // Update score for stealer
             let updatedPlayers = prev.players.map(p => {
                 if (p.id === stealerId) {
-                    // CORRECT: +points, WRONG: -penalty (NOT -points!)
-                    const scoreDelta = isCorrect ? points : -penalty;
+                    // CORRECT: +points, WRONG: -points (SAME VALUE!)
+                    const scoreDelta = isCorrect ? points : -points;
                     const newScore = p.score + scoreDelta;
                     // If WRONG, remove buzzer so they can't spam, but allow others to buzz
                     return { ...p, score: Math.max(0, newScore), buzzedAt: isCorrect ? p.buzzedAt : null };
@@ -575,8 +571,8 @@ export const useGameSync = () => {
 
             const isCorrect = currentPlayer.round3QuizAnswer === prev.activeQuestion.answer;
             const difficulty = prev.activeQuestion.difficulty || 'EASY';
-            const points = difficulty === 'EASY' ? 20 : difficulty === 'MEDIUM' ? 30 : 40;
-            const penalty = difficulty === 'EASY' ? -10 : difficulty === 'MEDIUM' ? -15 : -20;
+            // NEW SCORING: EASY=40, MEDIUM=60, HARD=80
+            const points = difficulty === 'EASY' ? 40 : difficulty === 'MEDIUM' ? 60 : 80;
 
             // Find which pack item corresponds to difficulty (simplified assumption: first PENDING item of that difficulty)
             const packIndex = currentPlayer.round3Pack.findIndex(item => item.difficulty === difficulty && item.status === 'PENDING');
@@ -590,12 +586,12 @@ export const useGameSync = () => {
                 scoreDelta = 0;
                 status = 'SKIP';
             } else {
-                // Answered
+                // Answered: CORRECT = +points, WRONG = -points (SAME VALUE!)
                 if (isCorrect) {
                     scoreDelta = points;
                     status = 'CORRECT';
                 } else {
-                    scoreDelta = penalty;
+                    scoreDelta = -points; // -40, -60, or -80
                     status = 'WRONG';
                 }
             }

@@ -743,8 +743,8 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
 
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                     {p.round3Pack.map((item, idx) => {
-                                        const points = item.difficulty === 'EASY' ? 20 : item.difficulty === 'MEDIUM' ? 30 : 40;
-                                        const penalty = item.difficulty === 'EASY' ? -10 : item.difficulty === 'MEDIUM' ? -15 : -20;
+                                        // NEW SCORING: EASY=40, MEDIUM=60, HARD=80
+                                        const points = item.difficulty === 'EASY' ? 40 : item.difficulty === 'MEDIUM' ? 60 : 80;
 
                                         let statusIcon = null;
                                         if (item.status === 'CORRECT') statusIcon = <CheckCircle size={14} />;
@@ -783,8 +783,7 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                                                         <button
                                                             onClick={() => {
                                                                 playSound('CORRECT');
-                                                                let delta = points;
-                                                                actions.gradeRound3Question(p.id, idx, 'CORRECT', delta);
+                                                                actions.gradeRound3Question(p.id, idx, 'CORRECT', points);
                                                                 setTimeout(() => actions.clearBuzzers(), 100);
                                                             }}
                                                             className="py-2 bg-green-900/50 hover:bg-green-600 border border-green-700 text-green-200 hover:text-white rounded text-[10px] font-bold"
@@ -792,8 +791,8 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                                                         <button
                                                             onClick={() => {
                                                                 playSound('WRONG');
-                                                                let delta = penalty;
-                                                                actions.gradeRound3Question(p.id, idx, 'WRONG', delta);
+                                                                // WRONG: Use -points (not penalty!)
+                                                                actions.gradeRound3Question(p.id, idx, 'WRONG', -points);
                                                                 setTimeout(() => actions.clearBuzzers(), 100);
                                                             }}
                                                             className="py-2 bg-red-900/50 hover:bg-red-600 border border-red-700 text-red-200 hover:text-white rounded text-[10px] font-bold"
