@@ -4,7 +4,7 @@ import { GoogleGenAI } from "@google/genai";
 import { GameState, GameRound, Question, Player, Difficulty, PackStatus, QuestionCategory } from '../gameTypes';
 import { ROUND_1_QUESTIONS, ROUND_2_QUESTIONS, ROUND_3_QUESTIONS } from '../data/questions';
 import { SOUND_EFFECTS } from '../config/assets';
-import { Play, Check, X, Sparkles, RefreshCw, PlusCircle, MinusCircle, Code, Eye, Timer, User, Zap, Users, Monitor, Trophy, LogOut, Filter, CheckCircle, Pointer, Shuffle, ListOrdered, ChevronDown, ChevronUp, Database, EyeOff, XCircle, BookOpen, Terminal, Trash2, Clock, ThumbsUp, ThumbsDown, Hand, MessageSquare, LayoutGrid, SkipForward, UserX } from 'lucide-react';
+import { Play, Check, X, Sparkles, RefreshCw, PlusCircle, MinusCircle, Code, Eye, Timer, User, Zap, Users, Monitor, Trophy, LogOut, Filter, CheckCircle, Pointer, Shuffle, ListOrdered, ChevronDown, ChevronUp, Database, EyeOff, XCircle, BookOpen, Terminal, Trash2, Clock, ThumbsUp, ThumbsDown, Hand, MessageSquare, LayoutGrid, SkipForward, UserX, RotateCcw } from 'lucide-react';
 
 interface Props {
     gameState: GameState;
@@ -160,6 +160,60 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
 
             <RoundControl />
             <PlayerManager />
+
+            {/* RESET LEVEL CONTROLS */}
+            <div className="bg-gradient-to-r from-orange-900/20 to-red-900/20 border border-orange-500/30 p-4 rounded-lg mb-6 shadow-lg">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <RotateCcw className="text-orange-400" size={20} />
+                        <div>
+                            <h3 className="font-bold text-orange-400">Reset Level</h3>
+                            <p className="text-xs text-gray-400">Restore game to a previous checkpoint</p>
+                        </div>
+                    </div>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => {
+                                if (confirm('⚠️ Reset to Round 1?\n\nThis will:\n- Restore scores to Round 1 checkpoint\n- Clear Round 2 & 3 progress\n- Return to Round 1\n\nContinue?')) {
+                                    actions.resetToRound1();
+                                    playSound('CORRECT');
+                                }
+                            }}
+                            disabled={!gameState.checkpoints?.round1}
+                            className="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed rounded font-bold text-sm transition-all flex items-center gap-2"
+                            title={gameState.checkpoints?.round1 ? 'Reset to Round 1 checkpoint' : 'No checkpoint available'}
+                        >
+                            <RotateCcw size={16} /> Round 1
+                        </button>
+                        <button
+                            onClick={() => {
+                                if (confirm('⚠️ Reset to Round 2?\n\nThis will:\n- Restore scores to Round 2 checkpoint\n- Clear Round 3 progress\n- Return to Round 2\n\nContinue?')) {
+                                    actions.resetToRound2();
+                                    playSound('CORRECT');
+                                }
+                            }}
+                            disabled={!gameState.checkpoints?.round2}
+                            className="px-4 py-2 bg-purple-600 hover:bg-purple-500 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed rounded font-bold text-sm transition-all flex items-center gap-2"
+                            title={gameState.checkpoints?.round2 ? 'Reset to Round 2 checkpoint' : 'No checkpoint available'}
+                        >
+                            <RotateCcw size={16} /> Round 2
+                        </button>
+                        <button
+                            onClick={() => {
+                                if (confirm('⚠️ Reset to Round 3?\n\nThis will:\n- Restore scores to Round 3 checkpoint\n- Return to Round 3\n\nContinue?')) {
+                                    actions.resetToRound3();
+                                    playSound('CORRECT');
+                                }
+                            }}
+                            disabled={!gameState.checkpoints?.round3}
+                            className="px-4 py-2 bg-green-600 hover:bg-green-500 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed rounded font-bold text-sm transition-all flex items-center gap-2"
+                            title={gameState.checkpoints?.round3 ? 'Reset to Round 3 checkpoint' : 'No checkpoint available'}
+                        >
+                            <RotateCcw size={16} /> Round 3
+                        </button>
+                    </div>
+                </div>
+            </div>
 
             {/* ROUND 1 VIEW */}
             {gameState.round === GameRound.ROUND_1 && (
