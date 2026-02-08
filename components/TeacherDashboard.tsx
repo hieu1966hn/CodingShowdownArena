@@ -100,6 +100,22 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                     <>
                         <button onClick={() => actions.clearBuzzers()} className="px-3 py-1 bg-gray-600 rounded text-sm">Reset Buzzers</button>
                         <button onClick={() => actions.stopTimer()} className="px-3 py-1 bg-red-900 rounded text-sm">Stop Timer</button>
+
+                        {/* RESET SESSION - Only in LOBBY */}
+                        {gameState.round === GameRound.LOBBY && (
+                            <button
+                                onClick={() => {
+                                    if (confirm('🚨 RESET SESSION?\n\nThis will:\n- Reset ALL player scores to 0\n- Clear ALL checkpoints\n- Clear ALL game progress\n- Return to fresh LOBBY state\n\nThis action CANNOT be undone!\n\nContinue?')) {
+                                        actions.resetGame();
+                                        playSound('WRONG');
+                                    }
+                                }}
+                                className="px-3 py-1 bg-red-600 hover:bg-red-500 rounded text-sm font-bold flex items-center gap-1 ml-auto transition-colors"
+                                title="Reset entire session - clears all progress and checkpoints"
+                            >
+                                <Trash2 size={14} /> Reset Session
+                            </button>
+                        )}
                     </>
                 )}
             </div>
