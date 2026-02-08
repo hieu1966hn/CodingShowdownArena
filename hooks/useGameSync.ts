@@ -560,8 +560,24 @@ export const useGameSync = () => {
                 };
             }
 
+            // MATCH QUIZ MODE BEHAVIOR: If WRONG, trigger STEAL mechanism
+            if (newStatus === 'WRONG') {
+                return {
+                    players: updatedPlayers,
+                    showAnswer: false, // Keep answer hidden during steal
+                    round3Phase: 'SHOW_WRONG_DELAY',
+                    buzzerLocked: true,
+                    timerEndTime: Date.now() + 3000, // 3s delay before steal
+                    message: `❌ Wrong answer! Steal window opening...`
+                };
+            }
+
+            // CORRECT or SKIP: Just update players, continue to next question
             return {
-                players: updatedPlayers
+                players: updatedPlayers,
+                round3Phase: 'IDLE', // Ready for next question
+                activeQuestion: null,
+                timerEndTime: null
             };
         });
     };
