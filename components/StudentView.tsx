@@ -251,7 +251,7 @@ const StudentView: React.FC<Props> = ({ gameState, playerId, onBuzz, onSubmitRou
                                                                 disabled={!gameState.timerEndTime}
                                                                 className={`p-6 border rounded-xl text-left transition-all flex items-center gap-4 ${!gameState.timerEndTime
                                                                     ? 'bg-gray-800 border-gray-700 text-gray-500 cursor-not-allowed opacity-50'
-                                                                    : 'bg-slate-800 hover:bg-purple-900 border-gray-600 hover:border-purple-500 active:scale-95'
+                                                                    : 'bg-slate-800 md:hover:bg-purple-900 border-gray-600 md:hover:border-purple-500 active:scale-95'
                                                                     }`}
                                                             >
                                                                 <div className="w-8 h-8 rounded-full bg-black/40 flex items-center justify-center font-bold text-sm border border-white/20">
