@@ -57,6 +57,26 @@ export interface Question {
 export type Round3Phase = 'IDLE' | 'MAIN_ANSWER' | 'STEAL_WINDOW' | 'SHOW_WRONG_DELAY';
 export type Round3Mode = 'ORAL' | 'QUIZ'; // NEW: Mode selection
 
+// NEW: Checkpoint System for Reset Level feature
+export interface PlayerCheckpoint {
+  playerId: string;
+  playerName: string;
+  score: number;
+  round1Score?: number;
+  round2Score?: number;
+  round3Score?: number;
+  // Preserve player-specific data
+  round2Submissions?: Player['round2Submissions'];
+  round3Pack?: Round3Item[];
+  round3PackLocked?: boolean;
+}
+
+export interface Checkpoints {
+  round1?: PlayerCheckpoint[]; // Saved after Round 1 completes
+  round2?: PlayerCheckpoint[]; // Saved after Round 2 completes
+  round3?: PlayerCheckpoint[]; // Saved after Round 3 completes
+}
+
 export interface GameState {
   roomId?: string;
   round: GameRound;
@@ -78,6 +98,7 @@ export interface GameState {
   stealTimerPausedRemaining?: number | null; // NEW: When buzz happens, we pause timer and store remaining ms
   round2CurrentQuestion: number; // NEW: Track which question (0-4) is currently active in Round 2
   round2Questions: string[]; // NEW: Array of 5 question IDs for Round 2
+  checkpoints?: Checkpoints; // NEW: Checkpoint system for Reset Level
 }
 
 export const INITIAL_STATE: GameState = {
@@ -99,5 +120,6 @@ export const INITIAL_STATE: GameState = {
   viewingPlayerId: null,
   stealTimerPausedRemaining: null,
   round2CurrentQuestion: 0,
-  round2Questions: []
+  round2Questions: [],
+  checkpoints: {} // Initialize empty checkpoints
 };

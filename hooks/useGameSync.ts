@@ -178,22 +178,75 @@ export const useGameSync = () => {
     };
 
     const setRound = (round: GameRound) => {
-        updateState((prev) => ({
-            round,
-            message: `📢 Entering ${round}...`,
-            activeQuestion: null,
-            timerEndTime: null,
-            buzzerLocked: true,
-            round3Phase: 'IDLE',
-            round3TurnPlayerId: null,
-            activeStealPlayerId: null, // Reset steal
-            round1TurnPlayerId: null,
-            showAnswer: false,
-            viewingPlayerId: null,
-            round3Mode: 'ORAL', // Reset mode to ORAL default
-            // Clear any round-specific temporary states
-            usedQuestionIds: round === GameRound.LOBBY ? [] : prev.usedQuestionIds // Optional: Reset questions if going back to Lobby? No, easier to keep.
-        }));
+        updateState((prev) => {
+            // AUTO-SAVE CHECKPOINT before transitioning
+            let updatedCheckpoints = { ...prev.checkpoints };
+
+            // Save checkpoint when LEAVING a round (entering next round)
+            if (prev.round === GameRound.ROUND_1 && round === GameRound.ROUND_2) {
+                // Completed Round 1 → Save Checkpoint 1
+                updatedCheckpoints.round1 = prev.players.map(p => ({
+                    playerId: p.id,
+                    playerName: p.name,
+                    score: p.score,
+                    round1Score: p.score, // R1 score only
+                    round2Submissions: p.round2Submissions,
+                    round3Pack: p.round3Pack,
+                    round3PackLocked: p.round3PackLocked
+                }));
+            } else if (prev.round === GameRound.ROUND_2 && round === GameRound.ROUND_3) {
+                // Completed Round 2 → Save Checkpoint 2
+                updatedCheckpoints.round2 = prev.players.map(p => ({
+                    playerId: p.id,
+                    playerName: p.name,
+                    score: p.score,
+                    round1Score: updatedCheckpoints.round1?.find(cp => cp.playerId === p.id)?.round1Score || 0,
+                    round2Score: p.score - (updatedCheckpoints.round1?.find(cp => cp.playerId === p.id)?.round1Score || 0),
+                    round2Submissions: p.round2Submissions,
+                    round3Pack: p.round3Pack,
+                    round3PackLocked: p.round3PackLocked
+                }));
+            } else if (prev.round === GameRound.ROUND_3 && round === GameRound.GAME_OVER) {
+                // Completed Round 3 → Save Checkpoint 3
+                const r1Score = updatedCheckpoints.round1?.find(cp => cp.playerId === prev.players[0]?.id)?.round1Score || 0;
+                const r2Score = updatedCheckpoints.round2?.find(cp => cp.playerId === prev.players[0]?.id)?.round2Score || 0;
+
+                updatedCheckpoints.round3 = prev.players.map(p => {
+                    const playerR1 = updatedCheckpoints.round1?.find(cp => cp.playerId === p.id)?.round1Score || 0;
+                    const playerR2 = updatedCheckpoints.round2?.find(cp => cp.playerId === p.id)?.round2Score || 0;
+
+                    return {
+                        playerId: p.id,
+                        playerName: p.name,
+                        score: p.score,
+                        round1Score: playerR1,
+                        round2Score: playerR2,
+                        round3Score: p.score - playerR1 - playerR2,
+                        round2Submissions: p.round2Submissions,
+                        round3Pack: p.round3Pack,
+                        round3PackLocked: p.round3PackLocked
+                    };
+                });
+            }
+
+            return {
+                round,
+                message: `📢 Entering ${round}...`,
+                activeQuestion: null,
+                timerEndTime: null,
+                buzzerLocked: true,
+                round3Phase: 'IDLE',
+                round3TurnPlayerId: null,
+                activeStealPlayerId: null, // Reset steal
+                round1TurnPlayerId: null,
+                showAnswer: false,
+                viewingPlayerId: null,
+                round3Mode: 'ORAL', // Reset mode to ORAL default
+                checkpoints: updatedCheckpoints, // Save checkpoint
+                // Clear any round-specific temporary states
+                usedQuestionIds: round === GameRound.LOBBY ? [] : prev.usedQuestionIds
+            };
+        });
     };
 
     const setQuestion = (question: Question) => {
@@ -763,6 +816,146 @@ export const useGameSync = () => {
         }
     };
 
+    // NEW: Reset Level Functions - Restore from checkpoints
+    const resetToRound1 = () => {
+        if (!gameState.checkpoints?.round1) {
+            alert('No checkpoint found for Round 1!');
+            return;
+        }
+
+        updateState((prev) => {
+            const checkpoint = prev.checkpoints?.round1;
+            if (!checkpoint) return {};
+
+            // Restore players from checkpoint
+            const restoredPlayers = prev.players.map(p => {
+                const cp = checkpoint.find(c => c.playerId === p.id);
+                if (!cp) return p; // Keep current if no checkpoint
+
+                return {
+                    ...p,
+                    score: cp.round1Score || 0,
+                    round2Submissions: [],
+                    round3Pack: [
+                        { difficulty: 'EASY' as Difficulty, status: 'PENDING' as PackStatus },
+                        { difficulty: 'MEDIUM' as Difficulty, status: 'PENDING' as PackStatus },
+                        { difficulty: 'HARD' as Difficulty, status: 'PENDING' as PackStatus }
+                    ],
+                    round3PackLocked: false,
+                    round3QuizAnswer: null
+                };
+            });
+
+            return {
+                round: GameRound.ROUND_1,
+                players: restoredPlayers,
+                activeQuestion: null,
+                timerEndTime: null,
+                buzzerLocked: true,
+                round3Phase: 'IDLE',
+                round3TurnPlayerId: null,
+                activeStealPlayerId: null,
+                round1TurnPlayerId: null,
+                showAnswer: false,
+                message: '🔄 Reset to Round 1 checkpoint',
+                round2CurrentQuestion: 0,
+                round2Questions: []
+            };
+        });
+    };
+
+    const resetToRound2 = () => {
+        if (!gameState.checkpoints?.round2) {
+            alert('No checkpoint found for Round 2!');
+            return;
+        }
+
+        updateState((prev) => {
+            const checkpoint = prev.checkpoints?.round2;
+            if (!checkpoint) return {};
+
+            // Restore players from checkpoint
+            const restoredPlayers = prev.players.map(p => {
+                const cp = checkpoint.find(c => c.playerId === p.id);
+                if (!cp) return p;
+
+                return {
+                    ...p,
+                    score: (cp.round1Score || 0) + (cp.round2Score || 0),
+                    round2Submissions: cp.round2Submissions || [],
+                    round3Pack: [
+                        { difficulty: 'EASY', status: 'PENDING' },
+                        { difficulty: 'MEDIUM', status: 'PENDING' },
+                        { difficulty: 'HARD', status: 'PENDING' }
+                    ],
+                    round3PackLocked: false,
+                    round3QuizAnswer: null
+                };
+            });
+
+            return {
+                round: GameRound.ROUND_2,
+                players: restoredPlayers,
+                activeQuestion: null,
+                timerEndTime: null,
+                buzzerLocked: true,
+                round3Phase: 'IDLE',
+                round3TurnPlayerId: null,
+                activeStealPlayerId: null,
+                round1TurnPlayerId: null,
+                showAnswer: false,
+                message: '🔄 Reset to Round 2 checkpoint',
+                round2CurrentQuestion: 0,
+                round2Questions: []
+            };
+        });
+    };
+
+    const resetToRound3 = () => {
+        if (!gameState.checkpoints?.round3) {
+            alert('No checkpoint found for Round 3!');
+            return;
+        }
+
+        updateState((prev) => {
+            const checkpoint = prev.checkpoints?.round3;
+            if (!checkpoint) return {};
+
+            // Restore players from checkpoint
+            const restoredPlayers = prev.players.map(p => {
+                const cp = checkpoint.find(c => c.playerId === p.id);
+                if (!cp) return p;
+
+                return {
+                    ...p,
+                    score: (cp.round1Score || 0) + (cp.round2Score || 0) + (cp.round3Score || 0),
+                    round2Submissions: cp.round2Submissions || [],
+                    round3Pack: cp.round3Pack || [
+                        { difficulty: 'EASY' as Difficulty, status: 'PENDING' as PackStatus },
+                        { difficulty: 'MEDIUM' as Difficulty, status: 'PENDING' as PackStatus },
+                        { difficulty: 'HARD' as Difficulty, status: 'PENDING' as PackStatus }
+                    ],
+                    round3PackLocked: cp.round3PackLocked || false,
+                    round3QuizAnswer: null
+                };
+            });
+
+            return {
+                round: GameRound.ROUND_3,
+                players: restoredPlayers,
+                activeQuestion: null,
+                timerEndTime: null,
+                buzzerLocked: true,
+                round3Phase: 'IDLE',
+                round3TurnPlayerId: null,
+                activeStealPlayerId: null,
+                round1TurnPlayerId: null,
+                showAnswer: false,
+                message: '🔄 Reset to Round 3 checkpoint'
+            };
+        });
+    };
+
     const forceSync = () => { };
 
     const toggleShowAnswer = () => {
@@ -914,6 +1107,10 @@ export const useGameSync = () => {
         gradeRound2Question,
         initRound2Questions,
         nextRound2Question,
-        replaceRound2Question
+        replaceRound2Question,
+        // NEW: Reset Level functions
+        resetToRound1,
+        resetToRound2,
+        resetToRound3
     };
 };
