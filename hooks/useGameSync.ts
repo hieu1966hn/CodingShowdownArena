@@ -523,8 +523,8 @@ export const useGameSync = () => {
     };
 
     const gradeRound3Question = (playerId: string, packIndex: number, newStatus: PackStatus, scoreDelta: number) => {
-        updateState((prev) => ({
-            players: prev.players.map(p => {
+        updateState((prev) => {
+            const updatedPlayers = prev.players.map(p => {
                 if (p.id !== playerId) return p;
 
                 const newPack = [...p.round3Pack];
@@ -542,8 +542,28 @@ export const useGameSync = () => {
                     round3Pack: newPack,
                     score: newScore < 0 ? 0 : newScore
                 };
-            })
-        }));
+            });
+
+            // Check if current player has completed all 3 questions
+            const currentPlayer = updatedPlayers.find(p => p.id === playerId);
+            const allQuestionsAnswered = currentPlayer?.round3Pack.every(item => item.status !== 'PENDING');
+
+            // If all 3 questions answered, clear turn and reset phase
+            if (allQuestionsAnswered) {
+                return {
+                    players: updatedPlayers,
+                    round3TurnPlayerId: null,
+                    round3Phase: 'IDLE',
+                    activeQuestion: null,
+                    timerEndTime: null,
+                    message: `🎉 ${currentPlayer?.name} completed all questions!`
+                };
+            }
+
+            return {
+                players: updatedPlayers
+            };
+        });
     };
 
     // --- NEW STEAL LOGIC ---
