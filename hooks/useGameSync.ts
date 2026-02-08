@@ -229,6 +229,27 @@ export const useGameSync = () => {
                 });
             }
 
+            // AUTO-INIT ROUND 2 if entering Round 2 with no questions
+            let round2AutoInit = {};
+            if (round === GameRound.ROUND_2 && prev.round2Questions.length === 0) {
+                const availableQuestions = ROUND_2_QUESTIONS.filter(q => !prev.usedQuestionIds.includes(q.id));
+                const shuffled = [...availableQuestions].sort(() => Math.random() - 0.5);
+                const selected = shuffled.slice(0, 5);
+
+                round2AutoInit = {
+                    round2Questions: selected.map(q => q.id),
+                    round2CurrentQuestion: 0,
+                    activeQuestion: selected[0] || null,
+                    usedQuestionIds: [...prev.usedQuestionIds, ...selected.map(q => q.id)],
+                    message: `📢 Entering ${round}... (5 questions initialized)`,
+                    // Reset all player submissions for fresh start
+                    players: prev.players.map(p => ({
+                        ...p,
+                        round2Submissions: []
+                    }))
+                };
+            }
+
             return {
                 round,
                 message: `📢 Entering ${round}...`,
@@ -244,7 +265,9 @@ export const useGameSync = () => {
                 round3Mode: 'ORAL', // Reset mode to ORAL default
                 checkpoints: updatedCheckpoints, // Save checkpoint
                 // Clear any round-specific temporary states
-                usedQuestionIds: round === GameRound.LOBBY ? [] : prev.usedQuestionIds
+                usedQuestionIds: round === GameRound.LOBBY ? [] : prev.usedQuestionIds,
+                // Apply auto-init if applicable
+                ...round2AutoInit
             };
         });
     };
