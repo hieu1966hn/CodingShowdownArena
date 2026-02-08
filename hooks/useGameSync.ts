@@ -843,10 +843,20 @@ export const useGameSync = () => {
             const updatedUsedIds = prev.usedQuestionIds.filter(id => id !== oldQuestionId);
             updatedUsedIds.push(newQuestion.id);
 
+            // IMPORTANT: Remove submissions for the OLD question from ALL players
+            // This allows students to re-submit for the NEW question
+            const updatedPlayers = prev.players.map(p => ({
+                ...p,
+                round2Submissions: (p.round2Submissions || []).filter(
+                    sub => sub.questionId !== oldQuestionId
+                )
+            }));
+
             return {
                 round2Questions: newQuestions,
                 activeQuestion: newQuestion,
-                usedQuestionIds: updatedUsedIds
+                usedQuestionIds: updatedUsedIds,
+                players: updatedPlayers // Clear old submissions
             };
         });
     };

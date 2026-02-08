@@ -337,12 +337,19 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                                         onClick={() => {
                                             // If 5 questions initialized, replace current question
                                             if (gameState.round2Questions.length > 0) {
-                                                actions.replaceRound2Question(q);
+                                                // Confirm replacement to avoid accidents
+                                                if (confirm(`Replace current question (${gameState.round2CurrentQuestion + 1}/5) with this one?\n\nThis will clear all student submissions for the current question.`)) {
+                                                    actions.replaceRound2Question(q);
+                                                    playSound('CORRECT'); // Feedback sound
+                                                }
                                             } else {
                                                 // Otherwise, just set as active question (old behavior)
                                                 actions.setQuestion(q);
                                             }
                                         }}
+                                        title={gameState.round2Questions.length > 0
+                                            ? `Click to REPLACE current question (${gameState.round2CurrentQuestion + 1}/5) with this one`
+                                            : 'Click to select this question'}
                                         className={`p-4 rounded text-left border relative transition-all ${gameState.activeQuestion?.id === q.id
                                             ? 'border-cyber-primary bg-slate-800 shadow-[0_0_15px_rgba(6,182,212,0.3)] scale-105 z-10'
                                             : isInCurrentSet
