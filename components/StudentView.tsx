@@ -101,7 +101,23 @@ const StudentView: React.FC<Props> = ({ gameState, playerId, onBuzz, onSubmitRou
                     </div>
                 )}
 
-                {isRound2 && gameState.activeQuestion && (() => {
+                {/* ROUND 2: Show question OR submitted state OR waiting state */}
+                {isRound2 && (() => {
+                    // If no active question, show waiting state
+                    if (!gameState.activeQuestion) {
+                        return (
+                            <div className="text-center">
+                                <div className="text-gray-400 text-2xl mb-2">⏳ Waiting for next question...</div>
+                                {gameState.round2Questions.length > 0 && (
+                                    <p className="text-sm text-gray-500">
+                                        Question {gameState.round2CurrentQuestion + 1} / 5
+                                    </p>
+                                )}
+                            </div>
+                        );
+                    }
+
+                    // If active question exists, check submission status
                     const currentQuestionId = gameState.round2Questions[gameState.round2CurrentQuestion];
                     const hasSubmittedCurrent = me.round2Submissions?.some(s => s.questionId === currentQuestionId);
 
@@ -234,8 +250,8 @@ const StudentView: React.FC<Props> = ({ gameState, playerId, onBuzz, onSubmitRou
                                                                 onClick={() => gameState.timerEndTime && onSubmitQuizAnswer && onSubmitQuizAnswer(opt)}
                                                                 disabled={!gameState.timerEndTime}
                                                                 className={`p-6 border rounded-xl text-left transition-all flex items-center gap-4 ${!gameState.timerEndTime
-                                                                        ? 'bg-gray-800 border-gray-700 text-gray-500 cursor-not-allowed opacity-50'
-                                                                        : 'bg-slate-800 hover:bg-purple-900 border-gray-600 hover:border-purple-500 active:scale-95'
+                                                                    ? 'bg-gray-800 border-gray-700 text-gray-500 cursor-not-allowed opacity-50'
+                                                                    : 'bg-slate-800 hover:bg-purple-900 border-gray-600 hover:border-purple-500 active:scale-95'
                                                                     }`}
                                                             >
                                                                 <div className="w-8 h-8 rounded-full bg-black/40 flex items-center justify-center font-bold text-sm border border-white/20">
