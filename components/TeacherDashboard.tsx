@@ -85,7 +85,7 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                                     <UserX size={14} />
                                 </button>
                             )}
-                            <span className="font-bold whitespace-nowrap overflow-x-auto max-w-[120px] scrollbar-hide block" title={p.name}>{p.name}</span>
+                            <span className="font-bold whitespace-nowrap" title={p.name}>{p.name}</span>
                         </div>
                         <div className="flex items-center gap-1">
                             {!isReadOnly && <button onClick={() => { playSound('SCORE_DOWN'); actions.updateScore(p.id, -10); }} className="text-red-400 p-1"><MinusCircle size={16} /></button>}
