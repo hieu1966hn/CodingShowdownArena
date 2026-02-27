@@ -567,7 +567,7 @@ export const useGameSync = () => {
                     showAnswer: false, // Keep answer hidden during steal
                     round3Phase: 'SHOW_WRONG_DELAY',
                     buzzerLocked: true,
-                    timerEndTime: Date.now() + 3000, // 3s delay before steal
+                    timerEndTime: Date.now() + 5000, // 5s delay before steal
                     message: `❌ Wrong answer! Steal window opening...`
                 };
             }
@@ -744,7 +744,7 @@ export const useGameSync = () => {
                     showAnswer: false, // Keep correct answer hidden
                     round3Phase: 'SHOW_WRONG_DELAY',
                     buzzerLocked: true, // Keep locked during delay
-                    timerEndTime: Date.now() + 3000 // 3s delay
+                    timerEndTime: Date.now() + 5000 // 5s delay
                 };
             }
         });
