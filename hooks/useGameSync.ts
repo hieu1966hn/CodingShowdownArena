@@ -864,9 +864,9 @@ export const useGameSync = () => {
                     submittedRound2: false,
                     round3PackLocked: false,
                     round3Pack: [
-                        { difficulty: 'EASY', status: 'PENDING' },
-                        { difficulty: 'MEDIUM', status: 'PENDING' },
-                        { difficulty: 'HARD', status: 'PENDING' }
+                        { difficulty: 'EASY' as Difficulty, status: 'PENDING' as PackStatus },
+                        { difficulty: 'MEDIUM' as Difficulty, status: 'PENDING' as PackStatus },
+                        { difficulty: 'HARD' as Difficulty, status: 'PENDING' as PackStatus }
                     ],
                     round3QuizAnswer: null
                 })),
@@ -943,9 +943,9 @@ export const useGameSync = () => {
                     score: (cp.round1Score || 0) + (cp.round2Score || 0),
                     round2Submissions: cp.round2Submissions || [],
                     round3Pack: [
-                        { difficulty: 'EASY', status: 'PENDING' },
-                        { difficulty: 'MEDIUM', status: 'PENDING' },
-                        { difficulty: 'HARD', status: 'PENDING' }
+                        { difficulty: 'EASY' as Difficulty, status: 'PENDING' as PackStatus },
+                        { difficulty: 'MEDIUM' as Difficulty, status: 'PENDING' as PackStatus },
+                        { difficulty: 'HARD' as Difficulty, status: 'PENDING' as PackStatus }
                     ],
                     round3PackLocked: false,
                     round3QuizAnswer: null
