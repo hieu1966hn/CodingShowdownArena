@@ -779,12 +779,19 @@ export const useGameSync = () => {
             }
 
             if (selectedQ) {
-                // Ensure options are shuffled if they exist
-                const finalQ = { ...selectedQ };
+                // Deep copy to avoid mutating original ROUND_3_QUESTIONS source data
+                const finalQ = { ...selectedQ, options: selectedQ.options ? [...selectedQ.options] : undefined };
+
+                // Fisher-Yates shuffle — đảm bảo xáo trộn đều, không bias
                 if (finalQ.options) {
-                    // Simple shuffle
-                    finalQ.options = [...finalQ.options].sort(() => Math.random() - 0.5);
+                    const opts = finalQ.options;
+                    for (let i = opts.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1));
+                        [opts[i], opts[j]] = [opts[j], opts[i]];
+                    }
+                    finalQ.options = opts;
                 }
+                // answer vẫn là text gốc => grading so sánh text đúng dù options đã bị xáo
 
                 return {
                     activeQuestion: finalQ,
