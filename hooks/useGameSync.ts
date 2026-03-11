@@ -313,6 +313,7 @@ export const useGameSync = () => {
 
     const setQuestion = (question: Question) => {
         updateState((prev) => {
+            const isRound1 = prev.round === GameRound.ROUND_1;
             const isRound2 = prev.round === GameRound.ROUND_2;
             const updatedPlayers = isRound2 ? prev.players.map(p => ({
                 ...p,
@@ -324,6 +325,12 @@ export const useGameSync = () => {
                 round3QuizAnswer: null // Reset quiz answer for new question
             }));
 
+            // Phase1-A2: Auto-start 5s timer for R1
+            const r1AutoTimer = isRound1 ? {
+                timerEndTime: Date.now() + 5000,
+                buzzerLocked: false
+            } : {};
+
             return {
                 activeQuestion: question,
                 buzzerLocked: true,
@@ -333,7 +340,8 @@ export const useGameSync = () => {
                 players: updatedPlayers,
                 showAnswer: false,
                 viewingPlayerId: null,
-                activeStealPlayerId: null
+                activeStealPlayerId: null,
+                ...r1AutoTimer
             };
         });
     };
@@ -377,6 +385,67 @@ export const useGameSync = () => {
                 return { ...p, score: newScore < 0 ? 0 : newScore };
             })
         }));
+    };
+
+    // Phase1-A3: Grade R1 question — track count + auto-clear
+    const gradeRound1 = (playerId: string, isCorrect: boolean) => {
+        updateState((prev) => {
+            const playerCount = prev.players.length;
+            const maxQuestions = playerCount >= 10 ? 5 : 10;
+            const points = playerCount >= 10 ? 30 : 15;
+            const currentAsked = prev.round1QuestionsAsked[playerId] || 0;
+            const newAsked = currentAsked + 1;
+
+            // Update the counter
+            const updatedAsked = { ...prev.round1QuestionsAsked, [playerId]: newAsked };
+
+            // Update score if correct
+            const updatedPlayers = prev.players.map(p => {
+                if (p.id !== playerId) return p;
+                if (!isCorrect) return p;
+                return { ...p, score: p.score + points };
+            });
+
+            // Auto-clear activeQuestion + if student reached quota, clear turn
+            const shouldClearTurn = newAsked >= maxQuestions;
+
+            return {
+                players: updatedPlayers,
+                round1QuestionsAsked: updatedAsked,
+                // Auto-clear question after grading
+                activeQuestion: null,
+                showAnswer: false,
+                timerEndTime: null,
+                buzzerLocked: true,
+                ...(shouldClearTurn ? { round1TurnPlayerId: null } : {})
+            };
+        });
+    };
+
+    // Phase1-B1: Confirm R2 review — teacher approved the 5-question set
+    const confirmRound2Review = () => {
+        updateState((prev) => {
+            if (prev.round2Questions.length === 0) return {};
+
+            // Start timer for the first question immediately
+            const firstQ = ROUND_2_QUESTIONS.find(q => q.id === prev.round2Questions[0]);
+            let duration = 25;
+            if (firstQ) {
+                switch (firstQ.difficulty) {
+                    case 'EASY': duration = 20; break;
+                    case 'MEDIUM': duration = 60; break;
+                    case 'HARD': duration = 120; break;
+                    default: duration = 25;
+                }
+            }
+            const now = Date.now();
+            return {
+                round2Reviewed: true,
+                timerEndTime: now + duration * 1000,
+                round2StartedAt: now,
+                buzzerLocked: true
+            };
+        });
     };
 
     const buzz = (playerId: string) => {
@@ -545,7 +614,7 @@ export const useGameSync = () => {
         gradeRound2Question(playerId, isCorrect);
     };
 
-    const setRound1Turn = (playerId: string | null) => updateState({ round1TurnPlayerId: playerId, showAnswer: false });
+    const setRound1Turn = (playerId: string | null) => updateState({ round1TurnPlayerId: playerId, showAnswer: false, activeQuestion: null, timerEndTime: null });
 
     const setRound3Pack = (playerId: string, pack: Round3Item[]) => {
         updateState((prev) => ({
@@ -652,12 +721,16 @@ export const useGameSync = () => {
     };
 
     const cancelStealPhase = () => {
-        updateState({
+        updateState((prev) => ({
             round3Phase: 'IDLE',
             activeStealPlayerId: null,
             buzzerLocked: true,
-            timerEndTime: null
-        });
+            timerEndTime: null,
+            activeQuestion: null,
+            showAnswer: false,
+            stealTimerPausedRemaining: null,
+            players: prev.players.map(p => ({ ...p, buzzedAt: null }))
+        }));
     };
 
     const resolveSteal = (stealerId: string, isCorrect: boolean, points: number) => {
@@ -668,8 +741,8 @@ export const useGameSync = () => {
                     // CORRECT: +points, WRONG: -points (SAME VALUE!)
                     const scoreDelta = isCorrect ? points : -points;
                     const newScore = p.score + scoreDelta;
-                    // If WRONG, remove buzzer so they can't spam, but allow others to buzz
-                    return { ...p, score: Math.max(0, newScore), buzzedAt: isCorrect ? p.buzzedAt : null };
+                    // On wrong steal, keep buzzedAt so this student is considered already attempted in this steal window.
+                    return { ...p, score: Math.max(0, newScore) };
                 }
                 return p;
             });
@@ -698,7 +771,7 @@ export const useGameSync = () => {
         });
     };
 
-    const setRound3Turn = (playerId: string) => {
+    const setRound3Turn = (playerId: string | null) => {
         updateState({
             round3TurnPlayerId: playerId,
             round3Phase: 'IDLE',
@@ -706,12 +779,21 @@ export const useGameSync = () => {
             message: null,
             buzzerLocked: true,
             timerEndTime: null,
-            activeQuestion: null
+            activeQuestion: null,
+            showAnswer: false,
+            stealTimerPausedRemaining: null,
+            players: gameState.players.map(p => ({ ...p, buzzedAt: null }))
         });
     };
 
     const setRound3Mode = (mode: Round3Mode) => {
-        updateState({ round3Mode: mode });
+        updateState((prev) => {
+            // Mode lock while a question flow is active.
+            if (prev.activeQuestion || prev.round3Phase !== 'IDLE' || prev.round3TurnPlayerId) {
+                return {};
+            }
+            return { round3Mode: mode };
+        });
     };
 
     const submitQuizAnswer = (playerId: string, answer: string) => {
@@ -797,12 +879,15 @@ export const useGameSync = () => {
     };
 
     const startStealPhase = () => {
-        updateState({
+        updateState((prev) => ({
             round3Phase: 'STEAL_WINDOW',
             buzzerLocked: false,
             timerEndTime: Date.now() + 15000, // 15s for stealing
-            message: "STEAL WINDOW OPEN!"
-        });
+            message: "STEAL WINDOW OPEN!",
+            activeStealPlayerId: null,
+            stealTimerPausedRemaining: null,
+            players: prev.players.map(p => ({ ...p, buzzedAt: p.id === prev.round3TurnPlayerId ? p.buzzedAt : null }))
+        }));
     };
 
     const setRound3SelectionMode = (mode: 'RANDOM' | 'SEQUENTIAL') => {
@@ -1126,11 +1211,25 @@ export const useGameSync = () => {
             const nextQuestionId = prev.round2Questions[nextIndex];
             const nextQuestion = ROUND_2_QUESTIONS.find(q => q.id === nextQuestionId);
 
+            // Phase1-B1: Auto-start timer for next question
+            let duration = 25;
+            if (nextQuestion) {
+                switch (nextQuestion.difficulty) {
+                    case 'EASY': duration = 20; break;
+                    case 'MEDIUM': duration = 60; break;
+                    case 'HARD': duration = 120; break;
+                    default: duration = 25;
+                }
+            }
+            const now = Date.now();
+
             return {
                 round2CurrentQuestion: nextIndex,
                 activeQuestion: nextQuestion || null,
-                round2StartedAt: null, // Will be set when timer starts
-                timerEndTime: null
+                round2StartedAt: now,
+                timerEndTime: now + duration * 1000,
+                showAnswer: false,
+                viewingPlayerId: null
             };
         });
     };

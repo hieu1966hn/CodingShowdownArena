@@ -98,6 +98,8 @@ export interface GameState {
   stealTimerPausedRemaining?: number | null; // NEW: When buzz happens, we pause timer and store remaining ms
   round2CurrentQuestion: number; // NEW: Track which question (0-4) is currently active in Round 2
   round2Questions: string[]; // NEW: Array of 5 question IDs for Round 2
+  round1QuestionsAsked: Record<string, number>; // Phase1-A3: Track questions asked per student in R1
+  round2Reviewed: boolean; // Phase1-B1: Whether teacher has reviewed R2 question set
   checkpoints?: Checkpoints; // NEW: Checkpoint system for Reset Level
 }
 
@@ -121,5 +123,7 @@ export const INITIAL_STATE: GameState = {
   stealTimerPausedRemaining: null,
   round2CurrentQuestion: 0,
   round2Questions: [],
+  round1QuestionsAsked: {}, // Phase1-A3
+  round2Reviewed: false, // Phase1-B1
   checkpoints: {} // Initialize empty checkpoints
 };

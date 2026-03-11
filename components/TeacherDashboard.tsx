@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { GoogleGenAI } from "@google/genai";
 import { GameState, GameRound, Question, Player, Difficulty, PackStatus, QuestionCategory } from '../gameTypes';
 import { ROUND_1_QUESTIONS, ROUND_2_QUESTIONS, ROUND_3_QUESTIONS } from '../data/questions';
@@ -19,8 +19,17 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
     const [r2Category, setR2Category] = useState<QuestionCategory | 'ALL'>('ALL');
     const [r1Filter, setR1Filter] = useState<Difficulty | 'ALL'>('ALL');
     const [isGraded, setIsGraded] = useState(false); // NEW: Track if current Q has been graded
+    const [transitionPopup, setTransitionPopup] = useState<{ title: string; subtitle: string } | null>(null);
+    const [soundEnabled, setSoundEnabled] = useState(true);
+
+    const prevRoundRef = useRef<GameRound>(gameState.round);
+    const prevRound3PhaseRef = useRef(gameState.round3Phase);
+    const prevRound3TurnRef = useRef<string | null>(gameState.round3TurnPlayerId);
+
+    const round1MaxQuestions = gameState.players.length >= 10 ? 5 : 10;
 
     const playSound = (type: keyof typeof SOUND_EFFECTS) => {
+        if (!soundEnabled) return;
         try {
             const audio = new Audio(SOUND_EFFECTS[type]);
             audio.volume = 1.0;
@@ -46,6 +55,210 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
     };
 
     const isReadOnly = gameState.round === GameRound.GAME_OVER;
+    const r3ModeLocked = gameState.round === GameRound.ROUND_3 && (
+        !!gameState.round3TurnPlayerId ||
+        !!gameState.activeQuestion ||
+        gameState.round3Phase !== 'IDLE'
+    );
+
+    const guidedWorkflow = (() => {
+        if (gameState.round === GameRound.LOBBY) {
+            const enoughPlayers = gameState.players.length >= 2;
+            return {
+                title: 'Lobby Setup',
+                steps: [
+                    { label: 'Học viên vào phòng', done: gameState.players.length > 0, active: gameState.players.length === 0 },
+                    { label: 'Ổn định danh sách lớp', done: enoughPlayers, active: gameState.players.length > 0 && !enoughPlayers },
+                    { label: 'Bắt đầu Round 1', done: false, active: enoughPlayers }
+                ]
+            };
+        }
+
+        if (gameState.round === GameRound.ROUND_1) {
+            const hasTurn = !!gameState.round1TurnPlayerId;
+            const canTransition = !gameState.activeQuestion && !hasTurn;
+            return {
+                title: 'Round 1 Guided Flow',
+                steps: [
+                    { label: 'Chọn học viên', done: hasTurn, active: !hasTurn },
+                    { label: 'Chọn câu theo độ khó', done: !!gameState.activeQuestion, active: hasTurn && !gameState.activeQuestion },
+                    { label: 'Chấm nhanh đúng/sai', done: !gameState.activeQuestion && hasTurn, active: !!gameState.activeQuestion },
+                    { label: 'Sẵn sàng chuyển Round 2', done: canTransition, active: !canTransition }
+                ]
+            };
+        }
+
+        if (gameState.round === GameRound.ROUND_2) {
+            const initialized = gameState.round2Questions.length > 0;
+            const reviewed = gameState.round2Reviewed;
+            const finishedRound2 = reviewed && !gameState.activeQuestion && gameState.round2CurrentQuestion >= 4;
+            return {
+                title: 'Round 2 Guided Flow',
+                steps: [
+                    { label: 'Khởi tạo gói 5 câu', done: initialized, active: !initialized },
+                    { label: 'Giáo viên duyệt gói', done: reviewed, active: initialized && !reviewed },
+                    { label: 'Chấm tự động từng câu', done: reviewed && !!gameState.activeQuestion, active: reviewed && !!gameState.activeQuestion },
+                    { label: 'Sẵn sàng chuyển Round 3', done: finishedRound2, active: reviewed && !finishedRound2 }
+                ]
+            };
+        }
+
+        if (gameState.round === GameRound.ROUND_3) {
+            const hasLockedPack = gameState.players.some(p => p.round3PackLocked);
+            const allFinished = gameState.players
+                .filter(p => p.round3PackLocked)
+                .every(p => p.round3Pack.every(item => item.status !== 'PENDING'));
+            return {
+                title: 'Round 3 Guided Flow',
+                steps: [
+                    { label: 'Khóa gói câu của học viên', done: hasLockedPack, active: !hasLockedPack },
+                    { label: 'Auto-flow lượt trả lời', done: !!gameState.round3TurnPlayerId, active: hasLockedPack && !gameState.round3TurnPlayerId },
+                    { label: 'Steal tự động khi sai', done: gameState.round3Phase === 'STEAL_WINDOW', active: !!gameState.round3TurnPlayerId && gameState.round3Phase !== 'STEAL_WINDOW' },
+                    { label: 'Sẵn sàng vinh danh', done: allFinished, active: !allFinished }
+                ]
+            };
+        }
+
+        return {
+            title: 'Session Completed',
+            steps: [
+                { label: 'Hoàn tất chương trình', done: true, active: false }
+            ]
+        };
+    })();
+
+    const guidedCompletedCount = guidedWorkflow.steps.filter(s => s.done).length;
+    const guidedProgress = Math.round((guidedCompletedCount / guidedWorkflow.steps.length) * 100);
+
+    const nextRecommendedAction = (() => {
+        if (gameState.round === GameRound.LOBBY) {
+            const canStart = gameState.players.length >= 2;
+            return {
+                label: canStart ? 'Chuyển sang Round 1' : 'Đợi thêm học viên',
+                hint: canStart ? 'Tự động mở flow Round 1 ngay bây giờ.' : 'Cần ít nhất 2 học viên để bắt đầu.',
+                disabled: !canStart,
+                run: () => actions.setRound(GameRound.ROUND_1)
+            };
+        }
+
+        if (gameState.round === GameRound.ROUND_1) {
+            if (!gameState.round1TurnPlayerId) {
+                const firstPlayer = gameState.players[0];
+                return {
+                    label: firstPlayer ? `Mở lượt: ${firstPlayer.name}` : 'Đợi học viên',
+                    hint: 'Hệ thống sẽ chọn học viên đầu tiên để bắt đầu lượt.',
+                    disabled: !firstPlayer,
+                    run: () => firstPlayer && actions.setRound1Turn(firstPlayer.id)
+                };
+            }
+
+            if (!gameState.activeQuestion) {
+                const currentPlayer = gameState.players.find(p => p.id === gameState.round1TurnPlayerId);
+                const asked = currentPlayer ? (gameState.round1QuestionsAsked[currentPlayer.id] || 0) : 0;
+                const targetDifficulty: Difficulty = asked < 2 ? 'EASY' : asked < 4 ? 'MEDIUM' : 'HARD';
+                const candidate = ROUND_1_QUESTIONS.find(q =>
+                    q.difficulty === targetDifficulty && !gameState.usedQuestionIds.includes(q.id)
+                ) || ROUND_1_QUESTIONS.find(q => !gameState.usedQuestionIds.includes(q.id));
+
+                return {
+                    label: candidate ? `Ra câu ${candidate.difficulty}` : 'Hết câu Round 1',
+                    hint: candidate ? 'Tự chọn câu phù hợp để giảm thao tác GV.' : 'Không còn câu chưa sử dụng ở Round 1.',
+                    disabled: !candidate,
+                    run: () => candidate && actions.setQuestion(candidate)
+                };
+            }
+
+            return {
+                label: 'Chấm câu hiện tại',
+                hint: 'Dùng nút Đúng/Sai để hệ thống tự cuốn sang bước tiếp theo.',
+                disabled: true,
+                run: () => {}
+            };
+        }
+
+        if (gameState.round === GameRound.ROUND_2) {
+            if (gameState.round2Questions.length === 0) {
+                return {
+                    label: 'Khởi tạo gói 5 câu',
+                    hint: 'Tự tạo bộ câu Round 2 cho cả lớp.',
+                    disabled: false,
+                    run: () => actions.initRound2Questions()
+                };
+            }
+
+            if (!gameState.round2Reviewed) {
+                return {
+                    label: 'Duyệt gói câu Round 2',
+                    hint: 'Xác nhận bộ câu để bắt đầu auto-flow.',
+                    disabled: false,
+                    run: () => actions.confirmRound2Review()
+                };
+            }
+
+            if (!gameState.activeQuestion && gameState.round2CurrentQuestion < 4) {
+                return {
+                    label: 'Mở câu Round 2 tiếp theo',
+                    hint: 'Chuyển câu tự động theo tiến trình chấm.',
+                    disabled: false,
+                    run: () => actions.nextRound2Question()
+                };
+            }
+
+            return {
+                label: 'Theo dõi chấm tự động',
+                hint: 'Hệ thống tự mở bài chưa chấm và tự qua câu khi đủ điều kiện.',
+                disabled: true,
+                run: () => {}
+            };
+        }
+
+        if (gameState.round === GameRound.ROUND_3) {
+            const lockedPlayers = gameState.players.filter(p => p.round3PackLocked);
+            if (lockedPlayers.length === 0) {
+                return {
+                    label: 'Đợi học viên khóa gói câu',
+                    hint: 'R3 chỉ chạy khi có ít nhất 1 học viên khóa gói.',
+                    disabled: true,
+                    run: () => {}
+                };
+            }
+
+            if (!gameState.round3TurnPlayerId) {
+                const nextPlayer = lockedPlayers.find(p => p.round3Pack.some(item => item.status === 'PENDING'));
+                return {
+                    label: nextPlayer ? `Mở lượt: ${nextPlayer.name}` : 'Không còn lượt pending',
+                    hint: 'Tự chọn học viên tiếp theo đủ điều kiện.',
+                    disabled: !nextPlayer,
+                    run: () => nextPlayer && actions.setRound3Turn(nextPlayer.id)
+                };
+            }
+
+            if (!gameState.activeQuestion && gameState.round3Phase === 'IDLE') {
+                const currentPlayer = gameState.players.find(p => p.id === gameState.round3TurnPlayerId);
+                const nextPending = currentPlayer?.round3Pack.find(item => item.status === 'PENDING');
+                return {
+                    label: nextPending ? `Ra câu ${nextPending.difficulty}` : 'Đợi chuyển lượt tự động',
+                    hint: 'Tự reveal câu tiếp theo trong gói học viên.',
+                    disabled: !nextPending,
+                    run: () => nextPending && actions.revealRound3Question(nextPending.difficulty)
+                };
+            }
+
+            return {
+                label: 'Theo dõi auto-flow Round 3',
+                hint: 'Timer, steal và chuyển lượt đang tự vận hành.',
+                disabled: true,
+                run: () => {}
+            };
+        }
+
+        return {
+            label: 'Phiên đã hoàn tất',
+            hint: 'Có thể reset về checkpoint nếu cần chạy lại demo.',
+            disabled: true,
+            run: () => {}
+        };
+    })();
 
     const RoundControl = () => (
         <div className="grid grid-cols-4 gap-4 mb-8">
@@ -128,7 +341,6 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
         : null;
 
     // --- AUTO-GRADE TIMER MONITOR ---
-    // --- AUTO-GRADE TIMER MONITOR ---
     useEffect(() => {
         const checkTimer = () => {
             const now = Date.now();
@@ -150,31 +362,296 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
             // 2. Auto-transition from Delay to Steal
             if (gameState.round === GameRound.ROUND_3 &&
                 gameState.round3Phase === 'SHOW_WRONG_DELAY' &&
-                gameState.timerEndTime) {
+                gameState.timerEndTime &&
+                now >= gameState.timerEndTime) {
+                console.log("Delay over. Starting Steal Phase...");
+                actions.startStealPhase();
+            }
 
-                if (now >= gameState.timerEndTime) {
-                    console.log("Delay over. Starting Steal Phase...");
-                    actions.startStealPhase();
-                }
+            // 3. Smart close steal window on timeout
+            if (gameState.round === GameRound.ROUND_3 &&
+                gameState.round3Phase === 'STEAL_WINDOW' &&
+                gameState.timerEndTime &&
+                now >= gameState.timerEndTime) {
+                actions.cancelStealPhase();
             }
         };
 
         const interval = setInterval(checkTimer, 500);
         return () => clearInterval(interval);
-    }, [gameState.round, gameState.round3Mode, gameState.round3Phase, gameState.timerEndTime, gameState.showAnswer]);
+    }, [
+        gameState.round,
+        gameState.round3Mode,
+        gameState.round3Phase,
+        gameState.timerEndTime,
+        gameState.showAnswer,
+        actions
+    ]);
 
+    // Phase 2 C4: Auto-advance to next student's turn when current turn is free
+    useEffect(() => {
+        if (gameState.round !== GameRound.ROUND_3) return;
+        if (gameState.round3TurnPlayerId) return;
+        if (gameState.round3Phase !== 'IDLE') return;
+        if (gameState.activeQuestion) return;
+
+        const nextPlayer = gameState.players.find(p =>
+            p.round3PackLocked && p.round3Pack.some(item => item.status === 'PENDING')
+        );
+
+        if (nextPlayer) {
+            actions.setRound3Turn(nextPlayer.id);
+        }
+    }, [
+        gameState.round,
+        gameState.round3TurnPlayerId,
+        gameState.round3Phase,
+        gameState.activeQuestion,
+        gameState.players,
+        actions
+    ]);
+
+    // Phase 2 C1 + C3: Auto-reveal next pending question inside active turn
+    useEffect(() => {
+        if (gameState.round !== GameRound.ROUND_3) return;
+        if (!gameState.round3TurnPlayerId) return;
+        if (gameState.round3Phase !== 'IDLE') return;
+        if (gameState.activeQuestion) return;
+
+        const currentPlayer = gameState.players.find(p => p.id === gameState.round3TurnPlayerId);
+        if (!currentPlayer) return;
+
+        const nextPending = currentPlayer.round3Pack.find(item => item.status === 'PENDING');
+        if (nextPending) {
+            actions.revealRound3Question(nextPending.difficulty);
+        }
+    }, [
+        gameState.round,
+        gameState.round3TurnPlayerId,
+        gameState.round3Phase,
+        gameState.activeQuestion,
+        gameState.players,
+        actions
+    ]);
+
+    // Phase 2 C2: Auto-start MAIN timer immediately after reveal
+    useEffect(() => {
+        if (gameState.round !== GameRound.ROUND_3) return;
+        if (!gameState.round3TurnPlayerId) return;
+        if (!gameState.activeQuestion) return;
+        if (gameState.round3Phase !== 'IDLE') return;
+
+        actions.startRound3Timer('MAIN');
+    }, [
+        gameState.round,
+        gameState.round3TurnPlayerId,
+        gameState.activeQuestion?.id,
+        gameState.round3Phase,
+        actions
+    ]);
+
+    // Phase 2 C5: Smart close steal when no one can steal anymore
+    useEffect(() => {
+        if (gameState.round !== GameRound.ROUND_3) return;
+        if (gameState.round3Phase !== 'STEAL_WINDOW') return;
+        if (gameState.activeStealPlayerId) return;
+
+        const hasEligibleStealer = gameState.players.some(p =>
+            p.id !== gameState.round3TurnPlayerId && !p.buzzedAt
+        );
+
+        if (!hasEligibleStealer) {
+            const t = setTimeout(() => actions.cancelStealPhase(), 600);
+            return () => clearTimeout(t);
+        }
+    }, [
+        gameState.round,
+        gameState.round3Phase,
+        gameState.round3TurnPlayerId,
+        gameState.activeStealPlayerId,
+        gameState.players,
+        actions
+    ]);
+
+    // Phase1-B3: Auto-open next submitted student code in R2 when no card is currently open
+    useEffect(() => {
+        if (gameState.round !== GameRound.ROUND_2 || !gameState.activeQuestion) return;
+        if (gameState.viewingPlayerId) return;
+
+        const currentQuestionId = gameState.round2Questions[gameState.round2CurrentQuestion];
+        if (!currentQuestionId) return;
+
+        const nextUngraded = gameState.players.find(p => {
+            const submission = p.round2Submissions?.find(s => s.questionId === currentQuestionId);
+            return !!submission && submission.isCorrect === undefined;
+        });
+
+        if (nextUngraded) {
+            actions.setViewingPlayer(nextUngraded.id);
+        }
+    }, [
+        gameState.round,
+        gameState.activeQuestion?.id,
+        gameState.round2CurrentQuestion,
+        gameState.round2Questions,
+        gameState.players,
+        gameState.viewingPlayerId
+    ]);
+
+    // Phase1-B2: Auto-advance to next R2 question when all current submissions are graded
+    useEffect(() => {
+        if (gameState.round !== GameRound.ROUND_2 || !gameState.activeQuestion) return;
+        if (gameState.round2CurrentQuestion >= 4) return;
+
+        const currentQuestionId = gameState.round2Questions[gameState.round2CurrentQuestion];
+        if (!currentQuestionId) return;
+
+        const submissionsForCurrentQ = gameState.players
+            .map(p => p.round2Submissions?.find(s => s.questionId === currentQuestionId))
+            .filter((s): s is NonNullable<typeof s> => !!s);
+
+        if (submissionsForCurrentQ.length === 0) return;
+
+        const allGraded = submissionsForCurrentQ.every(s => s.isCorrect !== undefined);
+        if (!allGraded) return;
+
+        const delay = setTimeout(() => {
+            actions.nextRound2Question();
+            playSound('CORRECT');
+        }, 500);
+
+        return () => clearTimeout(delay);
+    }, [
+        gameState.round,
+        gameState.activeQuestion?.id,
+        gameState.round2CurrentQuestion,
+        gameState.round2Questions,
+        gameState.players
+    ]);
+
+    // Phase 3 D2: Auto-transition popup between rounds
+    useEffect(() => {
+        const previous = prevRoundRef.current;
+        if (previous === gameState.round) return;
+
+        const roundLabelMap: Record<GameRound, string> = {
+            [GameRound.LOBBY]: 'LOBBY',
+            [GameRound.ROUND_1]: 'ROUND 1 — REFLEX',
+            [GameRound.ROUND_2]: 'ROUND 2 — OBSTACLE',
+            [GameRound.ROUND_3]: 'ROUND 3 — TACTICAL FINISH',
+            [GameRound.GAME_OVER]: 'VINH DANH CHUNG CUỘC'
+        };
+
+        setTransitionPopup({
+            title: roundLabelMap[gameState.round],
+            subtitle: `Chuyển từ ${roundLabelMap[previous]} → ${roundLabelMap[gameState.round]}`
+        });
+
+        if (gameState.round === GameRound.GAME_OVER) {
+            playSound('VICTORY');
+        } else {
+            playSound('ROUND_START');
+        }
+
+        const t = setTimeout(() => setTransitionPopup(null), 1800);
+        prevRoundRef.current = gameState.round;
+
+        return () => clearTimeout(t);
+    }, [gameState.round]);
+
+    // Phase 3 D4: Sound cues for key Round 3 automation milestones
+    useEffect(() => {
+        const previousPhase = prevRound3PhaseRef.current;
+        if (gameState.round === GameRound.ROUND_3 && previousPhase !== gameState.round3Phase) {
+            if (gameState.round3Phase === 'MAIN_ANSWER') playSound('TICK');
+            if (gameState.round3Phase === 'STEAL_WINDOW') playSound('BUZZ');
+            if (gameState.round3Phase === 'SHOW_WRONG_DELAY') playSound('WRONG');
+            if (gameState.round3Phase === 'IDLE' && previousPhase !== 'IDLE') playSound('CORRECT');
+        }
+        prevRound3PhaseRef.current = gameState.round3Phase;
+    }, [gameState.round, gameState.round3Phase]);
+
+    useEffect(() => {
+        const prevTurn = prevRound3TurnRef.current;
+        if (gameState.round === GameRound.ROUND_3 && prevTurn !== gameState.round3TurnPlayerId && gameState.round3TurnPlayerId) {
+            playSound('SUBMIT');
+        }
+        prevRound3TurnRef.current = gameState.round3TurnPlayerId;
+    }, [gameState.round, gameState.round3TurnPlayerId]);
 
     return (
         <div className="min-h-screen bg-cyber-dark text-white p-6 pb-24">
             <header className="flex justify-between items-center mb-6">
                 <h1 className="text-3xl font-bold text-cyber-primary">Teacher Control Panel</h1>
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3">
                     <div className="text-xs font-mono text-gray-500">ROOM ID: <span className="text-cyber-primary">{gameState.roomId}</span></div>
+                    <button
+                        id="toggle-sound-cues"
+                        onClick={() => setSoundEnabled(prev => !prev)}
+                        className={`px-3 py-2 rounded border text-xs font-bold transition-colors ${soundEnabled ? 'bg-cyan-900/40 border-cyan-400 text-cyan-200 hover:bg-cyan-800/50' : 'bg-gray-800 border-gray-600 text-gray-300 hover:bg-gray-700'}`}
+                        title="Bật/Tắt âm báo tự động"
+                    >
+                        {soundEnabled ? '🔊 Sound ON' : '🔇 Sound OFF'}
+                    </button>
                     <button onClick={onLeave} className="flex items-center gap-2 px-4 py-2 bg-red-600 rounded"><LogOut size={18} /> Exit</button>
                 </div>
             </header>
 
             <RoundControl />
+
+            {/* Phase 3 D1: Guided Workflow Bar */}
+            {gameState.round !== GameRound.GAME_OVER && (
+                <section className="mb-6 rounded-xl border border-cyan-500/30 bg-gradient-to-r from-cyan-950/40 via-blue-950/30 to-purple-950/30 p-4 shadow-[0_10px_30px_rgba(8,145,178,0.15)]">
+                    <div className="flex items-center justify-between mb-3">
+                        <div>
+                            <h2 className="text-sm uppercase tracking-widest text-cyan-300 font-black">Guided Workflow</h2>
+                            <p className="text-xs text-gray-300">{guidedWorkflow.title} • {guidedProgress}% complete</p>
+                        </div>
+                        <div className="text-xs text-gray-400">Mục tiêu: giảm thao tác thủ công cho GV</div>
+                    </div>
+                    <div className="w-full h-2 bg-black/40 rounded-full mb-4 overflow-hidden">
+                        <div className="h-full bg-gradient-to-r from-cyan-400 to-blue-500 transition-all duration-500" style={{ width: `${guidedProgress}%` }} />
+                    </div>
+
+                    <div className="mb-4 rounded-lg border border-amber-400/40 bg-amber-500/10 p-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                        <div>
+                            <div className="text-[11px] uppercase tracking-wider text-amber-300 font-black mb-1">Next Recommended Action</div>
+                            <div className="text-sm font-bold text-amber-100">{nextRecommendedAction.label}</div>
+                            <div className="text-xs text-amber-200/80">{nextRecommendedAction.hint}</div>
+                        </div>
+                        <button
+                            id="guided-next-action"
+                            onClick={nextRecommendedAction.run}
+                            disabled={nextRecommendedAction.disabled}
+                            className="px-4 py-2 rounded-lg font-bold text-sm border border-amber-300 bg-amber-400 text-black hover:bg-amber-300 transition disabled:bg-gray-700 disabled:text-gray-400 disabled:border-gray-600 disabled:cursor-not-allowed"
+                        >
+                            {nextRecommendedAction.disabled ? 'Đang chờ điều kiện' : 'Thực thi 1 chạm'}
+                        </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2">
+                        {guidedWorkflow.steps.map((step, idx) => (
+                            <div
+                                key={`${step.label}-${idx}`}
+                                className={`rounded-lg border px-3 py-2 text-sm transition-all ${step.active
+                                        ? 'border-cyan-400 bg-cyan-500/15 text-cyan-100 shadow-[0_0_15px_rgba(34,211,238,0.25)]'
+                                        : step.done
+                                            ? 'border-green-500/40 bg-green-500/10 text-green-200'
+                                            : 'border-gray-700 bg-black/20 text-gray-400'
+                                    }`}
+                            >
+                                <div className="flex items-center gap-2">
+                                    <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black ${step.done ? 'bg-green-500 text-black' : step.active ? 'bg-cyan-400 text-black' : 'bg-gray-700 text-gray-300'}`}>
+                                        {step.done ? '✓' : idx + 1}
+                                    </span>
+                                    <span className="font-bold leading-tight">{step.label}</span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </section>
+            )}
+
             <PlayerManager />
 
             {/* RESET LEVEL CONTROLS */}
@@ -319,30 +796,30 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                                     <span className="text-yellow-500 font-bold uppercase text-sm">
                                         {gameState.players.find(p => p.id === gameState.round1TurnPlayerId)?.name}
                                     </span>
+                                    <span className="text-xs text-gray-300 px-2 py-1 rounded bg-gray-900 border border-gray-700">
+                                        Q: {(gameState.round1QuestionsAsked[gameState.round1TurnPlayerId] || 0)} / {round1MaxQuestions}
+                                    </span>
                                     <button
                                         disabled={isGraded}
                                         onClick={() => {
                                             if (isGraded) return;
                                             setIsGraded(true);
                                             playSound('CORRECT');
-                                            // Dynamic Point Calculation
-                                            // If players >= 10: 30pts (needs 5 correct to reach 150)
-                                            // If players < 10: 15pts (needs 10 correct to reach 150)
-                                            const playerCount = gameState.players.length;
-                                            const points = playerCount >= 10 ? 30 : 15;
-
-                                            actions.updateScore(gameState.round1TurnPlayerId, points);
+                                            actions.gradeRound1(gameState.round1TurnPlayerId, true);
                                         }}
                                         className={`px-4 py-2 rounded font-bold flex items-center gap-2 ${isGraded ? 'bg-gray-600 cursor-not-allowed opacity-50' : 'bg-green-600 hover:bg-green-500'}`}
                                     >
                                         <ThumbsUp size={16} /> Correct (+{gameState.players.length >= 10 ? 30 : 15})
                                     </button>
                                     <button
+                                        disabled={isGraded}
                                         onClick={() => {
+                                            if (isGraded) return;
+                                            setIsGraded(true);
                                             playSound('WRONG');
-                                            // Wrong answer gives 0 points
+                                            actions.gradeRound1(gameState.round1TurnPlayerId, false);
                                         }}
-                                        className="px-4 py-2 bg-red-600 hover:bg-red-500 rounded font-bold flex items-center gap-2"
+                                        className={`px-4 py-2 rounded font-bold flex items-center gap-2 ${isGraded ? 'bg-gray-600 cursor-not-allowed opacity-50' : 'bg-red-600 hover:bg-red-500'}`}
                                     >
                                         <ThumbsDown size={16} /> Wrong (0)
                                     </button>
@@ -378,6 +855,19 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                                     className="px-4 py-2 bg-green-600 hover:bg-green-500 rounded font-bold flex items-center gap-2"
                                 >
                                     <Play size={18} /> Initialize 5 Questions
+                                </button>
+                            )}
+
+                            {/* REVIEW CONFIRM BUTTON */}
+                            {gameState.round2Questions.length > 0 && !gameState.round2Reviewed && (
+                                <button
+                                    onClick={() => {
+                                        actions.confirmRound2Review();
+                                        playSound('CORRECT');
+                                    }}
+                                    className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 rounded font-bold flex items-center gap-2"
+                                >
+                                    <Check size={18} /> Confirm 5 Questions & Start Q1 Timer
                                 </button>
                             )}
                             <span className="text-xs text-gray-500">Total: {ROUND_2_QUESTIONS.length} Questions</span>
@@ -597,13 +1087,17 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                             <div className="flex bg-gray-900 rounded-lg p-1 border border-gray-700">
                                 <button
                                     onClick={() => actions.setRound3Mode('ORAL')}
-                                    className={`px-4 py-2 rounded-md font-bold text-sm flex items-center gap-2 transition-all ${gameState.round3Mode === 'ORAL' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}
+                                    disabled={r3ModeLocked}
+                                    title={r3ModeLocked ? 'Mode is locked while a Round 3 flow is active' : 'Switch to Oral mode'}
+                                    className={`px-4 py-2 rounded-md font-bold text-sm flex items-center gap-2 transition-all ${gameState.round3Mode === 'ORAL' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-400 hover:text-white'} ${r3ModeLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
                                 >
                                     <MessageSquare size={16} /> Vấn Đáp
                                 </button>
                                 <button
                                     onClick={() => actions.setRound3Mode('QUIZ')}
-                                    className={`px-4 py-2 rounded-md font-bold text-sm flex items-center gap-2 transition-all ${gameState.round3Mode === 'QUIZ' ? 'bg-purple-600 text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}
+                                    disabled={r3ModeLocked}
+                                    title={r3ModeLocked ? 'Mode is locked while a Round 3 flow is active' : 'Switch to Quiz mode'}
+                                    className={`px-4 py-2 rounded-md font-bold text-sm flex items-center gap-2 transition-all ${gameState.round3Mode === 'QUIZ' ? 'bg-purple-600 text-white shadow-lg' : 'text-gray-400 hover:text-white'} ${r3ModeLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
                                 >
                                     <LayoutGrid size={16} /> Trắc Nghiệm
                                 </button>
@@ -736,11 +1230,15 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                                     <div className="flex mr-2 bg-black/40 rounded p-1 border border-gray-700">
                                         <button
                                             onClick={() => actions.setRound3Mode('ORAL')}
-                                            className={`px-3 py-1 rounded text-xs font-bold ${gameState.round3Mode === 'ORAL' ? 'bg-blue-600 text-white' : 'text-gray-500 hover:text-white'}`}
+                                            disabled={r3ModeLocked}
+                                            title={r3ModeLocked ? 'Mode is locked while a Round 3 flow is active' : 'Switch to Oral mode'}
+                                            className={`px-3 py-1 rounded text-xs font-bold ${gameState.round3Mode === 'ORAL' ? 'bg-blue-600 text-white' : 'text-gray-500 hover:text-white'} ${r3ModeLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
                                         >ORAL</button>
                                         <button
                                             onClick={() => actions.setRound3Mode('QUIZ')}
-                                            className={`px-3 py-1 rounded text-xs font-bold ${gameState.round3Mode === 'QUIZ' ? 'bg-purple-600 text-white' : 'text-gray-500 hover:text-white'}`}
+                                            disabled={r3ModeLocked}
+                                            title={r3ModeLocked ? 'Mode is locked while a Round 3 flow is active' : 'Switch to Quiz mode'}
+                                            className={`px-3 py-1 rounded text-xs font-bold ${gameState.round3Mode === 'QUIZ' ? 'bg-purple-600 text-white' : 'text-gray-500 hover:text-white'} ${r3ModeLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
                                         >QUIZ</button>
                                     </div>
 
@@ -934,6 +1432,17 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                                     </div>
                                 ))}
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Phase 3 D2: Transition Popup */}
+            {transitionPopup && (
+                <div className="fixed inset-0 z-[120] pointer-events-none flex items-center justify-center bg-black/40 backdrop-blur-sm">
+                    <div className="px-10 py-8 rounded-2xl border border-cyan-400/50 bg-gradient-to-br from-slate-900/95 to-blue-950/90 shadow-[0_0_40px_rgba(34,211,238,0.25)] animate-in zoom-in-95 fade-in duration-300 text-center">
+                        <div className="text-cyan-300 text-xs tracking-[0.3em] uppercase font-black mb-2">Auto Transition</div>
+                        <div className="text-3xl font-black text-white mb-2">{transitionPopup.title}</div>
+                        <div className="text-sm text-gray-300">{transitionPopup.subtitle}</div>
                     </div>
                 </div>
             )}
