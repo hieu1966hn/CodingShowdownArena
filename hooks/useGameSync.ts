@@ -3,7 +3,7 @@ import firebase from "firebase/compat/app";
 import "firebase/compat/firestore";
 import "firebase/compat/auth";
 import { db, auth, googleProvider } from "../lib/firebase";
-import { GameState, GameRound, Player, Question, Difficulty, PackStatus, Round3Item, Round3Mode, INITIAL_STATE } from "../gameTypes";
+import { GameState, GameRound, Player, Question, Difficulty, PackStatus, Round3Item, Round3Mode, Round3Phase, INITIAL_STATE } from "../gameTypes";
 import { ROUND_2_QUESTIONS, ROUND_3_QUESTIONS } from "../data/questions";
 
 export const useGameSync = () => {
@@ -23,23 +23,55 @@ export const useGameSync = () => {
         return () => unsub();
     }, []);
 
-    // --- Firestore Room Listener ---
+    // --- Firestore Room Listener with Auto-Reconnect ---
     useEffect(() => {
         if (!roomId) return;
 
-        const unsub = db.collection("rooms").doc(roomId).onSnapshot((docSnap) => {
-            if (docSnap.exists) {
-                setGameState(docSnap.data() as GameState);
-                setRoomError(null);
-            } else {
-                setRoomError("Room not found!");
-            }
-        }, (err) => {
-            console.error("Firestore Error:", err);
-            setRoomError("Error connecting to room.");
-        });
+        let retryCount = 0;
+        const MAX_RETRIES = 5;
+        const RETRY_DELAY_MS = 3000;
+        let currentUnsub: (() => void) | null = null;
+        let retryTimer: ReturnType<typeof setTimeout> | null = null;
+        let isMounted = true;
 
-        return () => unsub();
+        const subscribe = () => {
+            if (!isMounted) return;
+
+            currentUnsub = db.collection("rooms").doc(roomId).onSnapshot(
+                (docSnap) => {
+                    if (!isMounted) return;
+                    retryCount = 0; // Reset on successful update
+                    if (docSnap.exists) {
+                        setGameState(docSnap.data() as GameState);
+                        setRoomError(null);
+                    } else {
+                        setRoomError("Room not found!");
+                    }
+                },
+                (err) => {
+                    if (!isMounted) return;
+                    console.error("Firestore Error:", err);
+                    if (retryCount < MAX_RETRIES) {
+                        retryCount++;
+                        setRoomError(`⚡ Mất kết nối. Đang thử lại... (${retryCount}/${MAX_RETRIES})`);
+                        retryTimer = setTimeout(() => {
+                            if (currentUnsub) { currentUnsub(); currentUnsub = null; }
+                            subscribe();
+                        }, RETRY_DELAY_MS * retryCount);
+                    } else {
+                        setRoomError("❌ Mất kết nối. Vui lòng tải lại trang.");
+                    }
+                }
+            );
+        };
+
+        subscribe();
+
+        return () => {
+            isMounted = false;
+            if (retryTimer) clearTimeout(retryTimer);
+            if (currentUnsub) currentUnsub();
+        };
     }, [roomId]);
 
     // --- Auth Actions ---
@@ -230,17 +262,23 @@ export const useGameSync = () => {
             }
 
             // AUTO-INIT ROUND 2 if entering Round 2 with no questions
-            let round2AutoInit = {};
-            if (round === GameRound.ROUND_2 && prev.round2Questions.length === 0) {
-                const availableQuestions = ROUND_2_QUESTIONS.filter(q => !prev.usedQuestionIds.includes(q.id));
-                const shuffled = [...availableQuestions].sort(() => Math.random() - 0.5);
-                const selected = shuffled.slice(0, 5);
+            // Dùng ?.length ?? 0 để tránh crash nếu round2Questions undefined (document Firestore cũ)
+            let round2AutoInit: Record<string, unknown> = {};
+            if (round === GameRound.ROUND_2 && (prev.round2Questions?.length ?? 0) === 0) {
+                const availableQuestions = ROUND_2_QUESTIONS.filter(q => !(prev.usedQuestionIds || []).includes(q.id));
+                // Fisher-Yates shuffle để đảm bảo ngẫu nhiên thật sự
+                const pool = [...availableQuestions];
+                for (let i = pool.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [pool[i], pool[j]] = [pool[j], pool[i]];
+                }
+                const selected = pool.slice(0, 5);
 
                 round2AutoInit = {
                     round2Questions: selected.map(q => q.id),
                     round2CurrentQuestion: 0,
                     activeQuestion: selected[0] || null,
-                    usedQuestionIds: [...prev.usedQuestionIds, ...selected.map(q => q.id)],
+                    usedQuestionIds: [...(prev.usedQuestionIds || []), ...selected.map(q => q.id)],
                     message: `📢 Entering ${round}... (5 questions initialized)`,
                     // Reset all player submissions for fresh start
                     players: prev.players.map(p => ({
@@ -250,25 +288,26 @@ export const useGameSync = () => {
                 };
             }
 
-            return {
+            // Xây base state trước, rồi spread round2AutoInit SAU CÙNG
+            // để round2AutoInit.activeQuestion ghi đè activeQuestion: null đúng cách
+            const baseState = {
                 round,
                 message: `📢 Entering ${round}...`,
                 activeQuestion: null,
                 timerEndTime: null,
                 buzzerLocked: true,
-                round3Phase: 'IDLE',
+                round3Phase: 'IDLE' as Round3Phase,
                 round3TurnPlayerId: null,
-                activeStealPlayerId: null, // Reset steal
+                activeStealPlayerId: null,
                 round1TurnPlayerId: null,
                 showAnswer: false,
                 viewingPlayerId: null,
-                round3Mode: 'ORAL', // Reset mode to ORAL default
-                checkpoints: updatedCheckpoints, // Save checkpoint
-                // Clear any round-specific temporary states
-                usedQuestionIds: round === GameRound.LOBBY ? [] : prev.usedQuestionIds,
-                // Apply auto-init if applicable
-                ...round2AutoInit
+                round3Mode: 'ORAL' as Round3Mode,
+                checkpoints: updatedCheckpoints,
+                usedQuestionIds: round === GameRound.LOBBY ? [] : (prev.usedQuestionIds || []),
             };
+
+            return { ...baseState, ...round2AutoInit };
         });
     };
 
@@ -432,60 +471,67 @@ export const useGameSync = () => {
             const BASE_POINTS = 30;
             const SPEED_BONUSES = [6, 4, 2]; // Top 1, 2, 3
 
-            // 1. Mark the submission as correct/incorrect
+            // GUARD: Nếu player này đã được chấm điểm rồi => bỏ qua, tránh cộng điểm 2 lần
+            const targetPlayer = prev.players.find(p => p.id === playerId);
+            const existingSub = (targetPlayer?.round2Submissions || []).find(
+                s => s.questionId === currentQuestionId
+            );
+            if (existingSub?.points !== undefined) {
+                // Đã có điểm rồi — chỉ cập nhật isCorrect flag, không cộng điểm
+                return {
+                    players: prev.players.map(p => {
+                        if (p.id !== playerId) return p;
+                        return {
+                            ...p,
+                            round2Submissions: (p.round2Submissions || []).map(s =>
+                                s.questionId === currentQuestionId ? { ...s, isCorrect } : s
+                            )
+                        };
+                    })
+                };
+            }
+
+            // 1. Mark the submission as correct/incorrect (for this player only)
             let updatedPlayers = prev.players.map(p => {
                 if (p.id !== playerId) return p;
-
-                const submissions = p.round2Submissions || [];
                 return {
                     ...p,
-                    round2Submissions: submissions.map(s =>
-                        s.questionId === currentQuestionId
-                            ? { ...s, isCorrect }
-                            : s
+                    round2Submissions: (p.round2Submissions || []).map(s =>
+                        s.questionId === currentQuestionId ? { ...s, isCorrect } : s
                     )
                 };
             });
 
-            // 2. Find all correct submissions for THIS question
+            // Nếu chấm WRONG => không cộng điểm, kết thúc sớm
+            if (!isCorrect) return { players: updatedPlayers };
+
+            // 2. Tính rank của player này dựa trên TẤT CẢ submission đúng hiện tại
             const correctSubmissions: Array<{ playerId: string; time: number }> = [];
             updatedPlayers.forEach(p => {
-                const submission = (p.round2Submissions || []).find(
+                const sub = (p.round2Submissions || []).find(
                     s => s.questionId === currentQuestionId && s.isCorrect
                 );
-                if (submission) {
-                    correctSubmissions.push({ playerId: p.id, time: submission.time });
-                }
+                if (sub) correctSubmissions.push({ playerId: p.id, time: sub.time });
             });
-
-            // 3. Sort by time (fastest first)
             correctSubmissions.sort((a, b) => a.time - b.time);
 
-            // 4. Award points with speed bonus
+            // 3. CHỈ cộng điểm cho player VỪA được chấm (playerId), không đụng player khác
             updatedPlayers = updatedPlayers.map(p => {
-                const submission = (p.round2Submissions || []).find(
-                    s => s.questionId === currentQuestionId
-                );
-                if (!submission || !submission.isCorrect) return p;
+                if (p.id !== playerId) return p; // ← KEY FIX: bỏ qua tất cả player khác
+
+                const sub = (p.round2Submissions || []).find(s => s.questionId === currentQuestionId);
+                if (!sub || !sub.isCorrect) return p;
 
                 const rank = correctSubmissions.findIndex(cs => cs.playerId === p.id);
-                const bonus = rank < 3 ? SPEED_BONUSES[rank] : 0;
+                const bonus = rank >= 0 && rank < 3 ? SPEED_BONUSES[rank] : 0;
                 const points = BASE_POINTS + bonus;
-
-                // Update submission with points
-                const updatedSubmissions = (p.round2Submissions || []).map(s =>
-                    s.questionId === currentQuestionId
-                        ? { ...s, points }
-                        : s
-                );
-
-                // Calculate total R2 score from all submissions
-                const totalR2Score = updatedSubmissions.reduce((sum, s) => sum + (s.points || 0), 0);
 
                 return {
                     ...p,
-                    round2Submissions: updatedSubmissions,
-                    score: p.score + points // Add points to total
+                    round2Submissions: (p.round2Submissions || []).map(s =>
+                        s.questionId === currentQuestionId ? { ...s, points } : s
+                    ),
+                    score: p.score + points // Chỉ cộng cho player này
                 };
             });
 
