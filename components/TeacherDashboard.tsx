@@ -16,7 +16,9 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
     const [customPrompt, setCustomPrompt] = useState('');
     const [aiLoading, setAiLoading] = useState(false);
     const [showR3Bank, setShowR3Bank] = useState(false);
+    const [showR2Bank, setShowR2Bank] = useState(true);
     const [r2Category, setR2Category] = useState<QuestionCategory | 'ALL'>('ALL');
+    const [selectedR2ReplaceIndex, setSelectedR2ReplaceIndex] = useState(0);
     const [r1Filter, setR1Filter] = useState<Difficulty | 'ALL'>('ALL');
     const [isGraded, setIsGraded] = useState(false); // NEW: Track if current Q has been graded
     const [transitionPopup, setTransitionPopup] = useState<{ title: string; subtitle: string } | null>(null);
@@ -44,6 +46,12 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
     useEffect(() => {
         setIsGraded(false);
     }, [gameState.activeQuestion?.id]);
+
+    // Round 2 UX: auto-hide question bank once teacher confirms the 5-question pack
+    useEffect(() => {
+        if (gameState.round !== GameRound.ROUND_2) return;
+        setShowR2Bank(!gameState.round2Reviewed);
+    }, [gameState.round, gameState.round2Reviewed]);
 
     const getDynamicTimerDuration = (difficulty?: Difficulty) => {
         switch (difficulty) {
@@ -224,6 +232,19 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
             }
 
             if (!gameState.round3TurnPlayerId) {
+                const hasRound3Started = gameState.players.some(player =>
+                    player.round3Pack.some(item => item.status !== 'PENDING')
+                );
+
+                if (!hasRound3Started) {
+                    return {
+                        label: 'Chọn mode + học viên mở màn',
+                        hint: 'Vào Round 3: giáo viên chủ động chọn Vấn đáp/Trắc nghiệm và học viên bắt đầu.',
+                        disabled: true,
+                        run: () => {}
+                    };
+                }
+
                 const nextPlayer = lockedPlayers.find(p => p.round3Pack.some(item => item.status === 'PENDING'));
                 return {
                     label: nextPlayer ? `Mở lượt: ${nextPlayer.name}` : 'Không còn lượt pending',
@@ -395,6 +416,13 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
         if (gameState.round3Phase !== 'IDLE') return;
         if (gameState.activeQuestion) return;
 
+        const hasRound3Started = gameState.players.some(player =>
+            player.round3Pack.some(item => item.status !== 'PENDING')
+        );
+
+        // Initial entry of Round 3 must be manual: teacher picks mode + starting student.
+        if (!hasRound3Started) return;
+
         const nextPlayer = gameState.players.find(p =>
             p.round3PackLocked && p.round3Pack.some(item => item.status === 'PENDING')
         );
@@ -450,28 +478,9 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
         actions
     ]);
 
-    // Phase 2 C5: Smart close steal when no one can steal anymore
-    useEffect(() => {
-        if (gameState.round !== GameRound.ROUND_3) return;
-        if (gameState.round3Phase !== 'STEAL_WINDOW') return;
-        if (gameState.activeStealPlayerId) return;
+    // Note: Round 3 STEAL auto-close is handled only by timer timeout (15s)
+    // in the timer monitor effect above, or manually by teacher actions.
 
-        const hasEligibleStealer = gameState.players.some(p =>
-            p.id !== gameState.round3TurnPlayerId && !p.buzzedAt
-        );
-
-        if (!hasEligibleStealer) {
-            const t = setTimeout(() => actions.cancelStealPhase(), 600);
-            return () => clearTimeout(t);
-        }
-    }, [
-        gameState.round,
-        gameState.round3Phase,
-        gameState.round3TurnPlayerId,
-        gameState.activeStealPlayerId,
-        gameState.players,
-        actions
-    ]);
 
     // Phase1-B3: Auto-open next submitted student code in R2 when no card is currently open
     useEffect(() => {
@@ -870,7 +879,24 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                                     <Check size={18} /> Confirm 5 Questions & Start Q1 Timer
                                 </button>
                             )}
+
+                            {gameState.round2Reviewed && (
+                                <div className="px-3 py-2 rounded bg-emerald-900/30 border border-emerald-500 text-emerald-300 text-xs font-bold uppercase tracking-wide">
+                                    Round 2 Auto-flow Ready
+                                </div>
+                            )}
+
                             <span className="text-xs text-gray-500">Total: {ROUND_2_QUESTIONS.length} Questions</span>
+
+                            {gameState.round2Questions.length > 0 && gameState.round2Reviewed && (
+                                <button
+                                    onClick={() => setShowR2Bank(prev => !prev)}
+                                    className="px-3 py-2 rounded border border-cyan-500/50 bg-cyan-900/20 text-cyan-300 text-xs font-bold hover:bg-cyan-900/40 transition-colors"
+                                >
+                                    {showR2Bank ? 'Hide Question Bank' : 'Show Question Bank'}
+                                </button>
+                            )}
+
                             <div className="flex gap-2">
                                 {(['ALL', 'LOGIC', 'SYNTAX', 'ALGO', 'OUTPUT', 'DEBUG', 'LIST'] as const).map(cat => (
                                     <button
@@ -885,55 +911,98 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[650px] overflow-y-auto pr-2 custom-scrollbar p-2 bg-slate-900/30 rounded-xl">
-                        {ROUND_2_QUESTIONS
-                            .filter(q => (r2Category === 'ALL' || q.category === r2Category))
-                            .map(q => {
-                                const isUsed = gameState.usedQuestionIds.includes(q.id);
-                                const isInCurrentSet = gameState.round2Questions.includes(q.id);
-                                return (
-                                    <button
-                                        key={q.id}
-                                        onClick={() => {
-                                            // If 5 questions initialized, replace current question
-                                            if (gameState.round2Questions.length > 0) {
-                                                // Confirm replacement to avoid accidents
-                                                if (confirm(`Replace current question (${gameState.round2CurrentQuestion + 1}/5) with this one?\n\nThis will clear all student submissions for the current question.`)) {
-                                                    actions.replaceRound2Question(q);
-                                                    playSound('CORRECT'); // Feedback sound
+                    {gameState.round2Questions.length > 0 && (
+                        <div className="bg-slate-900/60 border border-yellow-600/40 rounded-xl p-4 space-y-3">
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-sm font-black uppercase tracking-wider text-yellow-400">
+                                    Teacher Pack Review (5 Questions)
+                                </h3>
+                                <span className="text-xs text-gray-400">
+                                    Chọn 1 slot (Q1-Q5) → click câu ở bank để thay
+                                </span>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-5 gap-2">
+                                {gameState.round2Questions.map((qid, idx) => {
+                                    const q = ROUND_2_QUESTIONS.find(item => item.id === qid);
+                                    const isSelected = selectedR2ReplaceIndex === idx;
+                                    const isCurrent = gameState.round2CurrentQuestion === idx;
+                                    return (
+                                        <button
+                                            key={qid + idx}
+                                            onClick={() => setSelectedR2ReplaceIndex(idx)}
+                                            className={`p-2 rounded border text-left transition-all ${isSelected ? 'border-cyan-400 bg-cyan-900/30 shadow-[0_0_12px_rgba(34,211,238,0.25)]' : 'border-gray-700 bg-gray-800/50'} ${isCurrent ? 'ring-2 ring-yellow-400' : ''}`}
+                                        >
+                                            <div className="flex items-center justify-between mb-1">
+                                                <span className="text-[10px] font-black text-gray-300">Q{idx + 1}</span>
+                                                {isCurrent && <span className="text-[10px] px-1.5 py-0.5 rounded bg-yellow-500 text-black font-black">CURRENT</span>}
+                                            </div>
+                                            <div className="text-[11px] font-bold text-gray-100 line-clamp-2">{q?.content || qid}</div>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
+
+                    {showR2Bank && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[650px] overflow-y-auto pr-2 custom-scrollbar p-2 bg-slate-900/30 rounded-xl">
+                            {ROUND_2_QUESTIONS
+                                .filter(q => (r2Category === 'ALL' || q.category === r2Category))
+                                .map(q => {
+                                    const isUsed = gameState.usedQuestionIds.includes(q.id);
+                                    const isInCurrentSet = gameState.round2Questions.includes(q.id);
+                                    const replaceIndex = gameState.round2Questions.length > 0 ? selectedR2ReplaceIndex : -1;
+                                    const replacingCurrentQuestionId = replaceIndex >= 0 ? gameState.round2Questions[replaceIndex] : null;
+                                    const isSameAsSelectedSlot = replacingCurrentQuestionId === q.id;
+
+                                    return (
+                                        <button
+                                            key={q.id}
+                                            onClick={() => {
+                                                if (gameState.round2Questions.length > 0) {
+                                                    if (replaceIndex < 0 || replaceIndex > 4) {
+                                                        alert('Vui lòng chọn slot Q1-Q5 trước khi thay câu.');
+                                                        return;
+                                                    }
+
+                                                    if (isSameAsSelectedSlot) return;
+
+                                                    if (confirm(`Thay Q${replaceIndex + 1} bằng câu này?\n\n- Câu cũ ở slot sẽ bị thay\n- Submission của câu cũ sẽ bị reset`)) {
+                                                        actions.replaceRound2QuestionAt(replaceIndex, q);
+                                                        playSound('CORRECT');
+                                                    }
+                                                } else {
+                                                    actions.setQuestion(q);
                                                 }
-                                            } else {
-                                                // Otherwise, just set as active question (old behavior)
-                                                actions.setQuestion(q);
-                                            }
-                                        }}
-                                        title={gameState.round2Questions.length > 0
-                                            ? `Click to REPLACE current question (${gameState.round2CurrentQuestion + 1}/5) with this one`
-                                            : 'Click to select this question'}
-                                        className={`p-4 rounded text-left border relative transition-all ${gameState.activeQuestion?.id === q.id
-                                            ? 'border-cyber-primary bg-slate-800 shadow-[0_0_15px_rgba(6,182,212,0.3)] scale-105 z-10'
-                                            : isInCurrentSet
-                                                ? 'border-yellow-500 bg-yellow-900/20'
-                                                : isUsed
-                                                    ? 'border-gray-800 bg-gray-900 opacity-40 grayscale'
-                                                    : 'border-gray-600 bg-gray-800 hover:border-cyber-primary'
-                                            }`}
-                                    >
-                                        {isUsed && <span className="absolute top-2 right-2 text-[10px] font-black bg-gray-700 text-gray-300 px-1 rounded">USED</span>}
-                                        {isInCurrentSet && !isUsed && <span className="absolute top-2 right-2 text-[10px] font-black bg-yellow-600 text-black px-1 rounded">IN SET</span>}
-                                        <div className="flex justify-between mb-2">
-                                            <span className="text-[10px] bg-cyber-primary/20 text-cyber-primary px-2 py-0.5 rounded uppercase font-black">{q.category}</span>
-                                            <span className="text-[10px] text-gray-500 font-mono">{q.points}pts</span>
-                                        </div>
-                                        <div className="font-bold text-sm mb-2 h-10 overflow-hidden line-clamp-2">{q.content}</div>
-                                        {/* Use Pre tag for code formatting */}
-                                        <pre className="text-[10px] bg-black/60 p-2 rounded text-green-500 font-mono truncate border border-gray-700 whitespace-pre-wrap">
-                                            {q.codeSnippet}
-                                        </pre>
-                                    </button>
-                                );
-                            })}
-                    </div>
+                                            }}
+                                            title={gameState.round2Questions.length > 0
+                                                ? `Replace slot Q${selectedR2ReplaceIndex + 1} with this question`
+                                                : 'Click to select this question'}
+                                            className={`p-4 rounded text-left border relative transition-all ${gameState.activeQuestion?.id === q.id
+                                                ? 'border-cyber-primary bg-slate-800 shadow-[0_0_15px_rgba(6,182,212,0.3)] scale-105 z-10'
+                                                : isInCurrentSet
+                                                    ? 'border-yellow-500 bg-yellow-900/20'
+                                                    : isUsed
+                                                        ? 'border-gray-800 bg-gray-900 opacity-40 grayscale'
+                                                        : 'border-gray-600 bg-gray-800 hover:border-cyber-primary'
+                                                } ${isSameAsSelectedSlot ? 'ring-2 ring-cyan-400' : ''}`}
+                                        >
+                                            {isUsed && <span className="absolute top-2 right-2 text-[10px] font-black bg-gray-700 text-gray-300 px-1 rounded">USED</span>}
+                                            {isInCurrentSet && !isUsed && <span className="absolute top-2 right-2 text-[10px] font-black bg-yellow-600 text-black px-1 rounded">IN SET</span>}
+                                            <div className="flex justify-between mb-2">
+                                                <span className="text-[10px] bg-cyber-primary/20 text-cyber-primary px-2 py-0.5 rounded uppercase font-black">{q.category}</span>
+                                                <span className="text-[10px] text-gray-500 font-mono">{q.points}pts</span>
+                                            </div>
+                                            <div className="font-bold text-sm mb-2 h-10 overflow-hidden line-clamp-2">{q.content}</div>
+                                            {/* Use Pre tag for code formatting */}
+                                            <pre className="text-[10px] bg-black/60 p-2 rounded text-green-500 font-mono truncate border border-gray-700 whitespace-pre-wrap">
+                                                {q.codeSnippet}
+                                            </pre>
+                                        </button>
+                                    );
+                                })}
+                        </div>
+                    )}
 
                     {gameState.activeQuestion && (
                         <div className="bg-slate-900 border border-cyber-primary p-6 rounded-xl shadow-2xl">
@@ -1007,12 +1076,14 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                                         <div className="p-3 bg-slate-900 border-t border-gray-700 flex gap-3 justify-end">
                                             <button
                                                 onClick={() => {
+                                                    // IMPORTANT: mark as graded WRONG, then close viewer
+                                                    actions.gradeRound2Question(viewingPlayer.id, false);
                                                     actions.setViewingPlayer(null);
-                                                    playSound('SCORE_DOWN'); // Sound for wrong/dismiss
+                                                    playSound('WRONG');
                                                 }}
                                                 className="px-6 py-2 bg-red-900/50 border border-red-500 hover:bg-red-900 text-red-200 rounded font-bold flex items-center gap-2 transition-all"
                                             >
-                                                <ThumbsDown size={18} /> WRONG (Dismiss)
+                                                <ThumbsDown size={18} /> WRONG (0)
                                             </button>
                                             <button
                                                 onClick={() => {
@@ -1139,6 +1210,15 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                                     </div>
                                 ))}
                             </div>
+                        </div>
+                    )}
+
+                    {!gameState.round3TurnPlayerId && !gameState.activeQuestion && gameState.round3Phase === 'IDLE' && (
+                        <div className="bg-blue-950/40 border border-blue-500/40 rounded-xl px-4 py-3 text-sm text-blue-200 flex items-center justify-between gap-4">
+                            <span>
+                                <strong className="text-blue-300">Round 3 Setup:</strong> Chọn mode <em>Vấn đáp/Trắc nghiệm</em> rồi bấm <em>Mở lượt trả lời</em> cho học viên bắt đầu.
+                            </span>
+                            <span className="text-[11px] uppercase tracking-wide font-bold text-blue-300">Manual Start</span>
                         </div>
                     )}
 

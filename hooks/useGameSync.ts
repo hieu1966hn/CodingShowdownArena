@@ -184,6 +184,7 @@ export const useGameSync = () => {
             name: name || user.displayName || "Anonymous",
             score: 0,
             isOnline: true,
+            round2Submissions: [],
             round3Pack: [
                 { difficulty: 'EASY', status: 'PENDING' },
                 { difficulty: 'MEDIUM', status: 'PENDING' },
@@ -222,9 +223,13 @@ export const useGameSync = () => {
                     playerName: p.name,
                     score: p.score,
                     round1Score: p.score, // R1 score only
-                    round2Submissions: p.round2Submissions,
-                    round3Pack: p.round3Pack,
-                    round3PackLocked: p.round3PackLocked
+                    round2Submissions: p.round2Submissions || [],
+                    round3Pack: p.round3Pack || [
+                        { difficulty: 'EASY', status: 'PENDING' },
+                        { difficulty: 'MEDIUM', status: 'PENDING' },
+                        { difficulty: 'HARD', status: 'PENDING' }
+                    ],
+                    round3PackLocked: p.round3PackLocked ?? false
                 }));
             } else if (prev.round === GameRound.ROUND_2 && round === GameRound.ROUND_3) {
                 // Completed Round 2 → Save Checkpoint 2
@@ -234,9 +239,13 @@ export const useGameSync = () => {
                     score: p.score,
                     round1Score: updatedCheckpoints.round1?.find(cp => cp.playerId === p.id)?.round1Score || 0,
                     round2Score: p.score - (updatedCheckpoints.round1?.find(cp => cp.playerId === p.id)?.round1Score || 0),
-                    round2Submissions: p.round2Submissions,
-                    round3Pack: p.round3Pack,
-                    round3PackLocked: p.round3PackLocked
+                    round2Submissions: p.round2Submissions || [],
+                    round3Pack: p.round3Pack || [
+                        { difficulty: 'EASY', status: 'PENDING' },
+                        { difficulty: 'MEDIUM', status: 'PENDING' },
+                        { difficulty: 'HARD', status: 'PENDING' }
+                    ],
+                    round3PackLocked: p.round3PackLocked ?? false
                 }));
             } else if (prev.round === GameRound.ROUND_3 && round === GameRound.GAME_OVER) {
                 // Completed Round 3 → Save Checkpoint 3
@@ -254,9 +263,13 @@ export const useGameSync = () => {
                         round1Score: playerR1,
                         round2Score: playerR2,
                         round3Score: p.score - playerR1 - playerR2,
-                        round2Submissions: p.round2Submissions,
-                        round3Pack: p.round3Pack,
-                        round3PackLocked: p.round3PackLocked
+                        round2Submissions: p.round2Submissions || [],
+                        round3Pack: p.round3Pack || [
+                            { difficulty: 'EASY', status: 'PENDING' },
+                            { difficulty: 'MEDIUM', status: 'PENDING' },
+                            { difficulty: 'HARD', status: 'PENDING' }
+                        ],
+                        round3PackLocked: p.round3PackLocked ?? false
                     };
                 });
             }
@@ -855,14 +868,18 @@ export const useGameSync = () => {
             });
 
             if (isCorrect) {
-                // Clear all buzzers inline for next turn
+                // Correct answer should close current question immediately
+                // so Round 3 auto-flow can reveal the next pending question.
                 updatedPlayers = updatedPlayers.map(p => ({ ...p, buzzedAt: null }));
 
                 return {
                     players: updatedPlayers,
                     showAnswer: true,
-                    buzzerLocked: false, // Unlock for next turn
-                    round3Phase: 'IDLE' // End turn
+                    buzzerLocked: false,
+                    round3Phase: 'IDLE',
+                    activeQuestion: null,
+                    timerEndTime: null,
+                    message: '✅ Chính xác! Tự chuyển sang câu tiếp theo...'
                 };
             } else {
                 // WRONG ANSWER -> DELAY 3s BEFORE STEAL
@@ -1234,21 +1251,28 @@ export const useGameSync = () => {
         });
     };
 
-    const replaceRound2Question = (newQuestion: Question) => {
+    const replaceRound2QuestionAt = (targetIndex: number, newQuestion: Question) => {
         updateState((prev) => {
-            const currentIndex = prev.round2CurrentQuestion;
-            const newQuestions = [...prev.round2Questions];
-            const oldQuestionId = newQuestions[currentIndex];
+            if (targetIndex < 0 || targetIndex >= prev.round2Questions.length) return {};
 
-            // Replace the question ID at current index
-            newQuestions[currentIndex] = newQuestion.id;
+            const newQuestions = [...prev.round2Questions];
+            const oldQuestionId = newQuestions[targetIndex];
+
+            // Prevent duplicate question IDs inside the 5-question set
+            if (newQuestions.includes(newQuestion.id) && oldQuestionId !== newQuestion.id) {
+                return {};
+            }
+
+            // Replace question at selected slot
+            newQuestions[targetIndex] = newQuestion.id;
 
             // Update usedQuestionIds: remove old, add new
             const updatedUsedIds = prev.usedQuestionIds.filter(id => id !== oldQuestionId);
-            updatedUsedIds.push(newQuestion.id);
+            if (!updatedUsedIds.includes(newQuestion.id)) {
+                updatedUsedIds.push(newQuestion.id);
+            }
 
-            // IMPORTANT: Remove submissions for the OLD question from ALL players
-            // This allows students to re-submit for the NEW question
+            // Remove submissions for OLD question from all players (if any)
             const updatedPlayers = prev.players.map(p => ({
                 ...p,
                 round2Submissions: (p.round2Submissions || []).filter(
@@ -1256,13 +1280,23 @@ export const useGameSync = () => {
                 )
             }));
 
+            // If replacing current active question, also switch activeQuestion immediately
+            const shouldSwapActive = targetIndex === prev.round2CurrentQuestion;
+
             return {
                 round2Questions: newQuestions,
-                activeQuestion: newQuestion,
+                activeQuestion: shouldSwapActive ? newQuestion : prev.activeQuestion,
                 usedQuestionIds: updatedUsedIds,
-                players: updatedPlayers // Clear old submissions
+                players: updatedPlayers,
+                showAnswer: shouldSwapActive ? false : prev.showAnswer,
+                viewingPlayerId: shouldSwapActive ? null : prev.viewingPlayerId
             };
         });
+    };
+
+    // Backward-compatible wrapper: replace current question
+    const replaceRound2Question = (newQuestion: Question) => {
+        replaceRound2QuestionAt(gameState.round2CurrentQuestion, newQuestion);
     };
 
 
@@ -1289,6 +1323,7 @@ export const useGameSync = () => {
         startRound2Timer,
         stopTimer,
         updateScore,
+        gradeRound1,
         buzz,
         clearBuzzers,
         submitRound2,
@@ -1317,8 +1352,10 @@ export const useGameSync = () => {
         gradeRound2,
         gradeRound2Question,
         initRound2Questions,
+        confirmRound2Review,
         nextRound2Question,
         replaceRound2Question,
+        replaceRound2QuestionAt,
         // NEW: Reset Level functions
         resetToRound1,
         resetToRound2,

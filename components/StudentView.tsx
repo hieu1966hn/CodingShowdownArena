@@ -183,9 +183,9 @@ const StudentView: React.FC<Props> = ({ gameState, playerId, onBuzz, onSubmitRou
                                                 onChange={(e) => handlePackChange(idx, e.target.value as Difficulty)}
                                                 className="flex-grow bg-black border border-gray-600 rounded p-3 text-white focus:border-cyber-primary focus:outline-none"
                                             >
-                                                <option value="EASY">EASY (20pts)</option>
-                                                <option value="MEDIUM">MEDIUM (30pts)</option>
-                                                <option value="HARD">HARD (40pts)</option>
+                                                <option value="EASY">EASY (40pts)</option>
+                                                <option value="MEDIUM">MEDIUM (60pts)</option>
+                                                <option value="HARD">HARD (80pts)</option>
                                             </select>
                                         </div>
                                     ))}

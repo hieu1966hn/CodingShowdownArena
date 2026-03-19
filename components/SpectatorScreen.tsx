@@ -140,6 +140,13 @@ const SpectatorScreen: React.FC<Props> = ({ gameState, onLeave }) => {
     // Determine active stealer
     const stealingPlayer = gameState.activeStealPlayerId ? gameState.players.find(p => p.id === gameState.activeStealPlayerId) : null;
 
+    const round3TransitionCountdown =
+        gameState.round === GameRound.ROUND_3 &&
+        gameState.round3Phase === 'SHOW_WRONG_DELAY' &&
+        gameState.timerEndTime
+            ? Math.max(0, Math.ceil((gameState.timerEndTime - Date.now()) / 1000))
+            : null;
+
     return (
         <div className="min-h-screen bg-cyber-dark text-white p-6 flex flex-col relative overflow-hidden">
             <div className="flex justify-between items-center z-10 mb-8 border-b border-gray-700 pb-4">
@@ -276,6 +283,20 @@ const SpectatorScreen: React.FC<Props> = ({ gameState, onLeave }) => {
                                 <div className="absolute top-0 left-0 w-full bg-red-900/90 py-2 z-20 flex justify-center items-center shadow-2xl border-b-4 border-red-500 animate-pulse">
                                     <h2 className="text-2xl font-black text-white uppercase flex items-center gap-4 tracking-widest">
                                         <Zap size={32} className="text-yellow-400" fill="currentColor" /> STEAL WINDOW OPEN <Zap size={32} className="text-yellow-400" fill="currentColor" />
+                                    </h2>
+                                </div>
+                            )}
+
+                            {/* ROUND 3 DELAY COUNTDOWN OVERLAY */}
+                            {round3TransitionCountdown !== null && (
+                                <div className="absolute top-0 left-0 w-full bg-gradient-to-r from-amber-600/95 via-orange-500/95 to-red-600/95 py-3 z-20 flex justify-center items-center shadow-2xl border-b-4 border-amber-300 animate-pulse">
+                                    <h2 className="text-xl md:text-2xl font-black text-white uppercase flex items-center gap-3 tracking-wide text-center px-4">
+                                        <Clock size={28} className="text-yellow-100" />
+                                        Chuyển sang câu tiếp theo sau
+                                        <span className="inline-flex items-center justify-center min-w-10 h-10 px-3 rounded-full bg-black/30 border border-white/30 text-2xl font-extrabold">
+                                            {round3TransitionCountdown}
+                                        </span>
+                                        giây...
                                     </h2>
                                 </div>
                             )}
