@@ -123,7 +123,14 @@ export const useGameSync = () => {
                 console.log("Room exists, resuming...");
                 setRoomId(code);
             } else {
-                const newState = { ...INITIAL_STATE, roomId: code };
+                const now = new Date();
+                const expiresAt = new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000); // 60 days TTL
+                const newState = {
+                    ...INITIAL_STATE,
+                    roomId: code,
+                    createdAt: firebase.firestore.Timestamp.fromDate(now),
+                    expiresAt: firebase.firestore.Timestamp.fromDate(expiresAt),
+                };
                 await ref.set(newState);
                 setRoomId(code);
             }
@@ -1005,7 +1012,22 @@ export const useGameSync = () => {
                 console.error("Failed to archive game:", e);
             }
         }
+
+        // Auto-delete anonymous accounts of players in this room
+        // Only the CURRENT user can delete their own account (Firebase client-side limitation)
+        // So we delete the current user's account if they are anonymous
+        try {
+            const currentUser = auth.currentUser;
+            if (currentUser && currentUser.isAnonymous) {
+                await currentUser.delete();
+                console.log("Anonymous user account deleted after game end:", currentUser.uid);
+            }
+        } catch (e) {
+            // Non-critical: silently ignore if deletion fails
+            console.warn("Could not delete anonymous user account:", e);
+        }
     };
+
 
     const resetGame = () => {
         if (roomId) {

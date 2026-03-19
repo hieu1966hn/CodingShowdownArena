@@ -4,6 +4,7 @@ import { useGameSync } from './hooks/useGameSync';
 import TeacherDashboard from './components/TeacherDashboard';
 import StudentView from './components/StudentView';
 import SpectatorScreen from './components/SpectatorScreen';
+import AdminPage from './components/AdminPage';
 import { Users, Monitor, ShieldCheck, Gamepad2, ExternalLink, Trash2, LogIn, Key, PlayCircle, LogOut, AlertTriangle, Copy, Check, Maximize, User, GraduationCap } from 'lucide-react';
 
 const App: React.FC = () => {
@@ -15,6 +16,7 @@ const App: React.FC = () => {
     const [studentId, setStudentId] = useState<string | null>(null);
     const [tempName, setTempName] = useState('');
     const [inIframe, setInIframe] = useState(false);
+    const [isAdminRoute, setIsAdminRoute] = useState(false);
 
     // UX State
     const [isTeacherMode, setIsTeacherMode] = useState(false);
@@ -36,11 +38,26 @@ const App: React.FC = () => {
         if (mode && mode.toLowerCase() === 'teacher') {
             setAllowTeacherAccess(true);
         }
+
+        // Check URL for ?admin
+        if (params.has('admin')) {
+            setIsAdminRoute(true);
+        }
     }, []);
 
     const openNewTab = () => {
         window.open(window.location.href, '_blank');
     };
+
+    // --- Step 0: Admin Route ---
+    if (isAdminRoute && !authLoading) {
+        return (
+            <AdminPage onLeave={() => {
+                setIsAdminRoute(false);
+                window.history.replaceState({}, '', window.location.pathname);
+            }} />
+        );
+    }
 
     // --- Step 1: Auth Loading ---
     if (authLoading) {
