@@ -175,6 +175,20 @@ const AdminPage: React.FC<{ onLeave: () => void }> = ({ onLeave }) => {
         (h.roomId || '').toLowerCase().includes(searchTerm.toLowerCase())
     );
 
+    // ── Expired Rooms ────────────────────────────────────────
+    const expiredRooms = rooms.filter(r => {
+        const days = getDaysUntilExpiry(r.expiresAt);
+        return days !== null && days <= 0;
+    });
+
+    const deleteExpiredRooms = () => {
+        if (expiredRooms.length === 0) {
+            showStatus('info', 'Không có room hết hạn nào');
+            return;
+        }
+        handleDelete(expiredRooms.map(r => r.id), 'rooms');
+    };
+
     // ── Render: Not Admin ────────────────────────────────────
     if (!isAdmin) {
         return (
@@ -228,13 +242,33 @@ const AdminPage: React.FC<{ onLeave: () => void }> = ({ onLeave }) => {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <StatCard icon={<Database size={20} />} label="Tổng Rooms" value={rooms.length} color="cyan" />
                     <StatCard icon={<Archive size={20} />} label="Tổng History" value={history.length} color="purple" />
-                    <StatCard icon={<Clock size={20} />} label="Rooms có TTL" value={rooms.filter(r => r.expiresAt).length} color="amber" />
                     <StatCard
                         icon={<Users size={20} />}
                         label="Rooms Active"
                         value={rooms.filter(r => r.round && r.round !== 'GAME_OVER').length}
                         color="green"
                     />
+                    <div
+                        onClick={deleteExpiredRooms}
+                        className={`rounded-xl p-4 border cursor-pointer transition-all ${
+                            expiredRooms.length > 0
+                                ? 'bg-red-900/30 border-red-700 hover:bg-red-800/40'
+                                : 'bg-gray-900/30 border-gray-800'
+                        }`}
+                    >
+                        <div className={`flex items-center gap-2 mb-2 ${
+                            expiredRooms.length > 0 ? 'text-red-400' : 'text-gray-600'
+                        }`}>
+                            <Trash2 size={20} />
+                            <span className="text-xs font-mono text-gray-400">Rooms Hết Hạn</span>
+                        </div>
+                        <div className={`text-3xl font-black ${
+                            expiredRooms.length > 0 ? 'text-red-400' : 'text-gray-600'
+                        }`}>{expiredRooms.length}</div>
+                        {expiredRooms.length > 0 && (
+                            <div className="text-xs text-red-400/70 mt-1 font-mono">Click để xóa</div>
+                        )}
+                    </div>
                 </div>
 
                 {/* Status message */}
