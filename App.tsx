@@ -46,14 +46,26 @@ const App: React.FC = () => {
     const [isAdminRoute, setIsAdminRoute] = useState(false);
 
     // UX State
-    const [isTeacherMode, setIsTeacherMode] = useState(false);
+    // Auto-enable teacher mode if: cached role was TEACHER, OR URL has ?mode=teacher
+    const [isTeacherMode, setIsTeacherMode] = useState(() => {
+        try {
+            const cached = localStorage.getItem(ROLE_CACHE_KEY);
+            if (cached && JSON.parse(cached).role === 'TEACHER') return true;
+        } catch (e) {}
+        // Also check URL param at init time (before useEffect runs)
+        const params = new URLSearchParams(window.location.search);
+        const mode = params.get('mode');
+        return !!(mode && mode.toLowerCase() === 'teacher');
+    });
     // Default: Teacher options are HIDDEN. Only shown if ?mode=Teacher OR cached role is TEACHER
     const [allowTeacherAccess, setAllowTeacherAccess] = useState(() => {
         try {
             const cached = localStorage.getItem(ROLE_CACHE_KEY);
             if (cached) return JSON.parse(cached).role === 'TEACHER';
         } catch (e) {}
-        return false;
+        const params = new URLSearchParams(window.location.search);
+        const mode = params.get('mode');
+        return !!(mode && mode.toLowerCase() === 'teacher');
     });
 
     // Persist role + studentId to localStorage whenever they change
