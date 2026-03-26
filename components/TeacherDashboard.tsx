@@ -547,21 +547,10 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
         actions
     ]);
 
-    // Phase 2 C2: Auto-start MAIN timer immediately after reveal
-    useEffect(() => {
-        if (gameState.round !== GameRound.ROUND_3) return;
-        if (!gameState.round3TurnPlayerId) return;
-        if (!gameState.activeQuestion) return;
-        if (gameState.round3Phase !== 'IDLE') return;
+    // Phase 2 C2: Timer is now started atomically inside revealRound3Question
+    // (merged to avoid stale-closure bug where activeQuestion read as null → wrong duration)
 
-        actions.startRound3Timer('MAIN');
-    }, [
-        gameState.round,
-        gameState.round3TurnPlayerId,
-        gameState.activeQuestion?.id,
-        gameState.round3Phase,
-        actions
-    ]);
+
 
     // Note: Round 3 STEAL auto-close is handled only by timer timeout (15s)
     // in the timer monitor effect above, or manually by teacher actions.
@@ -896,7 +885,7 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                                         {gameState.players.find(p => p.id === gameState.round1TurnPlayerId)?.name}
                                     </span>
                                     <span className="text-xs text-gray-300 px-2 py-1 rounded bg-gray-900 border border-gray-700">
-                                        Q: {(gameState.round1QuestionsAsked[gameState.round1TurnPlayerId] || 0) + 1} / {round1MaxQuestions}
+                                        Q: {(gameState.round1QuestionsAsked[gameState.round1TurnPlayerId] || 0)} / {round1MaxQuestions}
                                     </span>
                                     <button
                                         disabled={isGraded}

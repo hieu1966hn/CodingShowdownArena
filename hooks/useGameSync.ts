@@ -792,12 +792,25 @@ export const useGameSync = () => {
                 }
                 // answer vẫn là text gốc => grading so sánh text đúng dù options đã bị xáo
 
+                // Compute timer duration based on difficulty — done atomically here
+                // to avoid the stale-closure bug where a separate C2 useEffect read
+                // null activeQuestion and always defaulted to 15s.
+                let timerDuration = 15;
+                switch (difficulty) {
+                    case 'EASY':   timerDuration = 20;  break;
+                    case 'MEDIUM': timerDuration = 60;  break;
+                    case 'HARD':   timerDuration = 120; break;
+                }
+
                 return {
                     activeQuestion: finalQ,
+                    // Auto-start timer atomically with reveal
+                    round3Phase: 'MAIN_ANSWER' as Round3Phase,
+                    timerEndTime: Date.now() + timerDuration * 1000,
                     buzzerLocked: true,
                     message: null,
                     usedQuestionIds: [...prev.usedQuestionIds, selectedQ.id],
-                    players: prev.players.map(p => ({ ...p, round3QuizAnswer: null })), // Reset quiz answers
+                    players: prev.players.map(p => ({ ...p, round3QuizAnswer: null })),
                     showAnswer: false
                 };
             } else {
