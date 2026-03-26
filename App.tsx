@@ -18,21 +18,52 @@ const OfflineBanner: React.FC<{ isOffline: boolean }> = ({ isOffline }) => {
     );
 };
 
+const ROLE_CACHE_KEY = 'csa_role_cache';
+
 const App: React.FC = () => {
     const gameService = useGameSync();
     const { gameState, user, authLoading, roomId, roomError, loginError, isOffline } = gameService;
 
     const [classCodeInput, setClassCodeInput] = useState('');
-    const [role, setRole] = useState<'SELECT' | 'TEACHER' | 'STUDENT' | 'SCREEN'>('SELECT');
-    const [studentId, setStudentId] = useState<string | null>(null);
+
+    // Restore role from localStorage so teacher/student can rejoin after F5
+    const [role, setRole] = useState<'SELECT' | 'TEACHER' | 'STUDENT' | 'SCREEN'>(() => {
+        try {
+            const cached = localStorage.getItem(ROLE_CACHE_KEY);
+            if (cached) return JSON.parse(cached).role || 'SELECT';
+        } catch (e) {}
+        return 'SELECT';
+    });
+    const [studentId, setStudentId] = useState<string | null>(() => {
+        try {
+            const cached = localStorage.getItem(ROLE_CACHE_KEY);
+            if (cached) return JSON.parse(cached).studentId || null;
+        } catch (e) {}
+        return null;
+    });
     const [tempName, setTempName] = useState('');
     const [inIframe, setInIframe] = useState(false);
     const [isAdminRoute, setIsAdminRoute] = useState(false);
 
     // UX State
     const [isTeacherMode, setIsTeacherMode] = useState(false);
-    // Default: Teacher options are HIDDEN. Only shown if ?mode=Teacher
-    const [allowTeacherAccess, setAllowTeacherAccess] = useState(false);
+    // Default: Teacher options are HIDDEN. Only shown if ?mode=Teacher OR cached role is TEACHER
+    const [allowTeacherAccess, setAllowTeacherAccess] = useState(() => {
+        try {
+            const cached = localStorage.getItem(ROLE_CACHE_KEY);
+            if (cached) return JSON.parse(cached).role === 'TEACHER';
+        } catch (e) {}
+        return false;
+    });
+
+    // Persist role + studentId to localStorage whenever they change
+    useEffect(() => {
+        try {
+            if (role !== 'SELECT') {
+                localStorage.setItem(ROLE_CACHE_KEY, JSON.stringify({ role, studentId }));
+            }
+        } catch (e) {}
+    }, [role, studentId]);
 
     // Detect iframe and URL params on mount
     useEffect(() => {
@@ -242,6 +273,16 @@ const App: React.FC = () => {
 
     // --- Step 4: Role Handlers ---
     const handleBackToLobby = () => {
+        // Clear BOTH caches on intentional exit:
+        // 1. Role cache (role + studentId)
+        // 2. Session cache (roomId + gameState) – so teacher is brought back to room code input
+        //    instead of being stuck on role-selection with no HOST SESSION button
+        try {
+            localStorage.removeItem(ROLE_CACHE_KEY);
+            localStorage.removeItem('csa_session_cache');
+        } catch (e) {}
+        setRole('SELECT');
+        setStudentId(null);
         window.location.reload();
     };
 
