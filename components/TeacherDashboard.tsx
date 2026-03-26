@@ -896,7 +896,7 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                                         {gameState.players.find(p => p.id === gameState.round1TurnPlayerId)?.name}
                                     </span>
                                     <span className="text-xs text-gray-300 px-2 py-1 rounded bg-gray-900 border border-gray-700">
-                                        Q: {(gameState.round1QuestionsAsked[gameState.round1TurnPlayerId] || 0)} / {round1MaxQuestions}
+                                        Q: {(gameState.round1QuestionsAsked[gameState.round1TurnPlayerId] || 0) + 1} / {round1MaxQuestions}
                                     </span>
                                     <button
                                         disabled={isGraded}
