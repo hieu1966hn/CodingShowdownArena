@@ -135,7 +135,20 @@ const SpectatorScreen: React.FC<Props> = ({ gameState, onLeave }) => {
     const activePlayer = activePlayerId ? gameState.players.find(p => p.id === activePlayerId) : null;
 
     // Viewing Player for Round 2 Code Review
-    const viewingPlayer = gameState.viewingPlayerId ? gameState.players.find(p => p.id === gameState.viewingPlayerId) : null;
+    const rawViewingPlayer = gameState.viewingPlayerId ? gameState.players.find(p => p.id === gameState.viewingPlayerId) : null;
+
+    // Round 2: only reveal code review on Spectator screen after ALL players have submitted
+    // (Teacher can preview internally, but the big screen stays in "waiting" mode)
+    const isRound2 = gameState.round === GameRound.ROUND_2;
+    const currentQuestionId = isRound2 ? gameState.round2Questions[gameState.round2CurrentQuestion] : null;
+    const round2SubmittedCount = isRound2 && currentQuestionId
+        ? gameState.players.filter(p => p.round2Submissions?.some(s => s.questionId === currentQuestionId)).length
+        : 0;
+    const allRound2Submitted = isRound2 && gameState.players.length > 0
+        && round2SubmittedCount >= gameState.players.length;
+
+    // Gate: hide code review on spectator screen until all submitted
+    const viewingPlayer = (isRound2 && !allRound2Submitted) ? null : rawViewingPlayer;
 
     // Determine active stealer
     const stealingPlayer = gameState.activeStealPlayerId ? gameState.players.find(p => p.id === gameState.activeStealPlayerId) : null;
@@ -368,14 +381,40 @@ const SpectatorScreen: React.FC<Props> = ({ gameState, onLeave }) => {
                                 </div>
                             ) : gameState.activeQuestion ? (
                                 <div className="flex-grow flex flex-col justify-center animate-in zoom-in-95 duration-300">
-                                    {/* ROUND 2 QUESTION PROGRESS */}
+                                    {/* ROUND 2 QUESTION PROGRESS + SUBMISSION STATUS */}
                                     {gameState.round === GameRound.ROUND_2 && gameState.round2Questions.length > 0 && (
-                                        <div className="mb-6 text-center">
+                                        <div className="mb-6 text-center space-y-3">
                                             <div className="inline-block bg-cyber-primary/20 border-2 border-cyber-primary px-8 py-3 rounded-xl">
                                                 <span className="text-cyber-primary font-black text-3xl tracking-wider">
                                                     Question {gameState.round2CurrentQuestion + 1} / 5
                                                 </span>
                                             </div>
+                                            {/* Submission progress — shown until all submit */}
+                                            {!allRound2Submitted && (
+                                                <div className="flex flex-col items-center gap-2 animate-in fade-in">
+                                                    <div className="flex items-center gap-3 text-gray-300 font-bold text-xl">
+                                                        <span className="text-green-400 font-mono text-2xl">{round2SubmittedCount}</span>
+                                                        <span className="text-gray-500">/</span>
+                                                        <span className="font-mono text-2xl">{gameState.players.length}</span>
+                                                        <span className="text-sm uppercase tracking-widest text-gray-400 ml-1">đã nộp</span>
+                                                    </div>
+                                                    <div className="w-64 h-3 bg-gray-700 rounded-full overflow-hidden border border-gray-600">
+                                                        <div
+                                                            className="h-full bg-gradient-to-r from-cyan-500 to-green-500 rounded-full transition-all duration-700"
+                                                            style={{ width: `${gameState.players.length > 0 ? (round2SubmittedCount / gameState.players.length) * 100 : 0}%` }}
+                                                        />
+                                                    </div>
+                                                    <div className="text-xs text-gray-500 animate-pulse uppercase tracking-widest">
+                                                        ⏳ Chờ các học viên còn lại nộp bài...
+                                                    </div>
+                                                </div>
+                                            )}
+                                            {allRound2Submitted && (
+                                                <div className="flex items-center justify-center gap-2 text-green-400 font-bold text-lg animate-in zoom-in">
+                                                    <CheckCircle size={20} fill="currentColor" className="text-green-900" />
+                                                    Tất cả đã nộp — Giáo viên đang chọn bài để review
+                                                </div>
+                                            )}
                                         </div>
                                     )}
 
