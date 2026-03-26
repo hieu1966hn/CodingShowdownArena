@@ -12,6 +12,106 @@ interface Props {
     onLeave: () => void;
 }
 
+const PlayerScoreCard = React.memo(({ p, isReadOnly, round, playSound, actions }: any) => {
+    return (
+        <div className={`p-2 rounded border flex justify-between items-center transition-colors ${p.buzzedAt ? 'bg-yellow-900/50 border-yellow-500 animate-pulse' : 'border-gray-600 bg-gray-700/50'}`}>
+            <div className="flex items-center gap-2 overflow-hidden">
+                {round === GameRound.LOBBY && !isReadOnly && (
+                    <button
+                        onClick={() => {
+                            if (window.confirm(`Bạn có chắc muốn mời học viên "${p.name}" ra khỏi phòng?`)) {
+                                actions.kickPlayer(p.id);
+                            }
+                        }}
+                        className="text-red-500 hover:text-red-300 hover:bg-red-900/40 rounded p-1 transition-colors"
+                        title="Mời ra khỏi phòng"
+                        aria-label={`Mời ${p.name} ra khỏi phòng`}
+                    >
+                        <UserX size={14} aria-hidden="true" />
+                    </button>
+                )}
+                <span className="font-bold whitespace-nowrap" title={p.name}>{p.name}</span>
+            </div>
+            <div className="flex items-center gap-1">
+                {!isReadOnly && <button aria-label={`Trừ 10 điểm của ${p.name}`} onClick={() => { playSound('SCORE_DOWN'); actions.updateScore(p.id, -10); }} className="text-red-400 p-1 hover:text-red-500"><MinusCircle size={16} aria-hidden="true" /></button>}
+                <span className="w-8 text-center font-mono font-bold" aria-label={`Điểm: ${p.score}`}>{p.score}</span>
+                {!isReadOnly && <button aria-label={`Cộng 10 điểm cho ${p.name}`} onClick={() => { playSound('SCORE_UP'); actions.updateScore(p.id, 10); }} className="text-green-400 p-1 hover:text-green-500"><PlusCircle size={16} aria-hidden="true" /></button>}
+            </div>
+        </div>
+    );
+}, (prev, next) => {
+    return prev.p.id === next.p.id &&
+           prev.p.score === next.p.score &&
+           prev.p.buzzedAt === next.p.buzzedAt &&
+           prev.p.name === next.p.name &&
+           prev.isReadOnly === next.isReadOnly &&
+           prev.round === next.round;
+});
+
+const R1PlayerButton = React.memo(({ p, isTurn, onSelect }: any) => {
+    return (
+        <button 
+            onClick={() => onSelect(p.id)} 
+            aria-pressed={isTurn}
+            aria-label={`Chọn học viên ${p.name}`}
+            className={`px-4 py-2 rounded-full font-bold border-2 transition-colors ${isTurn ? 'bg-cyber-primary text-black border-cyber-primary' : 'border-gray-600 hover:border-gray-400 text-gray-300'}`}
+        >
+            {p.name}
+        </button>
+    );    
+}, (prev, next) => prev.p.id === next.p.id && prev.p.name === next.p.name && prev.isTurn === next.isTurn);
+
+const R2PlayerSubmissionCard = React.memo(({ p, currentQuestionId, viewingPlayerId, setViewingPlayer }: any) => {
+    const submission = p.round2Submissions?.find((s: any) => s.questionId === currentQuestionId);
+    const hasSubmitted = !!submission;
+    const isCorrect = submission?.isCorrect === true;
+
+    return (
+        <div className={`p-3 rounded-lg border-2 transition-all flex flex-col gap-2 ${isCorrect ? 'opacity-40 grayscale border-green-800 bg-green-950/20' : hasSubmitted ? 'border-green-500 bg-green-900/20' : 'border-gray-700 bg-gray-800/50'} ${viewingPlayerId === p.id ? 'ring-2 ring-yellow-400 scale-105 opacity-100 grayscale-0' : ''}`}>
+            <div className="flex justify-between items-center">
+                <span className="font-bold truncate max-w-[80px]" title={p.name}>{p.name}</span>
+                {isCorrect ? <CheckCircle size={16} className="text-green-600" aria-hidden="true" /> : hasSubmitted ? <CheckCircle size={16} className="text-green-500" aria-hidden="true" /> : <RefreshCw size={16} className="text-gray-600 animate-spin" aria-hidden="true" />}
+            </div>
+
+            {/* TIME DISPLAY ON CARD */}
+            {submission?.time && (
+                <div aria-label={`Thời gian hoàn thành: ${submission.time.toFixed(2)} giây`} className="text-xs bg-black/40 rounded px-2 py-1 text-center font-mono text-blue-300 border border-blue-900/50">
+                    ⏱ {submission.time.toFixed(2)}s
+                </div>
+            )}
+
+            {/* POINTS DISPLAY */}
+            {submission?.points && (
+                <div aria-label={`Điểm: +${submission.points}`} className="text-xs bg-green-900/40 rounded px-2 py-1 text-center font-bold text-green-400 border border-green-700/50">
+                    +{submission.points} pts
+                </div>
+            )}
+
+            {hasSubmitted && (
+                <button
+                    onClick={() => setViewingPlayer(p.id === viewingPlayerId ? null : p.id)}
+                    aria-label={viewingPlayerId === p.id ? `Đóng mã code của ${p.name}` : `Xem mã code của ${p.name}`}
+                    className={`w-full py-1 text-[10px] font-bold rounded transition-colors ${viewingPlayerId === p.id ? 'bg-yellow-500 text-black' : 'bg-cyber-primary/20 text-cyber-primary hover:bg-cyber-primary/40'}`}
+                >
+                    {viewingPlayerId === p.id ? 'CLOSE' : 'VIEW CODE'}
+                </button>
+            )}
+        </div>
+    );
+}, (prev, next) => {
+    // We need to compare specific fields since submission can mutate inside array
+    const prevSub = prev.p.round2Submissions?.find((s:any) => s.questionId === prev.currentQuestionId);
+    const nextSub = next.p.round2Submissions?.find((s:any) => s.questionId === next.currentQuestionId);
+
+    return prev.p.name === next.p.name &&
+           prev.currentQuestionId === next.currentQuestionId &&
+           prev.viewingPlayerId === next.viewingPlayerId &&
+           prevSub?.isCorrect === nextSub?.isCorrect &&
+           prevSub?.time === nextSub?.time &&
+           prevSub?.points === nextSub?.points &&
+           !!prevSub === !!nextSub;
+});
+
 const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
     const [customPrompt, setCustomPrompt] = useState('');
     const [aiLoading, setAiLoading] = useState(false);
@@ -304,29 +404,14 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
             {isReadOnly && <div className="bg-red-900/30 border border-red-500 text-red-200 p-2 mb-4 rounded text-center font-bold text-sm uppercase tracking-widest">⚠️ SESSION ENDED - READ ONLY MODE</div>}
             <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                 {gameState.players.map(p => (
-                    <div key={p.id} className={`p-2 rounded border flex justify-between items-center transition-colors ${p.buzzedAt ? 'bg-yellow-900/50 border-yellow-500 animate-pulse' : 'border-gray-600 bg-gray-700/50'}`}>
-                        <div className="flex items-center gap-2 overflow-hidden">
-                            {gameState.round === GameRound.LOBBY && !isReadOnly && (
-                                <button
-                                    onClick={() => {
-                                        if (window.confirm(`Bạn có chắc muốn mời học viên "${p.name}" ra khỏi phòng?`)) {
-                                            actions.kickPlayer(p.id);
-                                        }
-                                    }}
-                                    className="text-red-500 hover:text-red-300 hover:bg-red-900/40 rounded p-1 transition-colors"
-                                    title="Mời ra khỏi phòng"
-                                >
-                                    <UserX size={14} />
-                                </button>
-                            )}
-                            <span className="font-bold whitespace-nowrap" title={p.name}>{p.name}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                            {!isReadOnly && <button onClick={() => { playSound('SCORE_DOWN'); actions.updateScore(p.id, -10); }} className="text-red-400 p-1"><MinusCircle size={16} /></button>}
-                            <span className="w-8 text-center font-mono font-bold">{p.score}</span>
-                            {!isReadOnly && <button onClick={() => { playSound('SCORE_UP'); actions.updateScore(p.id, 10); }} className="text-green-400 p-1"><PlusCircle size={16} /></button>}
-                        </div>
-                    </div>
+                    <PlayerScoreCard 
+                        key={p.id} 
+                        p={p} 
+                        isReadOnly={isReadOnly} 
+                        round={gameState.round} 
+                        playSound={playSound} 
+                        actions={actions} 
+                    />
                 ))}
             </div>
             <div className="flex gap-2 mt-4">
@@ -719,27 +804,32 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
 
             {/* ROUND 1 VIEW */}
             {gameState.round === GameRound.ROUND_1 && (
-                <div className="space-y-4">
+                <section className="space-y-4" aria-labelledby="r1-heading">
                     <div className="flex justify-between items-center">
-                        <h2 className="text-xl font-bold flex items-center gap-2"><Sparkles className="text-yellow-400" /> Round 1: Reflex Quiz</h2>
-                        <span className="text-xs text-gray-500">Used: {gameState.usedQuestionIds.filter(id => id.startsWith('r1')).length} / {ROUND_1_QUESTIONS.length}</span>
-                        <span className={`text-xs font-bold px-2 py-1 rounded border ${gameState.players.length >= 10 ? 'bg-green-900/30 text-green-400 border-green-700' : 'bg-blue-900/30 text-blue-400 border-blue-700'}`}>
+                        <h2 id="r1-heading" className="text-xl font-bold flex items-center gap-2"><Sparkles className="text-yellow-400" aria-hidden="true" /> Round 1: Reflex Quiz</h2>
+                        <span className="text-xs text-gray-500" aria-live="polite">Used: {gameState.usedQuestionIds.filter(id => id.startsWith('r1')).length} / {ROUND_1_QUESTIONS.length}</span>
+                        <span className={`text-xs font-bold px-2 py-1 rounded border ${gameState.players.length >= 10 ? 'bg-green-900/30 text-green-400 border-green-700' : 'bg-blue-900/30 text-blue-400 border-blue-700'}`} aria-live="polite">
                             Val: {gameState.players.length >= 10 ? '30pts' : '15pts'}/q
                         </span>
                     </div>
 
                     <div className="bg-gray-800 p-4 rounded-lg border border-gray-700 mb-4">
                         <h3 className="text-gray-300 font-bold mb-3">Select Student for Turn:</h3>
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-wrap gap-3" role="group" aria-label="Danh sách học viên">
                             {gameState.players.map(p => (
-                                <button key={p.id} onClick={() => actions.setRound1Turn(gameState.round1TurnPlayerId === p.id ? null : p.id)} className={`px-4 py-2 rounded-full font-bold border-2 ${gameState.round1TurnPlayerId === p.id ? 'bg-cyber-primary text-black border-cyber-primary' : 'border-gray-600 text-gray-300'}`}>{p.name}</button>
+                                <R1PlayerButton
+                                    key={p.id}
+                                    p={p}
+                                    isTurn={gameState.round1TurnPlayerId === p.id}
+                                    onSelect={(id: string) => actions.setRound1Turn(gameState.round1TurnPlayerId === id ? null : id)}
+                                />
                             ))}
                         </div>
                     </div>
 
                     {/* DIFFICULTY FILTER */}
-                    <div className="flex items-center gap-2 mb-2 bg-slate-900/50 p-2 rounded-lg border border-gray-700">
-                        <span className="text-sm font-bold text-gray-400 flex items-center gap-2 mr-2"><Filter size={16} /> Filter:</span>
+                    <div className="flex items-center gap-2 mb-2 bg-slate-900/50 p-2 rounded-lg border border-gray-700" role="group" aria-label="Lọc độ khó câu hỏi">
+                        <span className="text-sm font-bold text-gray-400 flex items-center gap-2 mr-2"><Filter size={16} aria-hidden="true" /> Filter:</span>
                         <button
                             onClick={() => setR1Filter('ALL')}
                             className={`px-3 py-1 rounded text-xs font-bold transition-colors ${r1Filter === 'ALL' ? 'bg-gray-200 text-black' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}
@@ -801,8 +891,8 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
 
                             {/* Grading Buttons for Active Student */}
                             {gameState.round1TurnPlayerId && (
-                                <div className="flex gap-4 items-center bg-gray-800 px-4 py-2 rounded-lg border border-yellow-600">
-                                    <span className="text-yellow-500 font-bold uppercase text-sm">
+                                <div className="flex gap-4 items-center bg-gray-800 px-4 py-2 rounded-lg border border-yellow-600" role="group" aria-label="Chấm điểm học viên">
+                                    <span className="text-yellow-500 font-bold uppercase text-sm" aria-live="polite">
                                         {gameState.players.find(p => p.id === gameState.round1TurnPlayerId)?.name}
                                     </span>
                                     <span className="text-xs text-gray-300 px-2 py-1 rounded bg-gray-900 border border-gray-700">
@@ -838,18 +928,18 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                             <button onClick={() => actions.clearQuestion()} className="px-6 py-3 bg-gray-600 rounded font-bold">Clear Question</button>
                         </div>
                     )}
-                </div>
+                </section>
             )}
 
             {/* ROUND 2 VIEW */}
             {gameState.round === GameRound.ROUND_2 && (
-                <div className="space-y-6">
+                <section className="space-y-6" aria-labelledby="r2-heading">
                     <div className="flex justify-between items-center">
                         <div className="flex items-center gap-4">
-                            <h2 className="text-xl font-bold flex items-center gap-2"><Terminal className="text-cyber-primary" /> Round 2: Obstacle - Debugging</h2>
+                            <h2 id="r2-heading" className="text-xl font-bold flex items-center gap-2"><Terminal className="text-cyber-primary" aria-hidden="true" /> Round 2: Obstacle - Debugging</h2>
                             {/* QUESTION PROGRESS */}
                             {gameState.round2Questions.length > 0 && (
-                                <div className="bg-cyber-primary/20 border border-cyber-primary px-4 py-2 rounded-lg">
+                                <div className="bg-cyber-primary/20 border border-cyber-primary px-4 py-2 rounded-lg" aria-live="polite">
                                     <span className="text-cyber-primary font-black text-lg">
                                         Question {gameState.round2CurrentQuestion + 1} / 5
                                     </span>
@@ -897,7 +987,7 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                                 </button>
                             )}
 
-                            <div className="flex gap-2">
+                            <div className="flex gap-2" role="group" aria-label="Lọc danh mục câu hỏi vòng 2">
                                 {(['ALL', 'LOGIC', 'SYNTAX', 'ALGO', 'OUTPUT', 'DEBUG', 'LIST'] as const).map(cat => (
                                     <button
                                         key={cat}
@@ -1105,57 +1195,31 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
                                 {gameState.players.map(p => {
                                     const currentQuestionId = gameState.round2Questions[gameState.round2CurrentQuestion];
-                                    const submission = p.round2Submissions?.find(s => s.questionId === currentQuestionId);
-                                    const hasSubmitted = !!submission;
-                                    const isCorrect = submission?.isCorrect === true;
-
                                     return (
-                                        <div key={p.id} className={`p-3 rounded-lg border-2 transition-all flex flex-col gap-2 ${isCorrect ? 'opacity-40 grayscale border-green-800 bg-green-950/20' : hasSubmitted ? 'border-green-500 bg-green-900/20' : 'border-gray-700 bg-gray-800/50'} ${gameState.viewingPlayerId === p.id ? 'ring-2 ring-yellow-400 scale-105 opacity-100 grayscale-0' : ''}`}>
-                                            <div className="flex justify-between items-center">
-                                                <span className="font-bold truncate max-w-[80px]">{p.name}</span>
-                                                {isCorrect ? <CheckCircle size={16} className="text-green-600" /> : hasSubmitted ? <CheckCircle size={16} className="text-green-500" /> : <RefreshCw size={16} className="text-gray-600 animate-spin" />}
-                                            </div>
-
-                                            {/* TIME DISPLAY ON CARD */}
-                                            {submission?.time && (
-                                                <div className="text-xs bg-black/40 rounded px-2 py-1 text-center font-mono text-blue-300 border border-blue-900/50">
-                                                    ⏱ {submission.time.toFixed(2)}s
-                                                </div>
-                                            )}
-
-                                            {/* POINTS DISPLAY */}
-                                            {submission?.points && (
-                                                <div className="text-xs bg-green-900/40 rounded px-2 py-1 text-center font-bold text-green-400 border border-green-700/50">
-                                                    +{submission.points} pts
-                                                </div>
-                                            )}
-
-                                            {hasSubmitted && (
-                                                <button
-                                                    onClick={() => actions.setViewingPlayer(p.id === gameState.viewingPlayerId ? null : p.id)}
-                                                    className={`w-full py-1 text-[10px] font-bold rounded transition-colors ${gameState.viewingPlayerId === p.id ? 'bg-yellow-500 text-black' : 'bg-cyber-primary/20 text-cyber-primary hover:bg-cyber-primary/40'}`}
-                                                >
-                                                    {gameState.viewingPlayerId === p.id ? 'CLOSE' : 'VIEW CODE'}
-                                                </button>
-                                            )}
-                                        </div>
+                                        <R2PlayerSubmissionCard
+                                            key={p.id}
+                                            p={p}
+                                            currentQuestionId={currentQuestionId}
+                                            viewingPlayerId={gameState.viewingPlayerId}
+                                            setViewingPlayer={actions.setViewingPlayer}
+                                        />
                                     );
                                 })}
                             </div>
                         </div>
                     )}
-                </div>
+                </section>
             )}
 
             {/* ROUND 3 VIEW */}
             {gameState.round === GameRound.ROUND_3 && (
-                <div className="space-y-8">
+                <section className="space-y-8" aria-labelledby="r3-heading">
                     <div className="flex justify-between items-center bg-slate-800 p-4 rounded-xl border border-gray-700">
                         <div className="flex items-center gap-6">
-                            <h2 className="text-xl font-bold flex items-center gap-2"><Sparkles className="text-cyber-secondary" /> Round 3: Tactical Finish</h2>
+                            <h2 id="r3-heading" className="text-xl font-bold flex items-center gap-2"><Sparkles className="text-cyber-secondary" aria-hidden="true" /> Round 3: Tactical Finish</h2>
 
                             {/* MODE SWITCHER */}
-                            <div className="flex bg-gray-900 rounded-lg p-1 border border-gray-700">
+                            <div className="flex bg-gray-900 rounded-lg p-1 border border-gray-700" role="group" aria-label="Chuyển đổi chế độ (Vấn đáp / Trắc nghiệm)">
                                 <button
                                     onClick={() => actions.setRound3Mode('ORAL')}
                                     disabled={r3ModeLocked}
@@ -1479,14 +1543,14 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                     <div className="pt-12 text-center">
                         <button onClick={() => { playSound('VICTORY'); actions.endGame(); }} className="px-12 py-6 bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-full font-black text-2xl hover:scale-105 transition-all shadow-[0_0_40px_rgba(234,179,8,0.3)]">🏆 KẾT THÚC & VINH DANH</button>
                     </div>
-                </div>
+                </section>
             )}
 
             {/* GAME OVER VIEW */}
             {gameState.round === GameRound.GAME_OVER && (
-                <div className="flex flex-col items-center justify-center min-h-[50vh] animate-in zoom-in duration-500">
-                    <Trophy size={100} className="text-yellow-400 mb-6 drop-shadow-[0_0_30px_rgba(250,204,21,0.5)] animate-bounce" />
-                    <h2 className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-yellow-600 mb-8 uppercase tracking-tighter">
+                <section className="flex flex-col items-center justify-center min-h-[50vh] animate-in zoom-in duration-500" aria-label="Kết thúc ván đấu">
+                    <Trophy size={100} className="text-yellow-400 mb-6 drop-shadow-[0_0_30px_rgba(250,204,21,0.5)] animate-bounce" aria-hidden="true" />
+                    <h2 className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-yellow-600 mb-8 uppercase tracking-tighter" aria-live="polite">
                         Competition Finished
                     </h2>
                     <div className="bg-gray-800 p-8 rounded-2xl border border-yellow-500/30 shadow-2xl max-w-2xl w-full">
@@ -1513,7 +1577,7 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                                 ))}
                         </div>
                     </div>
-                </div>
+                </section>
             )}
 
             {/* Phase 3 D2: Transition Popup */}

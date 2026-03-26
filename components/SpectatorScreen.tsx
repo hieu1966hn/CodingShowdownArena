@@ -148,8 +148,8 @@ const SpectatorScreen: React.FC<Props> = ({ gameState, onLeave }) => {
             : null;
 
     return (
-        <div className="min-h-screen bg-cyber-dark text-white p-6 flex flex-col relative overflow-hidden">
-            <div className="flex justify-between items-center z-10 mb-8 border-b border-gray-700 pb-4">
+        <main className="min-h-screen bg-cyber-dark text-white p-6 flex flex-col relative overflow-hidden" aria-label="Spectator View">
+            <header className="flex justify-between items-center z-10 mb-8 border-b border-gray-700 pb-4" aria-label="Game Info Header">
                 <div>
                     <h1 className="text-4xl font-black italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500">
                         CODING SHOWDOWN
@@ -175,11 +175,13 @@ const SpectatorScreen: React.FC<Props> = ({ gameState, onLeave }) => {
                                         gameState.round === GameRound.ROUND_3 ? 'FINISH LINE' : 'GAME OVER'}
                         </div>
                     </div>
-                    <button onClick={onLeave} className="p-2 bg-gray-800 rounded-full hover:bg-gray-700 text-gray-400 transition-colors"><LogOut size={20} /></button>
+                    <button onClick={onLeave} className="p-2 bg-gray-800 rounded-full hover:bg-gray-700 text-gray-400 transition-colors" aria-label="Leave Game">
+                        <LogOut size={20} aria-hidden="true" />
+                    </button>
                 </div>
-            </div>
+            </header>
 
-            <div className="flex-grow flex items-center justify-center z-10 relative">
+            <section className="flex-grow flex items-center justify-center z-10 relative" aria-live="polite">
                 {gameState.round === GameRound.GAME_OVER ? (
                     <div className="fixed inset-0 z-50 bg-slate-900 flex flex-col overflow-hidden">
                         <Fireworks />
@@ -257,11 +259,11 @@ const SpectatorScreen: React.FC<Props> = ({ gameState, onLeave }) => {
                             {/* SIDEBAR FOR RANK 4+ (Only shows if > 3 players) */}
                             {restOfPlayers.length > 0 && (
                                 <div className="w-1/3 h-full pb-8 pl-4 flex flex-col justify-end animate-in slide-in-from-right duration-700 delay-500">
-                                    <div className="bg-slate-800/80 rounded-2xl border border-gray-700 p-6 shadow-2xl backdrop-blur-sm max-h-[70vh] flex flex-col">
+                                    <section className="bg-slate-800/80 rounded-2xl border border-gray-700 p-6 shadow-2xl backdrop-blur-sm max-h-[70vh] flex flex-col" aria-label="Class Ranking">
                                         <h3 className="text-xl font-bold text-gray-400 mb-4 uppercase tracking-widest border-b border-gray-600 pb-2">Class Ranking</h3>
-                                        <div className="overflow-y-auto pr-2 space-y-3 custom-scrollbar flex-grow">
+                                        <div className="overflow-y-auto pr-2 space-y-3 custom-scrollbar flex-grow" role="list" aria-label="Ranking List">
                                             {restOfPlayers.map((p, idx) => (
-                                                <div key={p.id} className="flex items-center justify-between p-3 bg-slate-900/50 rounded-lg border border-slate-700 hover:bg-slate-700/50 transition-colors">
+                                                <div key={p.id} className="flex items-center justify-between p-3 bg-slate-900/50 rounded-lg border border-slate-700 hover:bg-slate-700/50 transition-colors" role="listitem">
                                                     <div className="flex items-center gap-3">
                                                         <div className="w-8 h-8 rounded bg-gray-700 flex items-center justify-center font-mono font-bold text-gray-400">#{idx + 4}</div>
                                                         <span className="font-bold text-white whitespace-nowrap">{p.name}</span>
@@ -270,14 +272,14 @@ const SpectatorScreen: React.FC<Props> = ({ gameState, onLeave }) => {
                                                 </div>
                                             ))}
                                         </div>
-                                    </div>
+                                    </section>
                                 </div>
                             )}
                         </div>
                     </div>
                 ) : (
                     <div className="w-full max-w-7xl grid grid-cols-12 gap-8 h-[80vh]">
-                        <div className="col-span-8 bg-slate-900/90 rounded-3xl border-2 border-cyber-primary shadow-2xl p-12 flex flex-col relative overflow-hidden">
+                        <section className="col-span-8 bg-slate-900/90 rounded-3xl border-2 border-cyber-primary shadow-2xl p-12 flex flex-col relative overflow-hidden" aria-label="Game Board">
                             {/* STEAL MODE OVERLAY */}
                             {gameState.round3Phase === 'STEAL_WINDOW' && (
                                 <div className="absolute top-0 left-0 w-full bg-red-900/90 py-2 z-20 flex justify-center items-center shadow-2xl border-b-4 border-red-500 animate-pulse">
@@ -477,15 +479,15 @@ const SpectatorScreen: React.FC<Props> = ({ gameState, onLeave }) => {
                                     <div className="text-3xl font-black tracking-widest uppercase">Ready for Next Challenge</div>
                                 </div>
                             )}
-                        </div>
+                        </section>
 
-                        <div className="col-span-4 bg-slate-800/80 rounded-3xl border border-gray-700 p-8 overflow-hidden flex flex-col shadow-xl">
+                        <section className="col-span-4 bg-slate-800/80 rounded-3xl border border-gray-700 p-8 overflow-hidden flex flex-col shadow-xl" aria-label="Live Rankings">
                             <h3 className="text-xl font-black text-gray-500 mb-8 flex items-center gap-3 tracking-widest uppercase">
-                                <Star className="text-yellow-500" fill="currentColor" /> Live Rankings
+                                <Star className="text-yellow-500" fill="currentColor" aria-hidden="true" /> Live Rankings
                             </h3>
-                            <div className="space-y-4 overflow-y-auto pr-2 custom-scrollbar">
+                            <div className="space-y-4 overflow-y-auto pr-2 custom-scrollbar" role="list">
                                 {sortedPlayers.map((p, index) => (
-                                    <div key={p.id} className={`p-5 rounded-2xl flex items-center justify-between border-2 transition-all duration-500 ${index === 0 ? 'bg-yellow-900/30 border-yellow-500 scale-105 shadow-yellow-500/10' : 'bg-slate-700/50 border-transparent'}`}>
+                                    <div key={p.id} className={`p-5 rounded-2xl flex items-center justify-between border-2 transition-all duration-500 ${index === 0 ? 'bg-yellow-900/30 border-yellow-500 scale-105 shadow-yellow-500/10' : 'bg-slate-700/50 border-transparent'}`} role="listitem">
                                         <div className="flex items-center gap-4">
                                             <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-lg ${index === 0 ? 'bg-yellow-500 text-black' : 'bg-gray-600 text-white'}`}>
                                                 {index + 1}
@@ -510,11 +512,11 @@ const SpectatorScreen: React.FC<Props> = ({ gameState, onLeave }) => {
                                     </div>
                                 ))}
                             </div>
-                        </div>
+                        </section>
                     </div>
                 )}
-            </div>
-        </div>
+            </section>
+        </main>
     );
 };
 

@@ -3,16 +3,46 @@ import firebase from "firebase/compat/app";
 import "firebase/compat/firestore";
 import "firebase/compat/auth";
 import { db, auth, googleProvider } from "../lib/firebase";
-import { GameState, GameRound, Player, Question, Difficulty, PackStatus, Round3Item, Round3Mode, Round3Phase, INITIAL_STATE } from "../gameTypes";
-import { ROUND_2_QUESTIONS, ROUND_3_QUESTIONS } from "../data/questions";
+import { GameState, GameRound, Player, Question, Difficulty, PackStatus, Round3Item, Round3Mode, Round3Phase, INITIAL_STATE, PlayerCheckpoint, Checkpoints } from "../gameTypes";
+import { ROUND_2_QUESTIONS, ROUND_3_QUESTIONS } from "../constants";
+import { calculateGradeRound1, calculateGradeRound2Question, calculateGradeRound3Question, calculateActivateSteal, calculateResolveSteal } from "../lib/gameScoring";
+import { logger } from "../lib/logger";
+
+const CACHE_KEY = "csa_session_cache";
 
 export const useGameSync = () => {
     const [user, setUser] = useState<firebase.User | null>(null);
-    const [roomId, setRoomId] = useState<string | null>(null);
-    const [gameState, setGameState] = useState<GameState>(INITIAL_STATE);
+    const [roomId, setRoomId] = useState<string | null>(() => {
+        try {
+            const cached = localStorage.getItem(CACHE_KEY);
+            if (cached) return JSON.parse(cached).roomId || null;
+        } catch (e) {}
+        return null;
+    });
+    const [gameState, setGameState] = useState<GameState>(() => {
+        try {
+            const cached = localStorage.getItem(CACHE_KEY);
+            if (cached) {
+                const parsed = JSON.parse(cached);
+                if (parsed.gameState) return parsed.gameState;
+            }
+        } catch (e) {}
+        return INITIAL_STATE;
+    });
     const [authLoading, setAuthLoading] = useState(true);
     const [roomError, setRoomError] = useState<string | null>(null);
     const [loginError, setLoginError] = useState<string | null>(null);
+    const [isOffline, setIsOffline] = useState(false);
+
+    // --- Persist state ---
+    useEffect(() => {
+        if (roomId && gameState !== INITIAL_STATE) {
+            try {
+                localStorage.setItem(CACHE_KEY, JSON.stringify({ roomId, gameState }));
+            } catch (e) {}
+        }
+    }, [roomId, gameState]);
+
 
     // --- Auth Listener ---
     useEffect(() => {
@@ -41,16 +71,19 @@ export const useGameSync = () => {
                 (docSnap) => {
                     if (!isMounted) return;
                     retryCount = 0; // Reset on successful update
+                    setIsOffline(false);
                     if (docSnap.exists) {
                         setGameState(docSnap.data() as GameState);
                         setRoomError(null);
                     } else {
                         setRoomError("Room not found!");
+                        localStorage.removeItem(CACHE_KEY);
                     }
                 },
                 (err) => {
                     if (!isMounted) return;
-                    console.error("Firestore Error:", err);
+                    logger.error("subscribe_room", err, { roomId });
+                    setIsOffline(true);
                     if (retryCount < MAX_RETRIES) {
                         retryCount++;
                         setRoomError(`⚡ Mất kết nối. Đang thử lại... (${retryCount}/${MAX_RETRIES})`);
@@ -79,8 +112,9 @@ export const useGameSync = () => {
         setLoginError(null);
         try {
             await auth.signInWithPopup(googleProvider);
+            logger.info("auth_login_success", "User logged in with Google popup");
         } catch (e: any) {
-            console.error("Login failed", e);
+            logger.error("auth_login_failed", e);
             if (e.code === 'auth/unauthorized-domain') {
                 setLoginError(`Domain Unauthorized. Please add "${window.location.hostname}" to Firebase Console -> Authentication -> Settings -> Authorized Domains.`);
             } else if (e.code === 'auth/popup-closed-by-user') {
@@ -95,8 +129,9 @@ export const useGameSync = () => {
         setLoginError(null);
         try {
             await auth.signInAnonymously();
+            logger.info("auth_anon_success", "User logged in anonymously");
         } catch (e: any) {
-            console.error("Anonymous login failed", e);
+            logger.error("auth_anon_failed", e);
             if (e.code === 'auth/admin-restricted-operation') {
                 setLoginError("Anonymous login is not enabled in Firebase Console.");
             } else {
@@ -109,6 +144,7 @@ export const useGameSync = () => {
         await auth.signOut();
         setRoomId(null);
         setGameState(INITIAL_STATE);
+        localStorage.removeItem(CACHE_KEY);
     };
 
     // --- Room Actions ---
@@ -136,7 +172,8 @@ export const useGameSync = () => {
             }
             return true;
         } catch (e) {
-            console.error("Create Room Error", e);
+            logger.error("create_room_error", e, { classCode });
+            setRoomError("Failed to create room: " + (e as Error).message);
             return false;
         }
     };
@@ -163,7 +200,9 @@ export const useGameSync = () => {
         try {
             await db.collection("rooms").doc(roomId).update(changes);
         } catch (e) {
-            console.error("Update State Error", e);
+            logger.error("update_state_error", e, { roomId, changes });
+            setRoomError("Network error: State update failed. " + (e as Error).message);
+            // We do not throw because these updates are often fire-and-forget in React handlers
         }
     };
 
@@ -407,38 +446,10 @@ export const useGameSync = () => {
         }));
     };
 
-    // Phase1-A3: Grade R1 question — track count + auto-clear
     const gradeRound1 = (playerId: string, isCorrect: boolean) => {
         updateState((prev) => {
-            const playerCount = prev.players.length;
-            const maxQuestions = playerCount >= 10 ? 5 : 10;
-            const points = playerCount >= 10 ? 30 : 15;
-            const currentAsked = prev.round1QuestionsAsked[playerId] || 0;
-            const newAsked = currentAsked + 1;
-
-            // Update the counter
-            const updatedAsked = { ...prev.round1QuestionsAsked, [playerId]: newAsked };
-
-            // Update score if correct
-            const updatedPlayers = prev.players.map(p => {
-                if (p.id !== playerId) return p;
-                if (!isCorrect) return p;
-                return { ...p, score: p.score + points };
-            });
-
-            // Auto-clear activeQuestion + if student reached quota, clear turn
-            const shouldClearTurn = newAsked >= maxQuestions;
-
-            return {
-                players: updatedPlayers,
-                round1QuestionsAsked: updatedAsked,
-                // Auto-clear question after grading
-                activeQuestion: null,
-                showAnswer: false,
-                timerEndTime: null,
-                buzzerLocked: true,
-                ...(shouldClearTurn ? { round1TurnPlayerId: null } : {})
-            };
+            const updates = calculateGradeRound1(prev, playerId, isCorrect);
+            return updates || {};
         });
     };
 
@@ -554,77 +565,8 @@ export const useGameSync = () => {
 
     const gradeRound2Question = (playerId: string, isCorrect: boolean) => {
         updateState((prev) => {
-            const currentQuestionId = prev.round2Questions[prev.round2CurrentQuestion];
-            if (!currentQuestionId) return {};
-
-            const BASE_POINTS = 30;
-            const SPEED_BONUSES = [6, 4, 2]; // Top 1, 2, 3
-
-            // GUARD: Nếu player này đã được chấm điểm rồi => bỏ qua, tránh cộng điểm 2 lần
-            const targetPlayer = prev.players.find(p => p.id === playerId);
-            const existingSub = (targetPlayer?.round2Submissions || []).find(
-                s => s.questionId === currentQuestionId
-            );
-            if (existingSub?.points !== undefined) {
-                // Đã có điểm rồi — chỉ cập nhật isCorrect flag, không cộng điểm
-                return {
-                    players: prev.players.map(p => {
-                        if (p.id !== playerId) return p;
-                        return {
-                            ...p,
-                            round2Submissions: (p.round2Submissions || []).map(s =>
-                                s.questionId === currentQuestionId ? { ...s, isCorrect } : s
-                            )
-                        };
-                    })
-                };
-            }
-
-            // 1. Mark the submission as correct/incorrect (for this player only)
-            let updatedPlayers = prev.players.map(p => {
-                if (p.id !== playerId) return p;
-                return {
-                    ...p,
-                    round2Submissions: (p.round2Submissions || []).map(s =>
-                        s.questionId === currentQuestionId ? { ...s, isCorrect } : s
-                    )
-                };
-            });
-
-            // Nếu chấm WRONG => không cộng điểm, kết thúc sớm
-            if (!isCorrect) return { players: updatedPlayers };
-
-            // 2. Tính rank của player này dựa trên TẤT CẢ submission đúng hiện tại
-            const correctSubmissions: Array<{ playerId: string; time: number }> = [];
-            updatedPlayers.forEach(p => {
-                const sub = (p.round2Submissions || []).find(
-                    s => s.questionId === currentQuestionId && s.isCorrect
-                );
-                if (sub) correctSubmissions.push({ playerId: p.id, time: sub.time });
-            });
-            correctSubmissions.sort((a, b) => a.time - b.time);
-
-            // 3. CHỈ cộng điểm cho player VỪA được chấm (playerId), không đụng player khác
-            updatedPlayers = updatedPlayers.map(p => {
-                if (p.id !== playerId) return p; // ← KEY FIX: bỏ qua tất cả player khác
-
-                const sub = (p.round2Submissions || []).find(s => s.questionId === currentQuestionId);
-                if (!sub || !sub.isCorrect) return p;
-
-                const rank = correctSubmissions.findIndex(cs => cs.playerId === p.id);
-                const bonus = rank >= 0 && rank < 3 ? SPEED_BONUSES[rank] : 0;
-                const points = BASE_POINTS + bonus;
-
-                return {
-                    ...p,
-                    round2Submissions: (p.round2Submissions || []).map(s =>
-                        s.questionId === currentQuestionId ? { ...s, points } : s
-                    ),
-                    score: p.score + points // Chỉ cộng cho player này
-                };
-            });
-
-            return { players: updatedPlayers };
+            const updates = calculateGradeRound2Question(prev, playerId, isCorrect);
+            return updates || {};
         });
     };
 
@@ -659,61 +601,8 @@ export const useGameSync = () => {
 
     const gradeRound3Question = (playerId: string, packIndex: number, newStatus: PackStatus, scoreDelta: number) => {
         updateState((prev) => {
-            const updatedPlayers = prev.players.map(p => {
-                if (p.id !== playerId) return p;
-
-                const newPack = [...p.round3Pack];
-                // Store which mode was used for this question
-                newPack[packIndex] = {
-                    ...newPack[packIndex],
-                    status: newStatus,
-                    questionMode: prev.round3Mode // Capture current mode
-                };
-
-                const newScore = p.score + scoreDelta;
-
-                return {
-                    ...p,
-                    round3Pack: newPack,
-                    score: newScore < 0 ? 0 : newScore
-                };
-            });
-
-            // Check if current player has completed all 3 questions
-            const currentPlayer = updatedPlayers.find(p => p.id === playerId);
-            const allQuestionsAnswered = currentPlayer?.round3Pack.every(item => item.status !== 'PENDING');
-
-            // If all 3 questions answered, clear turn and reset phase
-            if (allQuestionsAnswered) {
-                return {
-                    players: updatedPlayers,
-                    round3TurnPlayerId: null,
-                    round3Phase: 'IDLE',
-                    activeQuestion: null,
-                    timerEndTime: null,
-                    message: `🎉 ${currentPlayer?.name} completed all questions!`
-                };
-            }
-
-            // MATCH QUIZ MODE BEHAVIOR: If WRONG, trigger STEAL mechanism
-            if (newStatus === 'WRONG') {
-                return {
-                    players: updatedPlayers,
-                    showAnswer: false, // Keep answer hidden during steal
-                    round3Phase: 'SHOW_WRONG_DELAY',
-                    buzzerLocked: true,
-                    timerEndTime: Date.now() + 5000, // 5s delay before steal
-                    message: `❌ Wrong answer! Steal window opening...`
-                };
-            }
-
-            // CORRECT or SKIP: Just update players, continue to next question
-            return {
-                players: updatedPlayers,
-                round3Phase: 'IDLE', // Ready for next question
-                activeQuestion: null,
-                timerEndTime: null
-            };
+            const updates = calculateGradeRound3Question(prev, playerId, packIndex, newStatus, scoreDelta);
+            return updates || {};
         });
     };
 
@@ -721,22 +610,8 @@ export const useGameSync = () => {
 
     const activateSteal = (playerId: string) => {
         updateState((prev) => {
-            // Resume Timer if it was paused
-            let newEndTime = prev.timerEndTime;
-            if (prev.stealTimerPausedRemaining !== null && prev.stealTimerPausedRemaining !== undefined) {
-                newEndTime = Date.now() + prev.stealTimerPausedRemaining;
-            } else if (!prev.timerEndTime) {
-                // Fallback if somehow no time stored? Give 10s? No, keep it null if not relevant.
-                // But logic above assumes paused.
-                newEndTime = Date.now() + 10000; // 10s Default fallback
-            }
-
-            return {
-                activeStealPlayerId: playerId,
-                buzzerLocked: true, // Lock others out
-                timerEndTime: newEndTime,
-                stealTimerPausedRemaining: null // Clear paused state
-            };
+            const updates = calculateActivateSteal(prev, playerId);
+            return updates || {};
         });
     };
 
@@ -755,39 +630,8 @@ export const useGameSync = () => {
 
     const resolveSteal = (stealerId: string, isCorrect: boolean, points: number) => {
         updateState((prev) => {
-            // Update score for stealer
-            let updatedPlayers = prev.players.map(p => {
-                if (p.id === stealerId) {
-                    // CORRECT: +points, WRONG: -points (SAME VALUE!)
-                    const scoreDelta = isCorrect ? points : -points;
-                    const newScore = p.score + scoreDelta;
-                    // On wrong steal, keep buzzedAt so this student is considered already attempted in this steal window.
-                    return { ...p, score: Math.max(0, newScore) };
-                }
-                return p;
-            });
-
-            if (isCorrect) {
-                // Steal Correct: End the turn AND clear all buzzers inline
-                updatedPlayers = updatedPlayers.map(p => ({ ...p, buzzedAt: null }));
-
-                return {
-                    players: updatedPlayers,
-                    activeQuestion: null,
-                    timerEndTime: null,
-                    buzzerLocked: false, // Unlock for next turn
-                    round3Phase: 'IDLE',
-                    activeStealPlayerId: null,
-                    round3TurnPlayerId: null
-                };
-            } else {
-                // Steal Wrong: Continue the steal window, unlock buzzers for OTHERS
-                return {
-                    players: updatedPlayers,
-                    activeStealPlayerId: null, // Deselect this player
-                    buzzerLocked: false // Re-open for others
-                };
-            }
+            const updates = calculateResolveSteal(prev, stealerId, isCorrect, points);
+            return updates || {};
         });
     };
 
@@ -1007,9 +851,9 @@ export const useGameSync = () => {
                     archivedAt: new Date(),
                     roomId: roomId
                 });
-                console.log("Game archived successfully:", archiveId);
+                logger.info("room_archived", "Successfully archived ended room", { roomId });
             } catch (e) {
-                console.error("Failed to archive game:", e);
+                logger.error("archive_game_error", e, { roomId });
             }
         }
 
@@ -1329,6 +1173,8 @@ export const useGameSync = () => {
         loginAnonymous,
         logout,
         loginError,
+
+        isOffline,
 
         roomId,
         roomError,

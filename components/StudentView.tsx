@@ -86,8 +86,8 @@ const StudentView: React.FC<Props> = ({ gameState, playerId, onBuzz, onSubmitRou
                 </div>
                 <div className="flex items-center gap-4">
                     <div className="text-3xl font-mono font-bold">{me.score} <span className="text-sm text-gray-500">pts</span></div>
-                    <button onClick={onLeave} className="p-2 bg-red-900/50 hover:bg-red-600 rounded-full text-red-200 hover:text-white transition-colors">
-                        <LogOut size={20} />
+                    <button onClick={onLeave} aria-label="Rời khỏi phòng chơi" className="p-2 bg-red-900/50 hover:bg-red-600 rounded-full text-red-200 hover:text-white transition-colors">
+                        <LogOut size={20} aria-hidden="true" />
                     </button>
                 </div>
             </div>
@@ -151,12 +151,13 @@ const StudentView: React.FC<Props> = ({ gameState, playerId, onBuzz, onSubmitRou
                                     playSound('SUBMIT');
                                 }}
                                 disabled={!gameState.timerEndTime || !codeAnswer.trim()}
+                                aria-label={!gameState.timerEndTime ? 'Chờ thời gian tính giờ' : 'Nộp cấu trúc mã của bạn'}
                                 className={`w-full font-bold py-4 rounded-lg flex items-center justify-center gap-2 transition-colors ${!gameState.timerEndTime || !codeAnswer.trim()
                                     ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
                                     : 'bg-cyber-primary hover:bg-cyan-600 text-black'
                                     }`}
                             >
-                                <Send size={20} /> {!gameState.timerEndTime ? 'WAITING FOR TIMER...' : 'SUBMIT CODE'}
+                                <Send size={20} aria-hidden="true" /> {!gameState.timerEndTime ? 'WAITING FOR TIMER...' : 'SUBMIT CODE'}
                             </button>
                         </div>
                     ) : (
@@ -179,6 +180,7 @@ const StudentView: React.FC<Props> = ({ gameState, playerId, onBuzz, onSubmitRou
                                         <div key={idx} className="flex items-center gap-4">
                                             <span className="font-bold text-gray-500">Q{idx + 1}</span>
                                             <select
+                                                aria-label={`Chọn độ khó cho câu hỏi ${idx + 1}`}
                                                 value={packSelection[idx]}
                                                 onChange={(e) => handlePackChange(idx, e.target.value as Difficulty)}
                                                 className="flex-grow bg-black border border-gray-600 rounded p-3 text-white focus:border-cyber-primary focus:outline-none"
@@ -190,7 +192,7 @@ const StudentView: React.FC<Props> = ({ gameState, playerId, onBuzz, onSubmitRou
                                         </div>
                                     ))}
                                 </div>
-                                <button onClick={submitPack} className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-bold py-4 rounded-lg shadow-lg transform transition-all active:scale-95">
+                                <button onClick={submitPack} aria-label="Xác nhận gói câu hỏi" className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-bold py-4 rounded-lg shadow-lg transform transition-all active:scale-95">
                                     LOCK IN SELECTION
                                 </button>
                             </div>
@@ -249,12 +251,13 @@ const StudentView: React.FC<Props> = ({ gameState, playerId, onBuzz, onSubmitRou
                                                                 key={idx}
                                                                 onClick={() => gameState.timerEndTime && onSubmitQuizAnswer && onSubmitQuizAnswer(opt)}
                                                                 disabled={!gameState.timerEndTime}
+                                                                aria-label={`Chọn đáp án ${String.fromCharCode(65 + idx)}: ${opt}`}
                                                                 className={`p-6 border rounded-xl text-left transition-all flex items-center gap-4 ${!gameState.timerEndTime
                                                                     ? 'bg-gray-800 border-gray-700 text-gray-500 cursor-not-allowed opacity-50'
                                                                     : 'bg-slate-800 md:hover:bg-purple-900 border-gray-600 md:hover:border-purple-500 active:scale-95'
                                                                     }`}
                                                             >
-                                                                <div className="w-8 h-8 rounded-full bg-black/40 flex items-center justify-center font-bold text-sm border border-white/20">
+                                                                <div className="w-8 h-8 rounded-full bg-black/40 flex items-center justify-center font-bold text-sm border border-white/20" aria-hidden="true">
                                                                     {String.fromCharCode(65 + idx)}
                                                                 </div>
                                                                 <span className="font-bold text-lg">{opt}</span>
@@ -291,13 +294,14 @@ const StudentView: React.FC<Props> = ({ gameState, playerId, onBuzz, onSubmitRou
                                                 disabled={gameState.buzzerLocked || !!me.buzzedAt}
                                                 onMouseDown={onBuzz}
                                                 onTouchStart={onBuzz}
+                                                aria-label={me.buzzedAt ? 'Đã giành quyền trả lời' : gameState.buzzerLocked ? 'Chưa thể giành quyền' : 'Bấm để giành quyền trả lời'}
                                                 className={`w-full aspect-square rounded-full flex flex-col items-center justify-center border-8 shadow-[0_0_50px_rgba(0,0,0,0.5)] transition-all transform active:scale-95
                                             ${me.buzzedAt ? 'bg-yellow-500 border-yellow-700' :
                                                         gameState.buzzerLocked ? 'bg-gray-700 border-gray-800 cursor-not-allowed grayscale' :
                                                             'bg-red-600 border-red-800 hover:bg-red-500 hover:shadow-[0_0_30px_rgba(244,63,94,0.6)] cursor-pointer'}
                                         `}
                                             >
-                                                <Bell size={64} className="text-white mb-2" />
+                                                <Bell size={64} className="text-white mb-2" aria-hidden="true" />
                                                 <span className="text-3xl font-black text-white uppercase tracking-widest">
                                                     {me.buzzedAt ? 'BUZZED!' : 'STEAL!'}
                                                 </span>

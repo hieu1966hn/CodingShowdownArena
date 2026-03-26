@@ -27,3 +27,23 @@ dist-ssr
 serviceAccountKey.json
 *serviceAccount*.json
 tmp/
+.tmp-vitest/
+
+# >>> KNOWNS >>>
+# Managed by Knowns CLI — do not edit manually.
+# Run 'knowns init' to regenerate this block.
+.knowns/*
+!.knowns/docs/
+!.knowns/docs/**
+!.knowns/templates/
+!.knowns/templates/**
+# <<< KNOWNS <<<
+
+# Keep repo-level core agent entrypoints only
+CLAUDE.md
+OPENCODE.md
+Skills.md
+opencode.json
+
+.agent
+.claude

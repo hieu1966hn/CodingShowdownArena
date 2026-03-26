@@ -5,11 +5,22 @@ import TeacherDashboard from './components/TeacherDashboard';
 import StudentView from './components/StudentView';
 import SpectatorScreen from './components/SpectatorScreen';
 import AdminPage from './components/AdminPage';
-import { Users, Monitor, ShieldCheck, Gamepad2, ExternalLink, Trash2, LogIn, Key, PlayCircle, LogOut, AlertTriangle, Copy, Check, Maximize, User, GraduationCap } from 'lucide-react';
+import { ErrorBoundary } from './components/ErrorBoundary';
+import { Users, Monitor, ShieldCheck, Gamepad2, ExternalLink, Trash2, LogIn, Key, PlayCircle, LogOut, AlertTriangle, Copy, Check, Maximize, User, GraduationCap, WifiOff } from 'lucide-react';
+
+const OfflineBanner: React.FC<{ isOffline: boolean }> = ({ isOffline }) => {
+    if (!isOffline) return null;
+    return (
+        <div className="fixed top-0 left-0 w-full bg-amber-500 text-black text-center py-1.5 px-4 z-[9999] text-xs font-bold border-b border-amber-600 shadow-md flex items-center justify-center gap-2">
+            <WifiOff size={14} className="animate-pulse" /> 
+            <span>OFFLINE - USING LOCAL CACHE. ATTEMPTING TO RECONNECT...</span>
+        </div>
+    );
+};
 
 const App: React.FC = () => {
     const gameService = useGameSync();
-    const { gameState, user, authLoading, roomId, roomError, loginError } = gameService;
+    const { gameState, user, authLoading, roomId, roomError, loginError, isOffline } = gameService;
 
     const [classCodeInput, setClassCodeInput] = useState('');
     const [role, setRole] = useState<'SELECT' | 'TEACHER' | 'STUDENT' | 'SCREEN'>('SELECT');
@@ -52,10 +63,12 @@ const App: React.FC = () => {
     // --- Step 0: Admin Route ---
     if (isAdminRoute && !authLoading) {
         return (
-            <AdminPage onLeave={() => {
-                setIsAdminRoute(false);
-                window.history.replaceState({}, '', window.location.pathname);
-            }} />
+            <ErrorBoundary fallbackMessage="Admin interface encountered an error">
+                <AdminPage onLeave={() => {
+                    setIsAdminRoute(false);
+                    window.history.replaceState({}, '', window.location.pathname);
+                }} />
+            </ErrorBoundary>
         );
     }
 
@@ -148,6 +161,7 @@ const App: React.FC = () => {
     if (!roomId) {
         return (
             <div className="min-h-screen bg-cyber-dark flex items-center justify-center p-4 relative">
+                <OfflineBanner isOffline={isOffline} />
                 <div className="max-w-lg w-full bg-cyber-light/90 backdrop-blur-xl p-8 rounded-2xl shadow-[0_0_40px_rgba(0,0,0,0.5)] border border-gray-700">
                     <div className="flex justify-between items-center mb-8 border-b border-gray-700 pb-4">
                         <div>
@@ -255,30 +269,44 @@ const App: React.FC = () => {
     };
 
     if (role === 'TEACHER') {
-        return <TeacherDashboard gameState={gameState} actions={gameService} onLeave={handleBackToLobby} />;
+        return (
+            <ErrorBoundary fallbackMessage="Teacher Dashboard Error">
+                <OfflineBanner isOffline={isOffline} />
+                <TeacherDashboard gameState={gameState} actions={gameService} onLeave={handleBackToLobby} />
+            </ErrorBoundary>
+        );
     }
 
     if (role === 'SCREEN') {
-        return <SpectatorScreen gameState={gameState} onLeave={handleBackToLobby} />;
+        return (
+            <ErrorBoundary fallbackMessage="Spectator Screen Error">
+                <OfflineBanner isOffline={isOffline} />
+                <SpectatorScreen gameState={gameState} onLeave={handleBackToLobby} />
+            </ErrorBoundary>
+        );
     }
 
     if (role === 'STUDENT' && studentId) {
         return (
-            <StudentView
-                gameState={gameState}
-                playerId={studentId}
-                onBuzz={() => gameService.buzz(studentId)}
-                onSubmitRound2={(code) => gameService.submitRound2(studentId, code)}
-                onSetRound3Pack={(pack) => gameService.setRound3Pack(studentId, pack)}
-                onLeave={handleBackToLobby}
-                onSubmitQuizAnswer={(answer) => gameService.submitQuizAnswer(studentId, answer)}
-            />
+            <ErrorBoundary fallbackMessage="Student Interface Error">
+                <OfflineBanner isOffline={isOffline} />
+                <StudentView
+                    gameState={gameState}
+                    playerId={studentId}
+                    onBuzz={() => gameService.buzz(studentId)}
+                    onSubmitRound2={(code) => gameService.submitRound2(studentId, code)}
+                    onSetRound3Pack={(pack) => gameService.setRound3Pack(studentId, pack)}
+                    onLeave={handleBackToLobby}
+                    onSubmitQuizAnswer={(answer) => gameService.submitQuizAnswer(studentId, answer)}
+                />
+            </ErrorBoundary>
         );
     }
 
     // --- Step 5: Join Role Selection (After entering room code) ---
     return (
         <div className="min-h-screen bg-cyber-dark flex items-center justify-center p-4">
+            <OfflineBanner isOffline={isOffline} />
             <div className="max-w-2xl w-full bg-cyber-light rounded-2xl shadow-2xl overflow-hidden border border-gray-700 relative">
                 <div className="p-4 border-b border-gray-700 flex justify-between items-center bg-black/40">
                     <div className="flex items-center gap-3">
