@@ -5,6 +5,7 @@ import {
     calculateGradeRound3Question,
     calculateActivateSteal,
     calculateResolveSteal,
+    calculateStealTimeoutPenalty,
 } from '../lib/gameScoring';
 import { GameState, Player, INITIAL_STATE } from '../gameTypes';
 
@@ -115,7 +116,7 @@ describe('gameScoring', () => {
             expect(state?.players?.[0].round2Submissions[0].points).toBeUndefined();
         });
 
-        it('should skip duplicate grading and only update correctness flag if points already exist', () => {
+        it('should rollback awarded points when a correct answer is re-graded to wrong', () => {
             const modifiedState: GameState = {
                 ...defaultState,
                 players: [
@@ -130,9 +131,33 @@ describe('gameScoring', () => {
 
             const state = calculateGradeRound2Question(modifiedState, 'p1', false);
 
-            expect(state?.players?.[0].score).toBe(136);
-            expect(state?.players?.[0].round2Submissions[0].points).toBe(36);
+            expect(state?.players?.[0].score).toBe(100);
+            expect(state?.players?.[0].round2Submissions[0].points).toBeUndefined();
             expect(state?.players?.[0].round2Submissions[0].isCorrect).toBe(false);
+        });
+
+        it('should recompute speed bonus for the remaining correct answers after re-grade', () => {
+            const modifiedState: GameState = {
+                ...defaultState,
+                players: [
+                    {
+                        ...mockPlayer,
+                        score: 136,
+                        round2Submissions: [{ questionId: 'q1', code: 'A', time: 1, points: 36, isCorrect: true }]
+                    },
+                    {
+                        ...mockPlayer2,
+                        score: 84,
+                        round2Submissions: [{ questionId: 'q1', code: 'B', time: 2, points: 34, isCorrect: true }]
+                    }
+                ]
+            };
+
+            const state = calculateGradeRound2Question(modifiedState, 'p1', false);
+
+            expect(state?.players?.[0].score).toBe(100);
+            expect(state?.players?.[1].score).toBe(86);
+            expect(state?.players?.[1].round2Submissions[0].points).toBe(36);
         });
 
         it('should return null when current round 2 question is missing', () => {
@@ -176,6 +201,27 @@ describe('gameScoring', () => {
             const state = calculateGradeRound3Question(modifiedState, 'p1', 0, 'WRONG', -10, 1000);
 
             expect(state?.players?.[0].score).toBe(0);
+        });
+
+        it('should open steal flow on SKIP instead of ending the turn immediately', () => {
+            const modifiedState: GameState = {
+                ...defaultState,
+                players: [
+                    {
+                        ...mockPlayer,
+                        round3Pack: [
+                            { difficulty: 'EASY', status: 'CORRECT' },
+                            { difficulty: 'MEDIUM', status: 'WRONG' },
+                            { difficulty: 'HARD', status: 'PENDING' }
+                        ]
+                    }
+                ]
+            };
+
+            const state = calculateGradeRound3Question(modifiedState, 'p1', 2, 'SKIP', 0, 1000);
+            expect(state?.round3Phase).toBe('SHOW_WRONG_DELAY');
+            expect(state?.timerEndTime).toBe(6000);
+            expect(state?.round3TurnPlayerId).toBeUndefined();
         });
 
         it('should complete turn when all questions are answered', () => {
@@ -247,8 +293,18 @@ describe('gameScoring', () => {
         });
 
         it('should penalize points on wrong steal and keep window open', () => {
-            const state = calculateResolveSteal(defaultState, 'p2', false, 25);
+            const modifiedState: GameState = {
+                ...defaultState,
+                players: [
+                    { ...mockPlayer, buzzedAt: 123 },
+                    { ...mockPlayer2, buzzedAt: 456 },
+                ]
+            };
+
+            const state = calculateResolveSteal(modifiedState, 'p2', false, 25);
             expect(state.players?.[1].score).toBe(25);
+            expect(state.players?.[1].buzzedAt).toBe(-1);
+            expect(state.players?.[0].buzzedAt).toBe(123);
             expect(state.activeStealPlayerId).toBeNull();
             expect(state.buzzerLocked).toBe(false);
         });
@@ -262,6 +318,39 @@ describe('gameScoring', () => {
             const state = calculateResolveSteal(modifiedState, 'p2', false, 25);
 
             expect(state.players?.[1].score).toBe(0);
+        });
+    });
+
+    describe('calculateStealTimeoutPenalty', () => {
+        it('should penalize the accepted stealer and close the current question on timeout', () => {
+            const modifiedState: GameState = {
+                ...defaultState,
+                round3Phase: 'STEAL_WINDOW',
+                round3TurnPlayerId: 'p1',
+                activeStealPlayerId: 'p2',
+                activeQuestion: {
+                    id: 'r3-e-01',
+                    content: 'Q',
+                    answer: 'A',
+                    difficulty: 'MEDIUM',
+                    points: 60,
+                },
+                timerEndTime: 5000,
+                players: [
+                    { ...mockPlayer, buzzedAt: 123 },
+                    { ...mockPlayer2, buzzedAt: 456 },
+                ]
+            };
+
+            const state = calculateStealTimeoutPenalty(modifiedState, 'p2', 60);
+
+            expect(state.players?.[1].score).toBe(0);
+            expect(state.players?.every(player => player.buzzedAt === null)).toBe(true);
+            expect(state.round3Phase).toBe('IDLE');
+            expect(state.activeStealPlayerId).toBeNull();
+            expect(state.activeQuestion).toBeNull();
+            expect(state.timerEndTime).toBeNull();
+            expect(state.round3TurnPlayerId).toBe('p1');
         });
     });
 });

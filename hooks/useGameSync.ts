@@ -5,7 +5,7 @@ import "firebase/compat/auth";
 import { db, auth, googleProvider } from "../lib/firebase";
 import { GameState, GameRound, Player, Question, Difficulty, PackStatus, Round3Item, Round3Mode, Round3Phase, INITIAL_STATE, PlayerCheckpoint, Checkpoints } from "../gameTypes";
 import { ROUND_2_QUESTIONS, ROUND_3_QUESTIONS } from "../data/questions";
-import { calculateGradeRound1, calculateGradeRound2Question, calculateGradeRound3Question, calculateActivateSteal, calculateResolveSteal } from "../lib/gameScoring";
+import { calculateGradeRound1, calculateGradeRound2Question, calculateGradeRound3Question, calculateActivateSteal, calculateResolveSteal, calculateStealTimeoutPenalty } from "../lib/gameScoring";
 import { logger } from "../lib/logger";
 
 const CACHE_KEY = "csa_session_cache";
@@ -323,7 +323,7 @@ export const useGameSync = () => {
             // AUTO-INIT ROUND 2 if entering Round 2 with no questions
             // Dùng ?.length ?? 0 để tránh crash nếu round2Questions undefined (document Firestore cũ)
             let round2AutoInit: Record<string, unknown> = {};
-            if (round === GameRound.ROUND_2 && (prev.round2Questions?.length ?? 0) === 0) {
+            if (round === GameRound.ROUND_2 && (prev.round !== GameRound.ROUND_2 || (prev.round2Questions?.length ?? 0) === 0)) {
                 const availableQuestions = ROUND_2_QUESTIONS.filter(q => !(prev.usedQuestionIds || []).includes(q.id));
                 // Fisher-Yates shuffle để đảm bảo ngẫu nhiên thật sự
                 const pool = [...availableQuestions];
@@ -353,12 +353,25 @@ export const useGameSync = () => {
                 round,
                 message: `📢 Entering ${round}...`,
                 activeQuestion: null,
+                round3ActivePackIndex: null,
                 timerEndTime: null,
                 buzzerLocked: true,
                 round3Phase: 'IDLE' as Round3Phase,
                 round3TurnPlayerId: null,
                 activeStealPlayerId: null,
                 round1TurnPlayerId: null,
+                round1QuestionsAsked: round === GameRound.ROUND_1
+                    ? (prev.round === GameRound.ROUND_1 ? prev.round1QuestionsAsked : {})
+                    : {},
+                round2Reviewed: round === GameRound.ROUND_2
+                    ? (prev.round === GameRound.ROUND_2 ? prev.round2Reviewed : false)
+                    : false,
+                round2CurrentQuestion: round === GameRound.ROUND_2
+                    ? (prev.round === GameRound.ROUND_2 ? prev.round2CurrentQuestion : 0)
+                    : 0,
+                round2Questions: round === GameRound.ROUND_2
+                    ? (prev.round === GameRound.ROUND_2 ? prev.round2Questions : [])
+                    : [],
                 showAnswer: false,
                 viewingPlayerId: null,
                 round3Mode: 'ORAL' as Round3Mode,
@@ -392,6 +405,7 @@ export const useGameSync = () => {
 
             return {
                 activeQuestion: question,
+                round3ActivePackIndex: null,
                 buzzerLocked: true,
                 message: null,
                 round2StartedAt: null,
@@ -405,7 +419,7 @@ export const useGameSync = () => {
         });
     };
 
-    const clearQuestion = () => updateState({ activeQuestion: null, showAnswer: false, activeStealPlayerId: null });
+    const clearQuestion = () => updateState({ activeQuestion: null, round3ActivePackIndex: null, showAnswer: false, activeStealPlayerId: null });
 
     const startTimer = (seconds: number) => {
         updateState({
@@ -576,7 +590,7 @@ export const useGameSync = () => {
         gradeRound2Question(playerId, isCorrect);
     };
 
-    const setRound1Turn = (playerId: string | null) => updateState({ round1TurnPlayerId: playerId, showAnswer: false, activeQuestion: null, timerEndTime: null });
+    const setRound1Turn = (playerId: string | null) => updateState({ round1TurnPlayerId: playerId, showAnswer: false, activeQuestion: null, round3ActivePackIndex: null, timerEndTime: null });
 
     const setRound3Pack = (playerId: string, pack: Round3Item[]) => {
         updateState((prev) => ({
@@ -616,21 +630,35 @@ export const useGameSync = () => {
     };
 
     const cancelStealPhase = () => {
-        updateState((prev) => ({
-            round3Phase: 'IDLE',
-            activeStealPlayerId: null,
-            buzzerLocked: true,
-            timerEndTime: null,
-            activeQuestion: null,
-            showAnswer: false,
-            stealTimerPausedRemaining: null,
-            players: prev.players.map(p => ({ ...p, buzzedAt: null }))
-        }));
+        updateState((prev) => {
+            const currentPlayer = prev.players.find(p => p.id === prev.round3TurnPlayerId);
+            const hasPendingLeft = currentPlayer?.round3Pack.some(item => item.status === 'PENDING') ?? false;
+
+            return {
+                round3Phase: 'IDLE',
+                round3TurnPlayerId: hasPendingLeft ? prev.round3TurnPlayerId : null,
+                activeStealPlayerId: null,
+                buzzerLocked: true,
+                timerEndTime: null,
+                activeQuestion: null,
+                round3ActivePackIndex: null,
+                showAnswer: false,
+                stealTimerPausedRemaining: null,
+                players: prev.players.map(p => ({ ...p, buzzedAt: null }))
+            };
+        });
     };
 
     const resolveSteal = (stealerId: string, isCorrect: boolean, points: number) => {
         updateState((prev) => {
             const updates = calculateResolveSteal(prev, stealerId, isCorrect, points);
+            return updates || {};
+        });
+    };
+
+    const penalizeStealTimeout = (stealerId: string, points: number) => {
+        updateState((prev) => {
+            const updates = calculateStealTimeoutPenalty(prev, stealerId, points);
             return updates || {};
         });
     };
@@ -645,6 +673,7 @@ export const useGameSync = () => {
                 buzzerLocked: true,
                 timerEndTime: null,
                 activeQuestion: null,
+                round3ActivePackIndex: null,
                 showAnswer: false,
                 stealTimerPausedRemaining: null,
                 players: prev.players.map(p => ({ ...p, buzzedAt: null }))
@@ -655,7 +684,8 @@ export const useGameSync = () => {
 
             // Find the first PENDING pack item for this player
             const player = prev.players.find(p => p.id === playerId);
-            const nextPending = player?.round3Pack.find(item => item.status === 'PENDING');
+            const nextPendingIndex = player?.round3Pack.findIndex(item => item.status === 'PENDING') ?? -1;
+            const nextPending = nextPendingIndex >= 0 ? player?.round3Pack[nextPendingIndex] : undefined;
 
             if (!nextPending) return baseReset; // no pending questions, just set turn
 
@@ -711,6 +741,7 @@ export const useGameSync = () => {
                 ...baseReset,
                 round3TurnPlayerId: playerId,
                 activeQuestion: finalQ,
+                round3ActivePackIndex: nextPendingIndex,
                 round3Phase: 'MAIN_ANSWER' as Round3Phase,
                 timerEndTime: Date.now() + timerDuration * 1000,
                 usedQuestionIds: [...prev.usedQuestionIds, selectedQ.id],
@@ -793,6 +824,9 @@ export const useGameSync = () => {
                 return { ...p, round3Pack: newPack, score: Math.max(0, newScore) };
             });
 
+            const updatedCurrentPlayer = updatedPlayers.find(p => p.id === prev.round3TurnPlayerId);
+            const allQuestionsAnswered = updatedCurrentPlayer?.round3Pack.every(item => item.status !== 'PENDING') ?? false;
+
             if (isCorrect) {
                 // Correct answer should close current question immediately
                 // so Round 3 auto-flow can reveal the next pending question.
@@ -803,7 +837,9 @@ export const useGameSync = () => {
                     showAnswer: true,
                     buzzerLocked: false,
                     round3Phase: 'IDLE',
+                    round3TurnPlayerId: allQuestionsAnswered ? null : prev.round3TurnPlayerId,
                     activeQuestion: null,
+                    round3ActivePackIndex: null,
                     timerEndTime: null,
                     message: '✅ Chính xác! Tự chuyển sang câu tiếp theo...'
                 };
@@ -837,7 +873,7 @@ export const useGameSync = () => {
         updateState({ round3SelectionMode: mode });
     };
 
-    const revealRound3Question = (difficulty: Difficulty) => {
+    const revealRound3Question = (difficulty: Difficulty, packIndex?: number) => {
         updateState((prev) => {
             let pool = ROUND_3_QUESTIONS.filter(q =>
                 q.difficulty === difficulty &&
@@ -894,6 +930,7 @@ export const useGameSync = () => {
 
                 return {
                     activeQuestion: finalQ,
+                    round3ActivePackIndex: packIndex ?? null,
                     // Auto-start timer atomically with reveal
                     round3Phase: 'MAIN_ANSWER' as Round3Phase,
                     timerEndTime: Date.now() + timerDuration * 1000,
@@ -936,6 +973,7 @@ export const useGameSync = () => {
             round: GameRound.GAME_OVER,
             message: "CONGRATULATIONS!",
             activeQuestion: null,
+            round3ActivePackIndex: null,
             timerEndTime: null,
             buzzerLocked: true
         });
@@ -1027,12 +1065,15 @@ export const useGameSync = () => {
                 round: GameRound.ROUND_1,
                 players: restoredPlayers,
                 activeQuestion: null,
+                round3ActivePackIndex: null,
                 timerEndTime: null,
                 buzzerLocked: true,
                 round3Phase: 'IDLE',
                 round3TurnPlayerId: null,
                 activeStealPlayerId: null,
                 round1TurnPlayerId: null,
+                round1QuestionsAsked: {},
+                round2Reviewed: false,
                 showAnswer: false,
                 message: '🔄 Reset to Round 1 checkpoint',
                 round2CurrentQuestion: 0,
@@ -1074,12 +1115,15 @@ export const useGameSync = () => {
                 round: GameRound.ROUND_2,
                 players: restoredPlayers,
                 activeQuestion: null,
+                round3ActivePackIndex: null,
                 timerEndTime: null,
                 buzzerLocked: true,
                 round3Phase: 'IDLE',
                 round3TurnPlayerId: null,
                 activeStealPlayerId: null,
                 round1TurnPlayerId: null,
+                round1QuestionsAsked: {},
+                round2Reviewed: false,
                 showAnswer: false,
                 message: '🔄 Reset to Round 2 checkpoint',
                 round2CurrentQuestion: 0,
@@ -1121,12 +1165,14 @@ export const useGameSync = () => {
                 round: GameRound.ROUND_3,
                 players: restoredPlayers,
                 activeQuestion: null,
+                round3ActivePackIndex: null,
                 timerEndTime: null,
                 buzzerLocked: true,
                 round3Phase: 'IDLE',
                 round3TurnPlayerId: null,
                 activeStealPlayerId: null,
                 round1TurnPlayerId: null,
+                round2Reviewed: false,
                 showAnswer: false,
                 message: '🔄 Reset to Round 3 checkpoint'
             };
@@ -1251,6 +1297,8 @@ export const useGameSync = () => {
                 activeQuestion: shouldSwapActive ? newQuestion : prev.activeQuestion,
                 usedQuestionIds: updatedUsedIds,
                 players: updatedPlayers,
+                round2StartedAt: shouldSwapActive ? null : prev.round2StartedAt,
+                timerEndTime: shouldSwapActive ? null : prev.timerEndTime,
                 showAnswer: shouldSwapActive ? false : prev.showAnswer,
                 viewingPlayerId: shouldSwapActive ? null : prev.viewingPlayerId
             };
@@ -1308,6 +1356,7 @@ export const useGameSync = () => {
         setViewingPlayer,
         activateSteal,
         resolveSteal,
+        penalizeStealTimeout,
         cancelStealPhase,
         setRound3Mode,
         submitQuizAnswer,

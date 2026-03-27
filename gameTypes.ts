@@ -82,6 +82,7 @@ export interface GameState {
   round: GameRound;
   players: Player[];
   activeQuestion: Question | null;
+  round3ActivePackIndex: number | null;
   timerEndTime: number | null;
   buzzerLocked: boolean;
   round2StartedAt: number | null;
@@ -107,6 +108,7 @@ export const INITIAL_STATE: GameState = {
   round: GameRound.LOBBY,
   players: [],
   activeQuestion: null,
+  round3ActivePackIndex: null,
   timerEndTime: null,
   buzzerLocked: true,
   round2StartedAt: null,

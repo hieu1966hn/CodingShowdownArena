@@ -62,6 +62,12 @@ const StudentView: React.FC<Props> = ({ gameState, playerId, onBuzz, onSubmitRou
 
     const isRound2 = gameState.round === GameRound.ROUND_2;
     const isRound3 = gameState.round === GameRound.ROUND_3;
+    const round2QuestionCount = gameState.round2Questions.length;
+    const round2DisplayQuestionNumber = round2QuestionCount > 0
+        ? Math.min(gameState.round2CurrentQuestion + 1, round2QuestionCount)
+        : 0;
+    const hasActiveStealBuzz = typeof me.buzzedAt === 'number' && me.buzzedAt > 0;
+    const hasUsedStealAttempt = typeof me.buzzedAt === 'number' && me.buzzedAt < 0;
 
     const handlePackChange = (index: number, value: Difficulty) => {
         const newPack = [...packSelection];
@@ -110,7 +116,7 @@ const StudentView: React.FC<Props> = ({ gameState, playerId, onBuzz, onSubmitRou
                                 <div className="text-gray-400 text-2xl mb-2">⏳ Waiting for next question...</div>
                                 {gameState.round2Questions.length > 0 && (
                                     <p className="text-sm text-gray-500">
-                                        Question {gameState.round2CurrentQuestion + 1} / 5
+                                        Question {round2DisplayQuestionNumber} / {round2QuestionCount}
                                     </p>
                                 )}
                             </div>
@@ -127,7 +133,7 @@ const StudentView: React.FC<Props> = ({ gameState, playerId, onBuzz, onSubmitRou
                             {gameState.round2Questions.length > 0 && (
                                 <div className="bg-cyber-primary/20 border border-cyber-primary px-4 py-2 rounded-lg text-center">
                                     <span className="text-cyber-primary font-black text-xl">
-                                        Question {gameState.round2CurrentQuestion + 1} / 5
+                                        Question {round2DisplayQuestionNumber} / {round2QuestionCount}
                                     </span>
                                 </div>
                             )}
@@ -163,7 +169,7 @@ const StudentView: React.FC<Props> = ({ gameState, playerId, onBuzz, onSubmitRou
                     ) : (
                         <div className="text-center">
                             <div className="text-green-500 text-4xl mb-2">✔ Submitted</div>
-                            <p className="text-gray-400">Question {gameState.round2CurrentQuestion + 1} submitted!</p>
+                            <p className="text-gray-400">Question {round2DisplayQuestionNumber} submitted!</p>
                             <p className="text-sm text-gray-500 mt-2">Wait for next question...</p>
                         </div>
                     );
@@ -294,7 +300,7 @@ const StudentView: React.FC<Props> = ({ gameState, playerId, onBuzz, onSubmitRou
                                                 disabled={gameState.buzzerLocked || !!me.buzzedAt}
                                                 onMouseDown={onBuzz}
                                                 onTouchStart={onBuzz}
-                                                aria-label={me.buzzedAt ? 'Đã giành quyền trả lời' : gameState.buzzerLocked ? 'Chưa thể giành quyền' : 'Bấm để giành quyền trả lời'}
+                                                aria-label={hasUsedStealAttempt ? 'Bạn đã dùng lượt cướp ở câu này' : hasActiveStealBuzz ? 'Đã giành quyền trả lời' : gameState.buzzerLocked ? 'Chưa thể giành quyền' : 'Bấm để giành quyền trả lời'}
                                                 className={`w-full aspect-square rounded-full flex flex-col items-center justify-center border-8 shadow-[0_0_50px_rgba(0,0,0,0.5)] transition-all transform active:scale-95
                                             ${me.buzzedAt ? 'bg-yellow-500 border-yellow-700' :
                                                         gameState.buzzerLocked ? 'bg-gray-700 border-gray-800 cursor-not-allowed grayscale' :
@@ -303,7 +309,7 @@ const StudentView: React.FC<Props> = ({ gameState, playerId, onBuzz, onSubmitRou
                                             >
                                                 <Bell size={64} className="text-white mb-2" aria-hidden="true" />
                                                 <span className="text-3xl font-black text-white uppercase tracking-widest">
-                                                    {me.buzzedAt ? 'BUZZED!' : 'STEAL!'}
+                                                    {hasUsedStealAttempt ? 'WAIT' : hasActiveStealBuzz ? 'BUZZED!' : 'STEAL!'}
                                                 </span>
                                             </button>
                                         ) : (

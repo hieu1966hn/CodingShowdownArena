@@ -14,7 +14,7 @@ interface Props {
 
 const PlayerScoreCard = React.memo(({ p, isReadOnly, round, playSound, actions }: any) => {
     return (
-        <div className={`p-2 rounded border flex justify-between items-center transition-colors ${p.buzzedAt ? 'bg-yellow-900/50 border-yellow-500 animate-pulse' : 'border-gray-600 bg-gray-700/50'}`}>
+        <div className={`p-2 rounded border flex justify-between items-center transition-colors ${typeof p.buzzedAt === 'number' && p.buzzedAt > 0 ? 'bg-yellow-900/50 border-yellow-500 animate-pulse' : 'border-gray-600 bg-gray-700/50'}`}>
             <div className="flex items-center gap-2 overflow-hidden">
                 {round === GameRound.LOBBY && !isReadOnly && (
                     <button
@@ -123,12 +123,18 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
     const [isGraded, setIsGraded] = useState(false); // NEW: Track if current Q has been graded
     const [transitionPopup, setTransitionPopup] = useState<{ title: string; subtitle: string } | null>(null);
     const [soundEnabled, setSoundEnabled] = useState(true);
+    const [stealDecisionPending, setStealDecisionPending] = useState(false);
 
     const prevRoundRef = useRef<GameRound>(gameState.round);
     const prevRound3PhaseRef = useRef(gameState.round3Phase);
     const prevRound3TurnRef = useRef<string | null>(gameState.round3TurnPlayerId);
+    const round2AutoAdvanceQuestionRef = useRef<string | null>(null);
 
     const round1MaxQuestions = gameState.players.length >= 10 ? 5 : 10;
+    const round2QuestionCount = gameState.round2Questions.length;
+    const round2DisplayQuestionNumber = round2QuestionCount > 0
+        ? Math.min(gameState.round2CurrentQuestion + 1, round2QuestionCount)
+        : 0;
 
     const playSound = (type: keyof typeof SOUND_EFFECTS) => {
         if (!soundEnabled) return;
@@ -146,6 +152,12 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
     useEffect(() => {
         setIsGraded(false);
     }, [gameState.activeQuestion?.id]);
+
+    useEffect(() => {
+        if (gameState.round3Phase !== 'STEAL_WINDOW' || !gameState.activeStealPlayerId) {
+            setStealDecisionPending(false);
+        }
+    }, [gameState.round3Phase, gameState.activeStealPlayerId]);
 
     // Round 2 UX: auto-hide question bank once teacher confirms the 5-question pack
     useEffect(() => {
@@ -168,6 +180,9 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
         !!gameState.activeQuestion ||
         gameState.round3Phase !== 'IDLE'
     );
+    const queuedStealPlayers = gameState.players
+        .filter(p => typeof p.buzzedAt === 'number' && p.buzzedAt > 0)
+        .sort((a, b) => (a.buzzedAt || 0) - (b.buzzedAt || 0));
 
     const guidedWorkflow = (() => {
         if (gameState.round === GameRound.LOBBY) {
@@ -261,16 +276,16 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
             }
 
             if (!gameState.activeQuestion) {
-                const currentPlayer = gameState.players.find(p => p.id === gameState.round1TurnPlayerId);
-                const asked = currentPlayer ? (gameState.round1QuestionsAsked[currentPlayer.id] || 0) : 0;
-                const targetDifficulty: Difficulty = asked < 2 ? 'EASY' : asked < 4 ? 'MEDIUM' : 'HARD';
-                const candidate = ROUND_1_QUESTIONS.find(q =>
-                    q.difficulty === targetDifficulty && !gameState.usedQuestionIds.includes(q.id)
-                ) || ROUND_1_QUESTIONS.find(q => !gameState.usedQuestionIds.includes(q.id));
+                const availableQuestions = ROUND_1_QUESTIONS.filter(
+                    q => !gameState.usedQuestionIds.includes(q.id)
+                );
+                const candidate = availableQuestions.length > 0
+                    ? availableQuestions[Math.floor(Math.random() * availableQuestions.length)]
+                    : null;
 
                 return {
                     label: candidate ? `Ra câu ${candidate.difficulty}` : 'Hết câu Round 1',
-                    hint: candidate ? 'Tự chọn câu phù hợp để giảm thao tác GV.' : 'Không còn câu chưa sử dụng ở Round 1.',
+                    hint: candidate ? 'Tự chọn ngẫu nhiên 1 câu chưa dùng để đảm bảo công bằng.' : 'Không còn câu chưa sử dụng ở Round 1.',
                     disabled: !candidate,
                     run: () => candidate && actions.setQuestion(candidate)
                 };
@@ -353,7 +368,7 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                 return {
                     label: hasRound3Started ? `Mở lượt: ${nextPlayer.name}` : `Bắt đầu với: ${nextPlayer.name}`,
                     hint: hasRound3Started
-                        ? 'Tự chọn học viên tiếp theo đủ điều kiện.'
+                        ? 'Chọn lại mode cho học viên tiếp theo rồi mới mở lượt.'
                         : 'Mở lượt đầu tiên để bắt đầu Round 3 auto-flow.',
                     disabled: false,
                     run: () => actions.setRound3Turn(nextPlayer.id)
@@ -363,12 +378,13 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
 
             if (!gameState.activeQuestion && gameState.round3Phase === 'IDLE') {
                 const currentPlayer = gameState.players.find(p => p.id === gameState.round3TurnPlayerId);
-                const nextPending = currentPlayer?.round3Pack.find(item => item.status === 'PENDING');
+                const nextPendingIndex = currentPlayer?.round3Pack.findIndex(item => item.status === 'PENDING') ?? -1;
+                const nextPending = nextPendingIndex >= 0 ? currentPlayer?.round3Pack[nextPendingIndex] : undefined;
                 return {
                     label: nextPending ? `Ra câu ${nextPending.difficulty}` : 'Đợi chuyển lượt tự động',
                     hint: 'Tự reveal câu tiếp theo trong gói học viên.',
                     disabled: !nextPending,
-                    run: () => nextPending && actions.revealRound3Question(nextPending.difficulty)
+                    run: () => nextPending && actions.revealRound3Question(nextPending.difficulty, nextPendingIndex)
                 };
             }
 
@@ -453,10 +469,35 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
         ? gameState.players.find(p => p.id === gameState.viewingPlayerId)
         : null;
 
+    const requestRound2AutoAdvance = (questionId: string) => {
+        if (round2AutoAdvanceQuestionRef.current === questionId) return;
+        round2AutoAdvanceQuestionRef.current = questionId;
+        actions.nextRound2Question();
+        playSound('CORRECT');
+    };
+
     // --- AUTO-GRADE TIMER MONITOR ---
     useEffect(() => {
         const checkTimer = () => {
             const now = Date.now();
+
+            if (gameState.round === GameRound.ROUND_2 &&
+                gameState.round2Reviewed &&
+                gameState.activeQuestion &&
+                gameState.timerEndTime &&
+                now >= gameState.timerEndTime) {
+                const currentQuestionId = gameState.round2Questions[gameState.round2CurrentQuestion];
+                if (currentQuestionId) {
+                    const submissionsForCurrentQ = gameState.players
+                        .map(p => p.round2Submissions?.find(s => s.questionId === currentQuestionId))
+                        .filter((s): s is NonNullable<typeof s> => !!s);
+
+                    const allGraded = submissionsForCurrentQ.every(s => s.isCorrect !== undefined);
+                    if (submissionsForCurrentQ.length === 0 || allGraded) {
+                        requestRound2AutoAdvance(currentQuestionId);
+                    }
+                }
+            }
 
             // 1. Auto-grade when Main Answer Timer runs out
             if (gameState.round === GameRound.ROUND_3 &&
@@ -486,7 +527,17 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                 gameState.round3Phase === 'STEAL_WINDOW' &&
                 gameState.timerEndTime &&
                 now >= gameState.timerEndTime) {
-                actions.cancelStealPhase();
+                if (gameState.activeStealPlayerId) {
+                    const stealPoints = gameState.activeQuestion?.points
+                        ?? (gameState.activeQuestion?.difficulty === 'HARD'
+                            ? 80
+                            : gameState.activeQuestion?.difficulty === 'MEDIUM'
+                                ? 60
+                                : 40);
+                    actions.penalizeStealTimeout(gameState.activeStealPlayerId, stealPoints);
+                } else {
+                    actions.cancelStealPhase();
+                }
             }
         };
 
@@ -494,44 +545,22 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
         return () => clearInterval(interval);
     }, [
         gameState.round,
+        gameState.round2Reviewed,
+        gameState.round2CurrentQuestion,
+        gameState.round2Questions,
+        gameState.players,
         gameState.round3Mode,
         gameState.round3Phase,
+        gameState.activeStealPlayerId,
+        gameState.activeQuestion,
         gameState.timerEndTime,
         gameState.showAnswer,
         actions
     ]);
 
-    // Phase 2 C4: Auto-advance to next student's turn when current turn is free
-    useEffect(() => {
-        if (gameState.round !== GameRound.ROUND_3) return;
-        if (gameState.round3TurnPlayerId) return;
-        if (gameState.round3Phase !== 'IDLE') return;
-        if (gameState.activeQuestion) return;
-
-        const hasRound3Started = gameState.players.some(player =>
-            player.round3Pack.some(item => item.status !== 'PENDING')
-        );
-
-        // Initial entry of Round 3 must be manual: teacher picks mode + starting student.
-        if (!hasRound3Started) return;
-
-        const nextPlayer = gameState.players.find(p =>
-            p.round3PackLocked && p.round3Pack.some(item => item.status === 'PENDING')
-        );
-
-        if (nextPlayer) {
-            actions.setRound3Turn(nextPlayer.id);
-        }
-    }, [
-        gameState.round,
-        gameState.round3TurnPlayerId,
-        gameState.round3Phase,
-        gameState.activeQuestion,
-        gameState.players,
-        actions
-    ]);
-
-    // Phase 2 C1 + C3: Auto-reveal next pending question inside active turn
+    // Round 3 stays manual when moving to the next student so the teacher can
+    // choose ORAL/QUIZ again for each turn. Auto-reveal is kept only inside
+    // the currently active student's 3-question flow.
     useEffect(() => {
         if (gameState.round !== GameRound.ROUND_3) return;
         if (!gameState.round3TurnPlayerId) return;
@@ -541,9 +570,10 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
         const currentPlayer = gameState.players.find(p => p.id === gameState.round3TurnPlayerId);
         if (!currentPlayer) return;
 
-        const nextPending = currentPlayer.round3Pack.find(item => item.status === 'PENDING');
+        const nextPendingIndex = currentPlayer.round3Pack.findIndex(item => item.status === 'PENDING');
+        const nextPending = nextPendingIndex >= 0 ? currentPlayer.round3Pack[nextPendingIndex] : undefined;
         if (nextPending) {
-            actions.revealRound3Question(nextPending.difficulty);
+            actions.revealRound3Question(nextPending.difficulty, nextPendingIndex);
         }
     }, [
         gameState.round,
@@ -600,14 +630,17 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
             .map(p => p.round2Submissions?.find(s => s.questionId === currentQuestionId))
             .filter((s): s is NonNullable<typeof s> => !!s);
 
-        if (submissionsForCurrentQ.length === 0) return;
-
         const allGraded = submissionsForCurrentQ.every(s => s.isCorrect !== undefined);
         if (!allGraded) return;
 
+        const allPlayersSubmitted = gameState.players.length > 0 && gameState.players.every(
+            p => !!p.round2Submissions?.find(s => s.questionId === currentQuestionId)
+        );
+        const timerExpired = !!gameState.timerEndTime && Date.now() >= gameState.timerEndTime;
+        if (!allPlayersSubmitted && !timerExpired) return;
+
         const delay = setTimeout(() => {
-            actions.nextRound2Question();
-            playSound('CORRECT');
+            requestRound2AutoAdvance(currentQuestionId);
         }, 500);
 
         return () => clearTimeout(delay);
@@ -616,7 +649,8 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
         gameState.activeQuestion?.id,
         gameState.round2CurrentQuestion,
         gameState.round2Questions,
-        gameState.players
+        gameState.players,
+        gameState.timerEndTime
     ]);
 
     // Phase 3 D2: Auto-transition popup between rounds
@@ -937,7 +971,7 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                             {gameState.round2Questions.length > 0 && (
                                 <div className="bg-cyber-primary/20 border border-cyber-primary px-4 py-2 rounded-lg" aria-live="polite">
                                     <span className="text-cyber-primary font-black text-lg">
-                                        Question {gameState.round2CurrentQuestion + 1} / 5
+                                        Question {round2DisplayQuestionNumber} / {round2QuestionCount}
                                     </span>
                                 </div>
                             )}
@@ -1123,6 +1157,17 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                                 </div>
                             )}
 
+                            {gameState.showAnswer && gameState.activeQuestion.answer && (
+                                <div className="mb-6 rounded-lg border border-emerald-500/60 bg-emerald-950/40 p-4">
+                                    <div className="mb-2 text-xs font-black uppercase tracking-[0.2em] text-emerald-300">
+                                        Answer Reveal
+                                    </div>
+                                    <div className="whitespace-pre-wrap text-lg font-bold text-white">
+                                        {gameState.activeQuestion.answer}
+                                    </div>
+                                </div>
+                            )}
+
                             {/* Viewing Player Code Section */}
                             {viewingPlayer && (
                                 <div className="mb-6 animate-in fade-in slide-in-from-top-4 duration-300 relative">
@@ -1276,7 +1321,7 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                     {!gameState.round3TurnPlayerId && !gameState.activeQuestion && gameState.round3Phase === 'IDLE' && (
                         <div className="bg-blue-950/40 border border-blue-500/40 rounded-xl px-4 py-3 text-sm text-blue-200 flex items-center justify-between gap-4">
                             <span>
-                                <strong className="text-blue-300">Round 3 Setup:</strong> Chọn mode <em>Vấn đáp/Trắc nghiệm</em> rồi bấm <em>Mở lượt trả lời</em> cho học viên bắt đầu.
+                                <strong className="text-blue-300">Round 3 Setup:</strong> Chọn mode <em>Vấn đáp/Trắc nghiệm</em> cho học viên hiện tại rồi bấm <em>Mở lượt trả lời</em>. Khi sang học viên tiếp theo, giáo viên được chọn lại mode trước khi bắt đầu.
                             </span>
                             <span className="text-[11px] uppercase tracking-wide font-bold text-blue-300">Manual Start</span>
                         </div>
@@ -1296,7 +1341,15 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                                     </div>
                                 </div>
 
-                                {gameState.activeStealPlayerId ? (
+                                {stealDecisionPending ? (
+                                    <div className="flex-1 flex flex-col items-center justify-center text-center animate-in fade-in duration-200">
+                                        <div className="mb-4 rounded-full border-4 border-yellow-500/60 bg-yellow-900/20 p-5">
+                                            <RefreshCw size={42} className="animate-spin text-yellow-400" />
+                                        </div>
+                                        <div className="text-xl font-black text-yellow-300 uppercase tracking-wider">Updating Steal Result...</div>
+                                        <div className="mt-2 text-sm text-gray-400">Đang khóa thao tác để tránh chấm lặp.</div>
+                                    </div>
+                                ) : gameState.activeStealPlayerId ? (
                                     <div className="flex-1 flex flex-col justify-center animate-in slide-in-from-right duration-300">
                                         <div className="text-center mb-6">
                                             <div className="text-gray-400 text-sm font-bold uppercase tracking-widest mb-2">Currently Stealing</div>
@@ -1310,6 +1363,7 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                                                 onClick={() => {
                                                     const pts = gameState.activeQuestion?.points || 0;
                                                     playSound('CORRECT');
+                                                    setStealDecisionPending(true);
                                                     actions.resolveSteal(gameState.activeStealPlayerId, true, pts);
                                                 }}
                                                 className="py-6 bg-green-600 hover:bg-green-500 rounded-xl flex flex-col items-center justify-center gap-2 font-black text-lg shadow-lg hover:scale-105 transition-all group"
@@ -1320,6 +1374,7 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                                                 onClick={() => {
                                                     const pts = gameState.activeQuestion?.points || 0;
                                                     playSound('WRONG');
+                                                    setStealDecisionPending(true);
                                                     actions.resolveSteal(gameState.activeStealPlayerId, false, pts);
                                                 }}
                                                 className="py-6 bg-red-600 hover:bg-red-500 rounded-xl flex flex-col items-center justify-center gap-2 font-black text-lg shadow-lg hover:scale-105 transition-all group"
@@ -1330,8 +1385,8 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                                     </div>
                                 ) : (
                                     <div className="flex-1 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
-                                        {gameState.players.filter(p => p.buzzedAt).length > 0 ? (
-                                            gameState.players.filter(p => p.buzzedAt).sort((a, b) => (a.buzzedAt || 0) - (b.buzzedAt || 0)).map((p, idx) => (
+                                        {queuedStealPlayers.length > 0 ? (
+                                            queuedStealPlayers.map((p, idx) => (
                                                 <button
                                                     key={p.id}
                                                     onClick={() => actions.activateSteal(p.id)}
@@ -1480,8 +1535,8 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                                                         </div>
                                                     )}
 
-                                                    {item.status === 'PENDING' && (
-                                                        <button onClick={() => actions.revealRound3Question(item.difficulty)} className="p-1.5 text-cyber-primary hover:bg-slate-700 rounded-lg transition-colors" title="Hiện câu hỏi"><Eye size={20} /></button>
+                                                    {item.status === 'PENDING' && !gameState.activeQuestion && gameState.round3TurnPlayerId === p.id && (
+                                                        <button onClick={() => actions.revealRound3Question(item.difficulty, idx)} className="p-1.5 text-cyber-primary hover:bg-slate-700 rounded-lg transition-colors" title="Hiện câu hỏi"><Eye size={20} /></button>
                                                     )}
                                                 </div>
 
@@ -1493,13 +1548,12 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                                                 )}
 
                                                 {/* Manual Grading Buttons */}
-                                                {gameState.activeQuestion && gameState.round3TurnPlayerId === p.id && item.status === 'PENDING' && (
+                                                {gameState.activeQuestion && gameState.round3TurnPlayerId === p.id && item.status === 'PENDING' && gameState.round3ActivePackIndex === idx && (
                                                     <div className="grid grid-cols-3 gap-1 mt-2">
                                                         <button
                                                             onClick={() => {
                                                                 playSound('CORRECT');
                                                                 actions.gradeRound3Question(p.id, idx, 'CORRECT', points);
-                                                                setTimeout(() => actions.clearBuzzers(), 100);
                                                             }}
                                                             className="py-2 bg-green-900/50 hover:bg-green-600 border border-green-700 text-green-200 hover:text-white rounded text-[10px] font-bold"
                                                         >CORRECT</button>
@@ -1508,14 +1562,12 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
                                                                 playSound('WRONG');
                                                                 // WRONG: Use -points (not penalty!)
                                                                 actions.gradeRound3Question(p.id, idx, 'WRONG', -points);
-                                                                setTimeout(() => actions.clearBuzzers(), 100);
                                                             }}
                                                             className="py-2 bg-red-900/50 hover:bg-red-600 border border-red-700 text-red-200 hover:text-white rounded text-[10px] font-bold"
                                                         >WRONG</button>
                                                         <button
                                                             onClick={() => {
                                                                 actions.gradeRound3Question(p.id, idx, 'SKIP', 0);
-                                                                setTimeout(() => actions.clearBuzzers(), 100);
                                                             }}
                                                             className="py-2 bg-gray-700 hover:bg-gray-600 border border-gray-600 text-gray-300 hover:text-white rounded text-[10px] font-bold"
                                                         >SKIP</button>

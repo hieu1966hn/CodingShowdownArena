@@ -58,6 +58,10 @@ const SpectatorScreen: React.FC<Props> = ({ gameState, onLeave }) => {
     const prevBuzzedCount = useRef(0);
     const prevScores = useRef<Record<string, number>>({});
     const lastPlayedSecond = useRef<number | null>(null);
+    const round2QuestionCount = gameState.round2Questions.length;
+    const round2DisplayQuestionNumber = round2QuestionCount > 0
+        ? Math.min(gameState.round2CurrentQuestion + 1, round2QuestionCount)
+        : 0;
 
     const playSound = (type: keyof typeof SOUND_EFFECTS, volume = 0.9) => {
         try {
@@ -106,7 +110,7 @@ const SpectatorScreen: React.FC<Props> = ({ gameState, onLeave }) => {
     }, [gameState.round]);
 
     useEffect(() => {
-        const currentBuzzedCount = gameState.players.filter(p => p.buzzedAt).length;
+        const currentBuzzedCount = gameState.players.filter(p => typeof p.buzzedAt === 'number' && p.buzzedAt > 0).length;
         if (currentBuzzedCount > prevBuzzedCount.current) playSound('BUZZ');
         prevBuzzedCount.current = currentBuzzedCount;
     }, [gameState.players]);
@@ -386,7 +390,7 @@ const SpectatorScreen: React.FC<Props> = ({ gameState, onLeave }) => {
                                         <div className="mb-6 text-center space-y-3">
                                             <div className="inline-block bg-cyber-primary/20 border-2 border-cyber-primary px-8 py-3 rounded-xl">
                                                 <span className="text-cyber-primary font-black text-3xl tracking-wider">
-                                                    Question {gameState.round2CurrentQuestion + 1} / 5
+                                                    Question {round2DisplayQuestionNumber} / {round2QuestionCount}
                                                 </span>
                                             </div>
                                             {/* Submission progress — shown until all submit */}

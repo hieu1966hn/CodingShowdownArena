@@ -39,28 +39,14 @@ export const calculateGradeRound2Question = (prev: GameState, playerId: string, 
     const BASE_POINTS = 30;
     const SPEED_BONUSES = [6, 4, 2]; // Top 1, 2, 3
 
-    // GUARD: Nếu player này đã được chấm điểm rồi => bỏ qua, tránh cộng điểm 2 lần
     const targetPlayer = prev.players.find(p => p.id === playerId);
-    const existingSub = (targetPlayer?.round2Submissions || []).find(
+    const targetSubmission = (targetPlayer?.round2Submissions || []).find(
         s => s.questionId === currentQuestionId
     );
-    if (existingSub?.points !== undefined) {
-        // Đã có điểm rồi — chỉ cập nhật isCorrect flag, không cộng điểm
-        return {
-            players: prev.players.map(p => {
-                if (p.id !== playerId) return p;
-                return {
-                    ...p,
-                    round2Submissions: (p.round2Submissions || []).map(s =>
-                        s.questionId === currentQuestionId ? { ...s, isCorrect } : s
-                    )
-                };
-            })
-        };
-    }
+    if (!targetSubmission) return null;
 
-    // 1. Mark the submission as correct/incorrect (for this player only)
-    let updatedPlayers = prev.players.map(p => {
+    // Recompute the whole question so re-grading also fixes bonus ranks and score totals.
+    const flaggedPlayers = prev.players.map(p => {
         if (p.id !== playerId) return p;
         return {
             ...p,
@@ -70,12 +56,8 @@ export const calculateGradeRound2Question = (prev: GameState, playerId: string, 
         };
     });
 
-    // Nếu chấm WRONG => không cộng điểm, kết thúc sớm
-    if (!isCorrect) return { players: updatedPlayers };
-
-    // 2. Tính rank của player này dựa trên TẤT CẢ submission đúng hiện tại
     const correctSubmissions: Array<{ playerId: string; time: number }> = [];
-    updatedPlayers.forEach(p => {
+    flaggedPlayers.forEach(p => {
         const sub = (p.round2Submissions || []).find(
             s => s.questionId === currentQuestionId && s.isCorrect
         );
@@ -83,23 +65,37 @@ export const calculateGradeRound2Question = (prev: GameState, playerId: string, 
     });
     correctSubmissions.sort((a, b) => a.time - b.time);
 
-    // 3. CHỈ cộng điểm cho player VỪA được chấm (playerId), không đụng player khác
-    updatedPlayers = updatedPlayers.map(p => {
-        if (p.id !== playerId) return p;
+    const updatedPlayers = flaggedPlayers.map((player, index) => {
+        const previousPlayer = prev.players[index];
+        const previousSubmission = (previousPlayer.round2Submissions || []).find(
+            s => s.questionId === currentQuestionId
+        );
+        const currentSubmission = (player.round2Submissions || []).find(
+            s => s.questionId === currentQuestionId
+        );
 
-        const sub = (p.round2Submissions || []).find(s => s.questionId === currentQuestionId);
-        if (!sub || !sub.isCorrect) return p;
+        const previousPoints = previousSubmission?.points || 0;
+        let nextPoints: number | undefined;
 
-        const rank = correctSubmissions.findIndex(cs => cs.playerId === p.id);
-        const bonus = rank >= 0 && rank < 3 ? SPEED_BONUSES[rank] : 0;
-        const points = BASE_POINTS + bonus;
+        if (currentSubmission?.isCorrect) {
+            const rank = correctSubmissions.findIndex(cs => cs.playerId === player.id);
+            const bonus = rank >= 0 && rank < 3 ? SPEED_BONUSES[rank] : 0;
+            nextPoints = BASE_POINTS + bonus;
+        }
 
+        const scoreDelta = (nextPoints || 0) - previousPoints;
         return {
-            ...p,
-            round2Submissions: (p.round2Submissions || []).map(s =>
-                s.questionId === currentQuestionId ? { ...s, points } : s
-            ),
-            score: p.score + points
+            ...player,
+            round2Submissions: (player.round2Submissions || []).map(s => {
+                if (s.questionId !== currentQuestionId) return s;
+
+                const { points: _oldPoints, ...rest } = s;
+                return {
+                    ...rest,
+                    ...(nextPoints !== undefined ? { points: nextPoints } : {})
+                };
+            }),
+            score: Math.max(0, player.score + scoreDelta)
         };
     });
 
@@ -127,39 +123,39 @@ export const calculateGradeRound3Question = (prev: GameState, playerId: string, 
         };
     });
 
-    // Check if current player has completed all 3 questions
     const currentPlayer = updatedPlayers.find(p => p.id === playerId);
-    const allQuestionsAnswered = currentPlayer?.round3Pack.every(item => item.status !== 'PENDING');
 
-    // If all 3 questions answered, clear turn and reset phase
+    if (newStatus === 'WRONG' || newStatus === 'SKIP') {
+        return {
+            players: updatedPlayers,
+            showAnswer: false,
+            round3Phase: 'SHOW_WRONG_DELAY',
+            buzzerLocked: true,
+            timerEndTime: now + 5000,
+            message: newStatus === 'SKIP'
+                ? `⏭️ Question skipped. Steal window opening...`
+                : `❌ Wrong answer! Steal window opening...`
+        };
+    }
+
+    const allQuestionsAnswered = currentPlayer?.round3Pack.every(item => item.status !== 'PENDING');
     if (allQuestionsAnswered) {
         return {
             players: updatedPlayers,
             round3TurnPlayerId: null,
             round3Phase: 'IDLE',
             activeQuestion: null,
+            round3ActivePackIndex: null,
             timerEndTime: null,
             message: `🎉 ${currentPlayer?.name} completed all questions!`
         };
     }
 
-    // MATCH QUIZ MODE BEHAVIOR: If WRONG, trigger STEAL mechanism
-    if (newStatus === 'WRONG') {
-        return {
-            players: updatedPlayers,
-            showAnswer: false, // Keep answer hidden during steal
-            round3Phase: 'SHOW_WRONG_DELAY',
-            buzzerLocked: true,
-            timerEndTime: now + 5000, // 5s delay before steal
-            message: `❌ Wrong answer! Steal window opening...`
-        };
-    }
-
-    // CORRECT or SKIP: Just update players, continue to next question
     return {
         players: updatedPlayers,
-        round3Phase: 'IDLE', // Ready for next question
+        round3Phase: 'IDLE',
         activeQuestion: null,
+        round3ActivePackIndex: null,
         timerEndTime: null
     };
 };
@@ -189,8 +185,9 @@ export const calculateResolveSteal = (prev: GameState, stealerId: string, isCorr
             // CORRECT: +points, WRONG: -points (SAME VALUE!)
             const scoreDelta = isCorrect ? points : -points;
             const newScore = p.score + scoreDelta;
-            // On wrong steal, keep buzzedAt so this student is considered already attempted in this steal window.
-            return { ...p, score: Math.max(0, newScore) };
+            // Use a negative sentinel to mark "already attempted this steal window"
+            // without keeping the player visible in the current queue.
+            return { ...p, score: Math.max(0, newScore), buzzedAt: isCorrect ? p.buzzedAt : -1 };
         }
         return p;
     });
@@ -207,6 +204,7 @@ export const calculateResolveSteal = (prev: GameState, stealerId: string, isCorr
         return {
             players: updatedPlayers,
             activeQuestion: null,
+            round3ActivePackIndex: null,
             timerEndTime: null,
             buzzerLocked: true,
             round3Phase: 'IDLE',
@@ -226,3 +224,28 @@ export const calculateResolveSteal = (prev: GameState, stealerId: string, isCorr
     }
 };
 
+export const calculateStealTimeoutPenalty = (prev: GameState, stealerId: string, points: number): Partial<GameState> => {
+    const updatedPlayers = prev.players
+        .map(p => p.id === stealerId
+            ? { ...p, score: Math.max(0, p.score - points) }
+            : p)
+        .map(p => ({ ...p, buzzedAt: null }));
+
+    const originalPlayerId = prev.round3TurnPlayerId;
+    const originalPlayer = updatedPlayers.find(p => p.id === originalPlayerId);
+    const hasPendingLeft = originalPlayer?.round3Pack.some(item => item.status === 'PENDING') ?? false;
+
+    return {
+        players: updatedPlayers,
+        round3Phase: 'IDLE',
+        round3TurnPlayerId: hasPendingLeft ? originalPlayerId : null,
+        activeStealPlayerId: null,
+        buzzerLocked: true,
+        timerEndTime: null,
+        activeQuestion: null,
+        round3ActivePackIndex: null,
+        showAnswer: false,
+        stealTimerPausedRemaining: null,
+        message: '⏱️ Steal timeout. Penalty applied.'
+    };
+};
