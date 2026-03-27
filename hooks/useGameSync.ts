@@ -779,7 +779,17 @@ export const useGameSync = () => {
 
             if (selectedQ) {
                 // Deep copy to avoid mutating original ROUND_3_QUESTIONS source data
-                const finalQ = { ...selectedQ, options: selectedQ.options ? [...selectedQ.options] : undefined };
+                // IMPORTANT: exclude `options` entirely when undefined — Firestore rejects undefined fields
+                const hasOptions = Array.isArray(selectedQ.options) && selectedQ.options.length > 0;
+                const finalQ: Question = {
+                    id: selectedQ.id,
+                    content: selectedQ.content,
+                    answer: selectedQ.answer,
+                    difficulty: selectedQ.difficulty,
+                    points: selectedQ.points,
+                    ...(hasOptions ? { options: [...selectedQ.options!] } : {}),
+                    ...(selectedQ.category ? { category: selectedQ.category } : {}),
+                };
 
                 // Fisher-Yates shuffle — đảm bảo xáo trộn đều, không bias
                 if (finalQ.options) {
@@ -820,6 +830,7 @@ export const useGameSync = () => {
                         content: `No ${difficulty} questions remaining!`,
                         points: 0,
                         difficulty: difficulty
+                        // intentionally no `options` field — avoids Firestore undefined error
                     }
                 };
             }
