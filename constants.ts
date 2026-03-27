@@ -80,35 +80,128 @@ export const ROUND_2_QUESTIONS: Question[] = [
 // Chia đều 3 độ khó: EASY (30), MEDIUM (30), HARD (30)
 
 const R3_EASY: Question[] = [
-    { id: 'r3-e1', difficulty: 'EASY', points: 20, content: 'Tên hàm dùng để in dữ liệu?', answer: 'print()' },
-    { id: 'r3-e2', difficulty: 'EASY', points: 20, content: 'Phép chia lấy dư dùng ký hiệu gì?', answer: '%' },
-    { id: 'r3-e3', difficulty: 'EASY', points: 20, content: 'Muốn nhập dữ liệu từ bàn phím dùng hàm gì?', answer: 'input()' },
-    { id: 'r3-e4', difficulty: 'EASY', points: 20, content: 'Danh sách rỗng ký hiệu thế nào?', answer: '[]' },
-    { id: 'r3-e5', difficulty: 'EASY', points: 20, content: 'Số nguyên trong tiếng Anh gọi là gì?', answer: 'Integer (int)' },
-    // ... Copy thêm 25 câu EASY ...
+    {
+        id: 'r3-e1', difficulty: 'EASY', points: 20,
+        content: 'Tên hàm dùng để in dữ liệu?',
+        answer: 'print()',
+        options: ['print()', 'input()', 'display()', 'show()']
+    },
+    {
+        id: 'r3-e2', difficulty: 'EASY', points: 20,
+        content: 'Phép chia lấy dư dùng ký hiệu gì?',
+        answer: '%',
+        options: ['%', '//', '**', '/']
+    },
+    {
+        id: 'r3-e3', difficulty: 'EASY', points: 20,
+        content: 'Muốn nhập dữ liệu từ bàn phím dùng hàm gì?',
+        answer: 'input()',
+        options: ['input()', 'scan()', 'readline()', 'get()']
+    },
+    {
+        id: 'r3-e4', difficulty: 'EASY', points: 20,
+        content: 'Danh sách rỗng ký hiệu thế nào?',
+        answer: '[]',
+        options: ['[]', '{}', '()', '<>']
+    },
+    {
+        id: 'r3-e5', difficulty: 'EASY', points: 20,
+        content: 'Số nguyên trong tiếng Anh gọi là gì?',
+        answer: 'Integer (int)',
+        options: ['Integer (int)', 'Float (float)', 'String (str)', 'Boolean (bool)']
+    },
 ];
 
 const R3_MEDIUM: Question[] = [
-    { id: 'r3-m1', difficulty: 'MEDIUM', points: 30, content: 'Làm sao thêm phần tử vào cuối List?', answer: '.append()' },
-    { id: 'r3-m2', difficulty: 'MEDIUM', points: 30, content: 'Range(5) tạo ra các số nào?', answer: '0, 1, 2, 3, 4' },
-    { id: 'r3-m3', difficulty: 'MEDIUM', points: 30, content: 'Lệnh nào thoát khỏi vòng lặp ngay lập tức?', answer: 'break' },
-    { id: 'r3-m4', difficulty: 'MEDIUM', points: 30, content: 'Làm sao để lấy phần tử cuối cùng của List?', answer: 'list[-1]' },
-    { id: 'r3-m5', difficulty: 'MEDIUM', points: 30, content: 'Hàm len("Hello") trả về bao nhiêu?', answer: '5' },
-    // ... Copy thêm 25 câu MEDIUM ...
+    {
+        id: 'r3-m1', difficulty: 'MEDIUM', points: 30,
+        content: 'Làm sao thêm phần tử vào cuối List?',
+        answer: '.append()',
+        options: ['.append()', '.add()', '.push()', '.insert()']
+    },
+    {
+        id: 'r3-m2', difficulty: 'MEDIUM', points: 30,
+        content: 'Range(5) tạo ra các số nào?',
+        answer: '0, 1, 2, 3, 4',
+        options: ['0, 1, 2, 3, 4', '1, 2, 3, 4, 5', '0, 1, 2, 3, 4, 5', '1, 2, 3, 4']
+    },
+    {
+        id: 'r3-m3', difficulty: 'MEDIUM', points: 30,
+        content: 'Lệnh nào thoát khỏi vòng lặp ngay lập tức?',
+        answer: 'break',
+        options: ['break', 'continue', 'pass', 'return']
+    },
+    {
+        id: 'r3-m4', difficulty: 'MEDIUM', points: 30,
+        content: 'Làm sao để lấy phần tử cuối cùng của List?',
+        answer: 'list[-1]',
+        options: ['list[-1]', 'list[0]', 'list.last()', 'list.end()']
+    },
+    {
+        id: 'r3-m5', difficulty: 'MEDIUM', points: 30,
+        content: 'Hàm len("Hello") trả về bao nhiêu?',
+        answer: '5',
+        options: ['5', '4', '6', '3']
+    },
 ];
 
 const R3_HARD: Question[] = [
-    { id: 'r3-h1', difficulty: 'HARD', points: 40, content: 'Viết hàm kiểm tra số chẵn?', answer: 'def check(n): return n % 2 == 0' },
-    { id: 'r3-h2', difficulty: 'HARD', points: 40, content: 'Thuật toán Hoán đổi giá trị 2 biến?', answer: 'temp = a; a = b; b = temp' },
-    { id: 'r3-h3', difficulty: 'HARD', points: 40, content: 'Vòng lặp vô hạn viết như thế nào?', answer: 'while True:' },
-    { id: 'r3-h4', difficulty: 'HARD', points: 40, content: 'Cách khai báo chuỗi nhiều dòng?', answer: 'Dùng 3 dấu nháy đơn hoặc kép' },
-    { id: 'r3-h5', difficulty: 'HARD', points: 40, content: 'Sự khác biệt giữa List và Tuple?', answer: 'List thay đổi được, Tuple thì không' },
-    // ... Copy thêm 25 câu HARD ...
+    {
+        id: 'r3-h1', difficulty: 'HARD', points: 40,
+        content: 'Viết hàm kiểm tra số chẵn?',
+        answer: 'def check(n): return n % 2 == 0',
+        options: [
+            'def check(n): return n % 2 == 0',
+            'def check(n): return n % 2 == 1',
+            'def check(n): return n / 2 == 0',
+            'def check(n): return n // 2 == 0'
+        ]
+    },
+    {
+        id: 'r3-h2', difficulty: 'HARD', points: 40,
+        content: 'Thuật toán Hoán đổi giá trị 2 biến?',
+        answer: 'temp = a; a = b; b = temp',
+        options: [
+            'temp = a; a = b; b = temp',
+            'a = b; b = a',
+            'swap(a, b)',
+            'temp = b; b = a; a = temp'
+        ]
+    },
+    {
+        id: 'r3-h3', difficulty: 'HARD', points: 40,
+        content: 'Vòng lặp vô hạn viết như thế nào?',
+        answer: 'while True:',
+        options: ['while True:', 'for ever:', 'loop forever:', 'while 1 == 1:']
+    },
+    {
+        id: 'r3-h4', difficulty: 'HARD', points: 40,
+        content: 'Cách khai báo chuỗi nhiều dòng?',
+        answer: 'Dùng 3 dấu nháy đơn hoặc kép',
+        options: [
+            'Dùng 3 dấu nháy đơn hoặc kép',
+            'Dùng dấu backslash (\\)',
+            'Dùng hàm multiline()',
+            'Dùng dấu nháy kép dài'
+        ]
+    },
+    {
+        id: 'r3-h5', difficulty: 'HARD', points: 40,
+        content: 'Sự khác biệt giữa List và Tuple?',
+        answer: 'List thay đổi được, Tuple thì không',
+        options: [
+            'List thay đổi được, Tuple thì không',
+            'Tuple thay đổi được, List thì không',
+            'Cả hai đều thay đổi được',
+            'Cả hai đều không thay đổi được'
+        ]
+    },
 ];
 
 export const ROUND_3_QUESTIONS: Question[] = [
     ...R3_EASY, ...R3_MEDIUM, ...R3_HARD
 ];
+
 
 export const STORAGE_KEY = 'coding-showdown-state';
 
