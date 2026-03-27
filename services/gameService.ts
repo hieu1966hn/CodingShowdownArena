@@ -4,7 +4,7 @@ import "firebase/compat/firestore";
 import "firebase/compat/auth";
 import { db, auth, googleProvider } from "../firebase";
 import { GameState, GameRound, Player, Question, Difficulty, PackStatus, Round3Item, INITIAL_STATE } from "../gameTypes";
-import { ROUND_3_QUESTIONS } from "../constants";
+import { ROUND_3_QUESTIONS } from "../data/questions";
 
 export const useGameSync = () => {
     const [user, setUser] = useState<firebase.User | null>(null);

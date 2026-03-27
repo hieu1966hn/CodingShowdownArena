@@ -332,27 +332,34 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
             }
 
             if (!gameState.round3TurnPlayerId) {
-                const hasRound3Started = gameState.players.some(player =>
-                    player.round3Pack.some(item => item.status !== 'PENDING')
+                // Pick the first player who still has pending questions
+                const nextPlayer = lockedPlayers.find(p =>
+                    p.round3Pack.some(item => item.status === 'PENDING')
                 );
 
-                if (!hasRound3Started) {
+                if (!nextPlayer) {
                     return {
-                        label: 'Chọn mode + học viên mở màn',
-                        hint: 'Vào Round 3: giáo viên chủ động chọn Vấn đáp/Trắc nghiệm và học viên bắt đầu.',
+                        label: 'Không còn lượt pending',
+                        hint: 'Tất cả gói câu đã hoàn thành.',
                         disabled: true,
                         run: () => {}
                     };
                 }
 
-                const nextPlayer = lockedPlayers.find(p => p.round3Pack.some(item => item.status === 'PENDING'));
+                const hasRound3Started = gameState.players.some(player =>
+                    player.round3Pack.some(item => item.status !== 'PENDING')
+                );
+
                 return {
-                    label: nextPlayer ? `Mở lượt: ${nextPlayer.name}` : 'Không còn lượt pending',
-                    hint: 'Tự chọn học viên tiếp theo đủ điều kiện.',
-                    disabled: !nextPlayer,
-                    run: () => nextPlayer && actions.setRound3Turn(nextPlayer.id)
+                    label: hasRound3Started ? `Mở lượt: ${nextPlayer.name}` : `Bắt đầu với: ${nextPlayer.name}`,
+                    hint: hasRound3Started
+                        ? 'Tự chọn học viên tiếp theo đủ điều kiện.'
+                        : 'Mở lượt đầu tiên để bắt đầu Round 3 auto-flow.',
+                    disabled: false,
+                    run: () => actions.setRound3Turn(nextPlayer.id)
                 };
             }
+
 
             if (!gameState.activeQuestion && gameState.round3Phase === 'IDLE') {
                 const currentPlayer = gameState.players.find(p => p.id === gameState.round3TurnPlayerId);

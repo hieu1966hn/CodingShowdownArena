@@ -4,7 +4,7 @@ import "firebase/compat/firestore";
 import "firebase/compat/auth";
 import { db, auth, googleProvider } from "../lib/firebase";
 import { GameState, GameRound, Player, Question, Difficulty, PackStatus, Round3Item, Round3Mode, Round3Phase, INITIAL_STATE, PlayerCheckpoint, Checkpoints } from "../gameTypes";
-import { ROUND_2_QUESTIONS, ROUND_3_QUESTIONS } from "../constants";
+import { ROUND_2_QUESTIONS, ROUND_3_QUESTIONS } from "../data/questions";
 import { calculateGradeRound1, calculateGradeRound2Question, calculateGradeRound3Question, calculateActivateSteal, calculateResolveSteal } from "../lib/gameScoring";
 import { logger } from "../lib/logger";
 
@@ -636,19 +636,94 @@ export const useGameSync = () => {
     };
 
     const setRound3Turn = (playerId: string | null) => {
-        updateState({
-            round3TurnPlayerId: playerId,
-            round3Phase: 'IDLE',
-            activeStealPlayerId: null,
-            message: null,
-            buzzerLocked: true,
-            timerEndTime: null,
-            activeQuestion: null,
-            showAnswer: false,
-            stealTimerPausedRemaining: null,
-            players: gameState.players.map(p => ({ ...p, buzzedAt: null }))
+        updateState((prev) => {
+            const baseReset = {
+                round3TurnPlayerId: playerId,
+                round3Phase: 'IDLE' as Round3Phase,
+                activeStealPlayerId: null,
+                message: null,
+                buzzerLocked: true,
+                timerEndTime: null,
+                activeQuestion: null,
+                showAnswer: false,
+                stealTimerPausedRemaining: null,
+                players: prev.players.map(p => ({ ...p, buzzedAt: null }))
+            };
+
+            // null → just reset, no auto-reveal
+            if (!playerId) return baseReset;
+
+            // Find the first PENDING pack item for this player
+            const player = prev.players.find(p => p.id === playerId);
+            const nextPending = player?.round3Pack.find(item => item.status === 'PENDING');
+
+            if (!nextPending) return baseReset; // no pending questions, just set turn
+
+            // Auto-reveal: pick a question of the right difficulty
+            const difficulty = nextPending.difficulty;
+            let pool = ROUND_3_QUESTIONS.filter(q =>
+                q.difficulty === difficulty &&
+                !prev.usedQuestionIds.includes(q.id)
+            );
+            // Pool recycling: when all questions of this difficulty have been used,
+            // fall back to the full difficulty pool (no "no questions remaining" crash)
+            if (pool.length === 0) {
+                pool = ROUND_3_QUESTIONS.filter(q => q.difficulty === difficulty);
+            }
+
+            const selectedQ = prev.round3SelectionMode === 'SEQUENTIAL'
+                ? pool[0]
+                : pool[Math.floor(Math.random() * pool.length)];
+
+            if (!selectedQ) return baseReset; // truly no questions exist for this difficulty
+
+            // Build finalQ without undefined fields (Firestore rejects undefined)
+            const hasOptions = Array.isArray(selectedQ.options) && selectedQ.options.length > 0;
+            const finalQ: Question = {
+                id: selectedQ.id,
+                content: selectedQ.content,
+                answer: selectedQ.answer,
+                difficulty: selectedQ.difficulty,
+                points: selectedQ.points,
+                ...(hasOptions ? { options: [...selectedQ.options!] } : {}),
+                ...(selectedQ.category ? { category: selectedQ.category } : {}),
+            };
+
+            // Fisher-Yates shuffle options
+            if (finalQ.options) {
+                const opts = finalQ.options;
+                for (let i = opts.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [opts[i], opts[j]] = [opts[j], opts[i]];
+                }
+                finalQ.options = opts;
+            }
+
+            // Timer duration based on difficulty
+            let timerDuration = 15;
+            switch (difficulty) {
+                case 'EASY':   timerDuration = 20;  break;
+                case 'MEDIUM': timerDuration = 60;  break;
+                case 'HARD':   timerDuration = 120; break;
+            }
+
+            return {
+                ...baseReset,
+                round3TurnPlayerId: playerId,
+                activeQuestion: finalQ,
+                round3Phase: 'MAIN_ANSWER' as Round3Phase,
+                timerEndTime: Date.now() + timerDuration * 1000,
+                usedQuestionIds: [...prev.usedQuestionIds, selectedQ.id],
+                players: prev.players.map(p => ({
+                    ...p,
+                    buzzedAt: null,
+                    round3QuizAnswer: p.id === playerId ? null : p.round3QuizAnswer
+                })),
+                showAnswer: false
+            };
         });
     };
+
 
     const setRound3Mode = (mode: Round3Mode) => {
         updateState((prev) => {
@@ -764,10 +839,15 @@ export const useGameSync = () => {
 
     const revealRound3Question = (difficulty: Difficulty) => {
         updateState((prev) => {
-            const pool = ROUND_3_QUESTIONS.filter(q =>
+            let pool = ROUND_3_QUESTIONS.filter(q =>
                 q.difficulty === difficulty &&
                 !prev.usedQuestionIds.includes(q.id)
             );
+            // Pool recycling: when all questions of this difficulty have been used,
+            // fall back to the full difficulty pool instead of showing an error
+            if (pool.length === 0) {
+                pool = ROUND_3_QUESTIONS.filter(q => q.difficulty === difficulty);
+            }
 
             let selectedQ: Question | undefined;
 
@@ -824,15 +904,8 @@ export const useGameSync = () => {
                     showAnswer: false
                 };
             } else {
-                return {
-                    activeQuestion: {
-                        id: `temp-${Date.now()}`,
-                        content: `No ${difficulty} questions remaining!`,
-                        points: 0,
-                        difficulty: difficulty
-                        // intentionally no `options` field — avoids Firestore undefined error
-                    }
-                };
+                // Truly no questions exist for this difficulty in the database
+                return {};
             }
         });
     };

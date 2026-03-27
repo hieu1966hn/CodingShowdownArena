@@ -196,17 +196,25 @@ export const calculateResolveSteal = (prev: GameState, stealerId: string, isCorr
     });
 
     if (isCorrect) {
-        // Steal Correct: End the turn AND clear all buzzers inline
+        // Steal Correct: clear the current question
         updatedPlayers = updatedPlayers.map(p => ({ ...p, buzzedAt: null }));
+
+        // Check if the ORIGINAL turn player still has pending questions
+        const originalPlayerId = prev.round3TurnPlayerId;
+        const originalPlayer = updatedPlayers.find(p => p.id === originalPlayerId);
+        const hasPendingLeft = originalPlayer?.round3Pack.some(item => item.status === 'PENDING') ?? false;
 
         return {
             players: updatedPlayers,
             activeQuestion: null,
             timerEndTime: null,
-            buzzerLocked: false, // Unlock for next turn
+            buzzerLocked: true,
             round3Phase: 'IDLE',
             activeStealPlayerId: null,
-            round3TurnPlayerId: null
+            // Keep original player's turn if they still have PENDING questions.
+            // C1 useEffect will auto-reveal their next question.
+            // Only null out the turn if all their questions are done (→ C4 advances to next player).
+            round3TurnPlayerId: hasPendingLeft ? originalPlayerId : null
         };
     } else {
         // Steal Wrong: Continue the steal window, unlock buzzers for OTHERS
@@ -217,3 +225,4 @@ export const calculateResolveSteal = (prev: GameState, stealerId: string, isCorr
         };
     }
 };
+
