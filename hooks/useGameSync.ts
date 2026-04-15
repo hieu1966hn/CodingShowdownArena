@@ -9,6 +9,16 @@ import { calculateGradeRound1, calculateGradeRound2Question, calculateGradeRound
 import { logger } from "../lib/logger";
 
 const CACHE_KEY = "csa_session_cache";
+const ROUND_2_TIMER_SECONDS = 25;
+
+const getRound3TimerDuration = (difficulty?: Difficulty) => {
+    switch (difficulty) {
+        case 'EASY': return 20;
+        case 'MEDIUM': return 40;
+        case 'HARD': return 60;
+        default: return 15;
+    }
+};
 
 export const useGameSync = () => {
     const [user, setUser] = useState<firebase.User | null>(null);
@@ -430,18 +440,9 @@ export const useGameSync = () => {
 
     const startRound2Timer = () => {
         updateState((prev) => {
-            let duration = 25;
-            if (prev.activeQuestion) {
-                switch (prev.activeQuestion.difficulty) {
-                    case 'EASY': duration = 20; break;
-                    case 'MEDIUM': duration = 60; break;
-                    case 'HARD': duration = 120; break;
-                    default: duration = 25;
-                }
-            }
             const now = Date.now();
             return {
-                timerEndTime: now + duration * 1000,
+                timerEndTime: now + ROUND_2_TIMER_SECONDS * 1000,
                 round2StartedAt: now,
                 buzzerLocked: true
             };
@@ -472,21 +473,10 @@ export const useGameSync = () => {
         updateState((prev) => {
             if (prev.round2Questions.length === 0) return {};
 
-            // Start timer for the first question immediately
-            const firstQ = ROUND_2_QUESTIONS.find(q => q.id === prev.round2Questions[0]);
-            let duration = 25;
-            if (firstQ) {
-                switch (firstQ.difficulty) {
-                    case 'EASY': duration = 20; break;
-                    case 'MEDIUM': duration = 60; break;
-                    case 'HARD': duration = 120; break;
-                    default: duration = 25;
-                }
-            }
             const now = Date.now();
             return {
                 round2Reviewed: true,
-                timerEndTime: now + duration * 1000,
+                timerEndTime: now + ROUND_2_TIMER_SECONDS * 1000,
                 round2StartedAt: now,
                 buzzerLocked: true
             };
@@ -729,13 +719,7 @@ export const useGameSync = () => {
                 finalQ.options = opts;
             }
 
-            // Timer duration based on difficulty
-            let timerDuration = 15;
-            switch (difficulty) {
-                case 'EASY':   timerDuration = 20;  break;
-                case 'MEDIUM': timerDuration = 60;  break;
-                case 'HARD':   timerDuration = 120; break;
-            }
+            const timerDuration = getRound3TimerDuration(difficulty);
 
             return {
                 ...baseReset,
@@ -921,12 +905,7 @@ export const useGameSync = () => {
                 // Compute timer duration based on difficulty — done atomically here
                 // to avoid the stale-closure bug where a separate C2 useEffect read
                 // null activeQuestion and always defaulted to 15s.
-                let timerDuration = 15;
-                switch (difficulty) {
-                    case 'EASY':   timerDuration = 20;  break;
-                    case 'MEDIUM': timerDuration = 60;  break;
-                    case 'HARD':   timerDuration = 120; break;
-                }
+                const timerDuration = getRound3TimerDuration(difficulty);
 
                 return {
                     activeQuestion: finalQ,
@@ -951,12 +930,7 @@ export const useGameSync = () => {
         updateState((prev) => {
             let duration = 15;
             if (type === 'MAIN' && prev.activeQuestion) {
-                switch (prev.activeQuestion.difficulty) {
-                    case 'EASY': duration = 20; break;
-                    case 'MEDIUM': duration = 60; break;
-                    case 'HARD': duration = 120; break;
-                    default: duration = 15;
-                }
+                duration = getRound3TimerDuration(prev.activeQuestion.difficulty);
             }
 
             return {
@@ -1238,22 +1212,13 @@ export const useGameSync = () => {
             const nextQuestion = ROUND_2_QUESTIONS.find(q => q.id === nextQuestionId);
 
             // Phase1-B1: Auto-start timer for next question
-            let duration = 25;
-            if (nextQuestion) {
-                switch (nextQuestion.difficulty) {
-                    case 'EASY': duration = 20; break;
-                    case 'MEDIUM': duration = 60; break;
-                    case 'HARD': duration = 120; break;
-                    default: duration = 25;
-                }
-            }
             const now = Date.now();
 
             return {
                 round2CurrentQuestion: nextIndex,
                 activeQuestion: nextQuestion || null,
                 round2StartedAt: now,
-                timerEndTime: now + duration * 1000,
+                timerEndTime: now + ROUND_2_TIMER_SECONDS * 1000,
                 showAnswer: false,
                 viewingPlayerId: null
             };

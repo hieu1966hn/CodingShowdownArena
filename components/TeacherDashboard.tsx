@@ -168,8 +168,8 @@ const TeacherDashboard: React.FC<Props> = ({ gameState, actions, onLeave }) => {
     const getDynamicTimerDuration = (difficulty?: Difficulty) => {
         switch (difficulty) {
             case 'EASY': return 20;
-            case 'MEDIUM': return 60;
-            case 'HARD': return 120;
+            case 'MEDIUM': return 40;
+            case 'HARD': return 60;
             default: return 25;
         }
     };
